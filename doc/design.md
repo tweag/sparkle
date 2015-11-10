@@ -101,7 +101,7 @@ From the Java side, we need to pass the serialized closure to `invoke` and feed 
 
 #### Returning their results to Java
 
-The result of the call to `invoke` can then be given back to Java. The Java code can put the result back in an *RDD* or aggregate all those results to produce some final value to return to the driver program.
+The result of the call to `invoke` can then be given back to Java. The Java code can put the result back in an *RDD* or aggregate all those results to produce some final value to return to the driver program. It's not clear yet if we can keep "strongly typed" *RDD*s on the Java side or if we have/need to store everything as `ByteString`, relying on some Haskell code for the serialization of everything in the right format for `invoke`, even though we would probably prefer the former despite the fact that the latter would be the sanest approach (and probably the only approach that works for us).
 
 ## Milestones
 
