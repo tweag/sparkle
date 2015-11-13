@@ -1,11 +1,19 @@
 Clone distributed-closure and this repo and build everything:
 
 ``` bash
+# get 'distributed-closure' and modified 'binary'
 $ git clone https://github.com/tweag/distributed-closure.git
+$ cd distributed-closure/vendor
+$ git submodule update --init ./binary
+$ cd ../../
+
+# get this repo
 $ git clone https://github.com/tweag/sparkle.git
 $ cd sparkle
 $ git checkout export-invoke-to-c
 $ cd simple-c-export
+
+# build everything
 $ stack build
 ```
 
