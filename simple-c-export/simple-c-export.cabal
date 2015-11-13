@@ -1,0 +1,42 @@
+name:                simple-c-export
+version:             0.1
+-- synopsis:            
+-- description:         
+license:             BSD3
+license-file:        LICENSE
+author:              Alp Mestanogullari
+maintainer:          alp.mestanogullari@tweag.io
+-- copyright:           
+-- category:            
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     Simple, Spark
+  -- other-modules:       
+  other-extensions:    CPP, ForeignFunctionInterface
+  build-depends:
+    base >=4.7 && <5,
+    binary >=0.7,
+    bytestring >=0.10,
+    distributed-closure >= 0.1
+  -- hs-source-dirs:      
+  default-language:    Haskell2010
+
+executable simple-write-closure
+  main-is: simple_write_closure.hs
+  build-depends: base, simple-c-export, binary, bytestring, distributed-closure
+  default-language:    Haskell2010
+
+executable simple-run-closure
+  main-is: simple_run_closure.hs
+  other-modules: Simple
+  build-depends: base, simple-c-export, binary, bytestring, distributed-closure
+  default-language:    Haskell2010
+
+executable simple-c
+  main-is: simple.c
+  other-modules: Spark
+  build-depends: base, bytestring, binary, distributed-closure, simple-c-export
+  default-language:    Haskell2010

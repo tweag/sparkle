@@ -1,0 +1,7 @@
+flags: {}
+packages:
+- '.'
+- ../../distributed-closure
+- ../../distributed-closure/vendor/binary
+extra-deps: []
+resolver: nightly-2015-11-09
