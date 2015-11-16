@@ -10,7 +10,7 @@ import Data.Binary
 import Data.ByteString.Unsafe (unsafeUseAsCStringLen, unsafePackCStringLen)
 import Foreign.Ptr (Ptr)
 import Foreign.Storable (poke)
-import Foreign.Marshal.Utils (copyBytes)
+import Foreign.Marshal.Utils
 import Foreign.Marshal.Alloc (mallocBytes)
 import Foreign.C.Types
 import Foreign.C.String (CStringLen)
@@ -48,19 +48,14 @@ invokeC :: Ptr CChar       -- ^ serialized closure buffer
         -> Ptr CSize       -- ^ (output) size of result, in bytes
         -> IO ()
 invokeC clos closSize arg argSize outPtr outSize = do
-    putStrLn "invokeC begins"
     clos' <- unsafePackCStringLen (clos, fromIntegral closSize)
     arg'  <- unsafePackCStringLen (arg, fromIntegral argSize)
+
     unsafeUseAsCStringLen (invoke clos' arg') $ \(p, n) -> do
-        putStrLn "within unsafeUseAsCStringLen"
         outval <- mallocBytes n
-        putStrLn "done with malloc() for result"
-        copyBytes outval p n
-        putStrLn "done copying the result's bytes in result ptr"
+        moveBytes outval p n
         poke outPtr outval
-        putStrLn "poke'd outPtr"
         poke outSize (fromIntegral n)
-    putStrLn "invokeC ends"
 
 wrap1 :: (Serializable a, Serializable b)
       => (a -> b)

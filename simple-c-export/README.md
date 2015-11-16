@@ -29,9 +29,8 @@ Run it using static pointer lookup, from haskell:
 stack exec simple-run-closure -- double.bin arg_double.bin
 ```
 
-... and fail to do the same in C.
+... and do the same in C.
 
 ``` bash
-# prints a parsing error from `binary`
-stack exec simple-c -- double.bin arg_double.bin
+stack exec simple-c -- double.bin arg_double.bin double_result.bin
 ```
