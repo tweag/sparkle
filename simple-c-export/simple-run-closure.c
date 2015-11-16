@@ -50,10 +50,22 @@ char* read_from_file(const char *filename, long* szOut)
     return result;
 }
 
+void write_to_file(const char* filename, char* buf, size_t bufSize)
+{
+    FILE* outFile = fopen(filename, "wb");
+
+    if(!outFile) {
+        fputs("File error.\n", stderr);
+        return;
+    }
+
+    fwrite(buf, bufSize, 1, outFile);
+}
+
 int main(int argc, char** argv)
 {
-    if(argc < 2) {
-        fputs("Need 2 arguments.\n", stderr);
+    if(argc < 3) {
+        fputs("Need 3 arguments.\n", stderr);
         return -1;
     }
 
@@ -64,23 +76,17 @@ int main(int argc, char** argv)
     char* arg  = read_from_file(argv[2], argSize);
     if(!clos || !arg) return -1;
 
-    char* res;
-    size_t* resSize;
-
-    /* DEBUGGING
-    printf("Closure size: %ld\n", *closSize);
-    printf("Argument size: %ld\n", *argSize);
-    fflush(stdout);
-    */
+    char** res = (char**) malloc(sizeof(char*));
+    size_t* resSize = (size_t *) malloc(sizeof(size_t));
 
     hask_init();
     invokeC(clos, *closSize, arg, *argSize, res, resSize);
-    fputs(res, stdout);
+    write_to_file(argv[3], *res, *resSize);
     hask_end();
 
     free(clos); free(closSize);
     free(arg); free(argSize);
-    free(res); free(resSize);
+    free(*res); free(res); free(resSize);
 
     return 0;
 }
