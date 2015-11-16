@@ -5,7 +5,7 @@
 
 HsBool hask_init(void){
     int argc = 0;
-    char *argv[] = { NULL }; // { "+RTS", "-A32m", NULL };
+    char *argv[] = { NULL } ; // { "+RTS", "-A1G", "-H1G", NULL };
     char **pargv = argv;
 
     // Initialize Haskell runtime
@@ -20,9 +20,9 @@ void hask_end(void){
     hs_exit();
 }
 
-char* read_from_file(const char *filename)
+char* read_from_file(const char *filename, long* szOut)
 {
-    long int size = 0;
+    long size = 0;
     FILE *file = fopen(filename, "r");
 
     if(!file) {
@@ -46,6 +46,7 @@ char* read_from_file(const char *filename)
     }
 
     fclose(file);
+    *szOut = size;
     return result;
 }
 
@@ -56,18 +57,30 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    char* clos = read_from_file(argv[1]);
-    char* arg  = read_from_file(argv[2]);
+    long* closSize = (long *) malloc(sizeof(long));
+    long* argSize  = (long *) malloc(sizeof(long));
+
+    char* clos = read_from_file(argv[1], closSize);
+    char* arg  = read_from_file(argv[2], argSize);
     if(!clos || !arg) return -1;
 
     char* res;
+    size_t* resSize;
+
+    /* DEBUGGING
+    printf("Closure size: %ld\n", *closSize);
+    printf("Argument size: %ld\n", *argSize);
+    fflush(stdout);
+    */
 
     hask_init();
-    res = invokeC(clos, arg);
+    invokeC(clos, *closSize, arg, *argSize, res, resSize);
     fputs(res, stdout);
     hask_end();
 
-    free(clos); free(arg); free(res);
+    free(clos); free(closSize);
+    free(arg); free(argSize);
+    free(res); free(resSize);
 
     return 0;
 }

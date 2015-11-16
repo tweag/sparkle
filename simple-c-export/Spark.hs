@@ -7,7 +7,13 @@ module Spark where
 
 import Control.Distributed.Closure
 import Data.Binary
-import Foreign.C.String
+import Data.ByteString.Unsafe (unsafeUseAsCStringLen, unsafePackCStringLen)
+import Foreign.Ptr (Ptr)
+import Foreign.Storable (poke)
+import Foreign.Marshal.Utils (copyBytes)
+import Foreign.Marshal.Alloc (mallocBytes)
+import Foreign.C.Types
+import Foreign.C.String (CStringLen)
 
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -24,16 +30,37 @@ invoke :: BS.ByteString -- ^ serialized closure
        -> BS.ByteString -- ^ serialized result
 invoke clos arg = decodeClosure clos arg
 
-foreign export ccall invokeC :: CString -> CString -> IO CString
+foreign export ccall invokeC :: Ptr CChar
+						     -> CLong
+						     -> Ptr CChar
+						     -> CLong
+						     -> Ptr (Ptr CChar)
+						     -> Ptr CSize
+						     -> IO ()
 
--- | C-friendly version of 'invoke'.
-invokeC :: CString
-        -> CString
-        -> IO CString
-invokeC clos arg = do
-    clos' <- BS.packCString clos
-    arg'  <- BS.packCString arg
-    BS.useAsCString (invoke clos' arg') return
+-- | C-friendly version of 'invoke', the one we actually
+--   export to C.
+invokeC :: Ptr CChar       -- ^ serialized closure buffer
+		-> CLong           -- ^ size (in bytes) of serialized closure
+        -> Ptr CChar       -- ^ serialized argument buffer
+        -> CLong           -- ^ size (in bytes) of serialized argument
+        -> Ptr (Ptr CChar) -- ^ (output) buffer to store serialized result
+        -> Ptr CSize       -- ^ (output) size of result, in bytes
+        -> IO ()
+invokeC clos closSize arg argSize outPtr outSize = do
+    putStrLn "invokeC begins"
+    clos' <- unsafePackCStringLen (clos, fromIntegral closSize)
+    arg'  <- unsafePackCStringLen (arg, fromIntegral argSize)
+    unsafeUseAsCStringLen (invoke clos' arg') $ \(p, n) -> do
+        putStrLn "within unsafeUseAsCStringLen"
+        outval <- mallocBytes n
+        putStrLn "done with malloc() for result"
+        copyBytes outval p n
+        putStrLn "done copying the result's bytes in result ptr"
+        poke outPtr outval
+        putStrLn "poke'd outPtr"
+        poke outSize (fromIntegral n)
+    putStrLn "invokeC ends"
 
 wrap1 :: (Serializable a, Serializable b)
       => (a -> b)
