@@ -1,4 +1,10 @@
-Clone distributed-closure and this repo and build everything:
+# Description
+
+This "mini-project" shows how one can use static pointers to serialize functions and *invoke them from C*.
+
+# Building and running
+
+Clone [distributed-closure](https://github.com/tweag/distributed-closure) and this repo and build everything:
 
 ``` bash
 # get 'distributed-closure' and modified 'binary'
