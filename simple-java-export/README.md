@@ -17,7 +17,7 @@ $ cd ../../
 $ git clone https://github.com/tweag/sparkle.git
 $ cd sparkle
 $ git checkout export-invoke-to-java
-$ cd simple-c-export
+$ cd simple-java-export
 
 # build everything
 $ stack build
