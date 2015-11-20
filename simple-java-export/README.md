@@ -2,7 +2,7 @@
 
 This "mini-project" shows how one can use static pointers to serialize functions and *invoke them from Java*, through C.
 
-# Building and running
+# Building
 
 Clone [distributed-closure](https://github.com/tweag/distributed-closure) and this repo and build everything:
 
@@ -19,9 +19,23 @@ $ cd sparkle
 $ git checkout export-invoke-to-java
 $ cd simple-java-export
 
-# build everything
+# compile Java code, generate Java-friendly header
+# for the Java -> C -> Haskell bridge
+$ javac HelloInvoke.java
+$ javah HelloInvoke
+```
+
+In order for the Java code to call our Haskell/C code, you need to tell Cabal where it can find Java's JNI headers.
+
+Open `simple-c-export.cabal` and tweak the `include-dirs` line. The first dir is the one that must contain `jni.h` while the second dir is the one that must contain `jni_md.h`, located in a subdir of the former (`darwin/` or `linux/`, from what I've seen).
+
+Finally, build all the Haskell & C code.
+
+``` bash
 $ stack build
 ```
+
+# Running
 
 Generate a serialized closure for `f x = x * 2` and the argument `20`:
 
@@ -41,16 +55,9 @@ stack exec simple-run-closure-hs -- double.bin arg_double.bin
 stack exec simple-run-closure-c -- double.bin arg_double.bin double_result.bin
 ```
 
-... and fail to do the same in Java. This one requires some fragile build commands though.
-
-First, open `simple-c-export.cabal` and tweak the `include-dirs` line. The first dir is the one that must contain `jni.h` while the second dir is the one that must contain `jni_md.h`, located in a subdir of the former (`darwin/` or `linux/`, from what I've seen).
-
-Next, run:
+... and fail to do the same in Java. Run:
 
 ``` bash
-$ javac HelloInvoke.java
-$ javah HelloInvoke
-
 $ cp .stack-work/dist/x86_64-osx/Cabal-1.22.4.0/build/libHSsimple-c-export-0.1-68i7Qs9bE8e9L0dHLMZ51G-ghc7.10.2.dylib libHelloInvoke.dylib
 # might need to adapt this line depending on OS, arch, cabal version, lib hash, etc
 $ java -classpath . -Djava.path.library=. HelloInvoke double.bin arg_double.bin
