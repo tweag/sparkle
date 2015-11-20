@@ -18,15 +18,22 @@ executable simple-write-closure
   build-depends: base, binary, bytestring, distributed-closure
   default-language:    Haskell2010
 
-executable simple-run-closure
+executable simple-run-closure-hs
   main-is: simple_run_closure.hs
   other-modules: Simple, Spark
   build-depends: base, binary, bytestring, distributed-closure
   default-language:    Haskell2010
 
-executable simple-c
+executable simple-run-closure-c
   main-is: simple-run-closure.c
   ghc-options: -no-hs-main
   other-modules: Simple, Spark
+
+library
+  c-sources: HelloInvoke.c
+  ghc-options: -fPIC -shared -staticlib
+  include-dirs: /Library/Java/JavaVirtualMachines/jdk1.8.0_65.jdk/Contents/Home/include /Library/Java/JavaVirtualMachines/jdk1.8.0_65.jdk/Contents/Home/include/darwin
+  exposed-modules: Simple, Spark
   build-depends: base, bytestring, binary, distributed-closure
+  extra-libraries: HSrts-ghc7.10.2
   default-language:    Haskell2010
