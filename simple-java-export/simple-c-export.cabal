@@ -28,10 +28,11 @@ executable simple-run-closure-c
   main-is: simple-run-closure.c
   ghc-options: -no-hs-main
   other-modules: Simple, Spark
+  build-depends: base, binary, bytestring, distributed-closure
 
 library
   c-sources: HelloInvoke.c
-  ghc-options: -fPIC -shared -staticlib
+  ghc-options: -fPIC -shared -dynamic
   include-dirs: /Library/Java/JavaVirtualMachines/jdk1.8.0_65.jdk/Contents/Home/include /Library/Java/JavaVirtualMachines/jdk1.8.0_65.jdk/Contents/Home/include/darwin
   exposed-modules: Simple, Spark
   build-depends: base, bytestring, binary, distributed-closure
