@@ -41,7 +41,7 @@ foreign export ccall invokeC :: Ptr CChar
 -- | C-friendly version of 'invoke', the one we actually
 --   export to C.
 invokeC :: Ptr CChar       -- ^ serialized closure buffer
-		-> CLong           -- ^ size (in bytes) of serialized closure
+        -> CLong           -- ^ size (in bytes) of serialized closure
         -> Ptr CChar       -- ^ serialized argument buffer
         -> CLong           -- ^ size (in bytes) of serialized argument
         -> Ptr (Ptr CChar) -- ^ (output) buffer to store serialized result
@@ -50,7 +50,6 @@ invokeC :: Ptr CChar       -- ^ serialized closure buffer
 invokeC clos closSize arg argSize outPtr outSize = do
     clos' <- unsafePackCStringLen (clos, fromIntegral closSize)
     arg'  <- unsafePackCStringLen (arg, fromIntegral argSize)
-
     unsafeUseAsCStringLen (invoke clos' arg') $ \(p, n) -> do
         outval <- mallocBytes n
         moveBytes outval p n

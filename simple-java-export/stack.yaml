@@ -1,6 +1,7 @@
 flags: {}
 packages:
-- '.'
+- ./hs-invoke
+- ./hs-invoke-bin
 - ../../distributed-closure
 - ../../distributed-closure/vendor/binary
 extra-deps: []

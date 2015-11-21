@@ -1,7 +1,7 @@
 import Control.Distributed.Closure
-import Simple
-import Spark
 import Data.Binary
+import GHC.StaticPtr
+import Spark (invoke)
 import System.Environment
 
 import qualified Data.ByteString      as BS
@@ -22,4 +22,5 @@ run :: FilePath -> FilePath -> IO ()
 run closureFile argFile = do
     serializedClosure <- BS.readFile closureFile
     serializedArg     <- BS.readFile argFile
+
     print . decodeInt $ invoke serializedClosure serializedArg
