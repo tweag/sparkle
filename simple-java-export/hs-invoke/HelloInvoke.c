@@ -33,6 +33,7 @@ void invokeHS
     hask_end();
 }
 
+// TODO: add some error checks
 JNIEXPORT jbyteArray JNICALL Java_HelloInvoke_invokeHS
   ( JNIEnv* env, jobject obj
   , jbyteArray clos, jint closSize
@@ -43,12 +44,14 @@ JNIEXPORT jbyteArray JNICALL Java_HelloInvoke_invokeHS
     jbyte* closPtr = (*env)->GetByteArrayElements(env, clos, &isCopyClos);
     jbyte* argPtr  = (*env)->GetByteArrayElements(env, arg, &isCopyArg);
 
-    jbyte** res = (jbyte**) malloc(sizeof(jbyte*));
-    size_t* resSize = (size_t *) malloc(sizeof(size_t));
+    jbyte* res = NULL;
+    size_t resSize;
 
     // jbyte = char, so we can go ahead and call invokeHS
-    invokeHS(closPtr, closSize, argPtr, argSize, res, resSize);
+    invokeHS(closPtr, closSize, argPtr, argSize, &res, &resSize);
 
-    jbyteArray retArray = (*env)->NewByteArray(env, *resSize);
-    (*env)->SetByteArrayRegion(env, retArray, 0, *resSize, *res);
+    jbyteArray retArray = (*env)->NewByteArray(env, resSize);
+    (*env)->SetByteArrayRegion(env, retArray, 0, resSize, res);
+
+    return retArray;
 }
