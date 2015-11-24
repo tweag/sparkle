@@ -1,0 +1,15 @@
+<project>
+  <groupId>org.tweag</groupId>
+  <artifactId>hs-invoke</artifactId>
+  <modelVersion>4.0.0</modelVersion>
+  <name>Hello hs-invoke</name>
+  <packaging>jar</packaging>
+  <version>1.0</version>
+  <dependencies>
+    <dependency> <!-- Spark dependency -->
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_2.10</artifactId>
+      <version>1.5.1</version>
+    </dependency>
+  </dependencies>
+</project>
