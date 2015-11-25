@@ -8,12 +8,14 @@ module Spark where
 import Control.Distributed.Closure
 import Data.Binary
 import Data.ByteString.Unsafe (unsafeUseAsCStringLen, unsafePackCStringLen)
+import Data.Maybe (catMaybes)
 import Foreign.Ptr (Ptr)
 import Foreign.Storable (poke)
 import Foreign.Marshal.Utils
 import Foreign.Marshal.Alloc (mallocBytes)
 import Foreign.C.Types
 import Foreign.C.String (CStringLen)
+import GHC.StaticPtr
 
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -50,11 +52,23 @@ invokeC :: Ptr CChar       -- ^ serialized closure buffer
 invokeC clos closSize arg argSize outPtr outSize = do
     clos' <- unsafePackCStringLen (clos, fromIntegral closSize)
     arg'  <- unsafePackCStringLen (arg, fromIntegral argSize)
+    -- debugStaticPtrs
     unsafeUseAsCStringLen (invoke clos' arg') $ \(p, n) -> do
         outval <- mallocBytes n
         moveBytes outval p n
         poke outPtr outval
         poke outSize (fromIntegral n)
+
+-- For debug use only: print the static pointer information
+-- for every static key we know about.
+debugStaticPtrs :: IO ()
+debugStaticPtrs = do
+  ks <- staticPtrKeys
+  ptrs <- fmap catMaybes $ mapM unsafeLookupStaticPtr ks
+  mapM_ printInfo ptrs
+
+  where printInfo :: StaticPtr () -> IO ()
+        printInfo = print . staticPtrInfo
 
 wrap1 :: (Serializable a, Serializable b)
       => (a -> b)

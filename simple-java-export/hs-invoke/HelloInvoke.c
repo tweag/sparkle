@@ -4,7 +4,11 @@
 #include "Spark_stub.h"
 #include "HelloInvoke.h"
 
-HsBool hask_init(void){
+HsBool hask_init() __attribute__((constructor));
+void   hask_end()  __attribute__((destructor));
+
+HsBool hask_init()
+{
     int argc = 0;
     char *argv[] = { NULL } ; // { "+RTS", "-A1G", "-H1G", NULL };
     char **pargv = argv;
@@ -12,12 +16,11 @@ HsBool hask_init(void){
     // Initialize Haskell runtime
     hs_init(&argc, &pargv);
 
-    // do any other initialization here and
-    // return false if there was a problem
     return HS_BOOL_TRUE;
 }
 
-void hask_end(void){
+void hask_end()
+{
     hs_exit();
 }
 
@@ -27,10 +30,12 @@ void invokeHS
   , char** res, long* resSize
   )
 {
-    hask_init();
+    /* No need for hask_init()/hask_end(), as they're performed whenever
+       the library is loaded.
+    */
+
     // call the Haskell function from Spark.hs
     invokeC(clos, closSize, arg, argSize, res, resSize);
-    hask_end();
 }
 
 // TODO: add some error checks
