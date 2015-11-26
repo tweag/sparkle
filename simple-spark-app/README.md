@@ -23,8 +23,8 @@ $ cd simple-spark-app
 
 # compile Java code, generate Java-friendly header
 # for the Java -> C -> Haskell bridge
-$ javac src/main/java/HelloInvoke.java
-$ javah -o hs-invoke/HelloInvoke.h HelloInvoke
+$ mvn package
+$ javah -o hs-invoke/HelloInvoke.h -cp target/classes/ HelloInvoke
 ```
 
 In order for the Java code to call our Haskell/C code, you need to tell Cabal where it can find Java's JNI headers.
@@ -35,8 +35,15 @@ Finally, build all the Haskell & C code, then the Spark+Java app.
 
 ``` bash
 $ stack build
-$ mvn package
 ```
+
+Now, let's just get our hands on the shared library we've just created.
+
+``` bash
+$ bash findLib.sh
+```
+
+This command will tell you where to find it and where to copy it.
 
 ## Running the Spark app
 
@@ -44,10 +51,11 @@ Serialize a function and an argument:
 
 ``` bash
 $ stack exec simple-write-closure -- double.bin 20
+$ APPDIR=$PWD
 ```
 
 Go into the root directory of your copy of Spark, then:
 
 ``` bash
-$ bin/spark-submit --class "HelloInvoke" --master local[8] --driver-library-path /Users/alp/TWEAG/spark-hs --files "/Users/alp/TWEAG/spark-hs/double.bin,/Users/alp/TWEAG/spark-hs/arg_double.bin" ../spark-hs/simple-spark-app/target/hs-invoke-1.0.jar
+$ bin/spark-submit --class "HelloInvoke" --master local[8] --driver-library-path $APPDIR --files "\"$APPDIR/double.bin,$APPDIR/arg_double.bin\"" $APPDIR/target/hs-invoke-1.0.jar
 ```
