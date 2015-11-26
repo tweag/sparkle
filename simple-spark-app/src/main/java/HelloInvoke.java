@@ -15,7 +15,7 @@ public class HelloInvoke {
   }
 
   public static void main(String[] args) {
-    String logFile = "/Users/alp/TWEAG/spark-1.5.1-bin-hadoop2.6/README.md"; // Should be some file on your system
+    String logFile = "./README.md"; // Should be some file on your system
     SparkConf conf = new SparkConf().setAppName("Simple Application");
     JavaSparkContext sc = new JavaSparkContext(conf);
     JavaRDD<String> logData = sc.textFile(logFile).cache();
@@ -26,8 +26,8 @@ public class HelloInvoke {
 
     long numBs = logData.filter(new Function<String, Boolean>() {
       public Boolean call(String s) {
-        Path closPath = FileSystems.getDefault().getPath("/Users/alp/TWEAG/spark-hs/double.bin");
-        Path argPath = FileSystems.getDefault().getPath("/Users/alp/TWEAG/spark-hs/arg_double.bin");
+        Path closPath = FileSystems.getDefault().getPath("./double.bin");
+        Path argPath = FileSystems.getDefault().getPath("./arg_double.bin");
         Path resultPath = FileSystems.getDefault().getPath("result.bin");
 
         try {
