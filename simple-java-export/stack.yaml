@@ -1,8 +1,0 @@
-flags: {}
-packages:
-- ./hs-invoke
-- ./hs-invoke-bin
-- ../../distributed-closure
-- ../../distributed-closure/vendor/binary
-extra-deps: []
-resolver: nightly-2015-11-09
