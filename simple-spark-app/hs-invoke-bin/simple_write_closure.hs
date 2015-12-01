@@ -1,12 +1,8 @@
 import Data.Binary
-import Simple
+import Simple (fSerialized)
 import System.Environment
 
 import qualified Data.ByteString.Lazy as LBS
-
-
-fSerialized :: LBS.ByteString
-fSerialized = encode fClosure
 
 main :: IO ()
 main = getArgs >>= \as -> case as of

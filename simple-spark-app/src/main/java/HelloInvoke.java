@@ -16,7 +16,7 @@ public class HelloInvoke {
 
   public static void main(String[] args) {
     String logFile = "./README.md"; // Should be some file on your system
-    SparkConf conf = new SparkConf().setAppName("Simple Application");
+    SparkConf conf = new SparkConf().setAppName("Hello hs-invoke!");
     JavaSparkContext sc = new JavaSparkContext(conf);
     JavaRDD<String> logData = sc.textFile(logFile).cache();
 
@@ -26,13 +26,21 @@ public class HelloInvoke {
 
     long numBs = logData.filter(new Function<String, Boolean>() {
       public Boolean call(String s) {
-        Path closPath = FileSystems.getDefault().getPath("./double.bin");
-        Path argPath = FileSystems.getDefault().getPath("./arg_double.bin");
         Path resultPath = FileSystems.getDefault().getPath("result.bin");
 
         try {
-            byte[] clos = Files.readAllBytes(closPath);
-            byte[] arg = Files.readAllBytes(argPath);
+            // our serialized function, f x = x * 2, as an
+            // array of bytes
+            byte[] clos =
+              { 0, 22, -98, -13
+              , -40, 92, -87, 116
+              , -56, -112, 123, -68
+              , 126, -43, 43, 32
+              , -61
+              };
+
+            // our serialized argument, 20
+            byte[] arg = { 0, 0, 0, 0, 0, 0, 0, 20 };
 
             byte[] res = new HelloInvoke().invokeHS(clos, clos.length, arg, arg.length);
             Files.write(resultPath, res);
