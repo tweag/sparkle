@@ -9,6 +9,8 @@ import java.nio.file.Path;
 
 public class HelloInvoke {
   private native byte[] invokeHS(byte[] clos, int closLen, byte[] arg, int argLen);
+  private native void   hask_init();
+  private native void   hask_end();
 
   static {
       System.loadLibrary("HelloInvoke");
@@ -26,7 +28,7 @@ public class HelloInvoke {
 
     long numBs = logData.filter(new Function<String, Boolean>() {
       public Boolean call(String s) {
-        Path resultPath = FileSystems.getDefault().getPath("result.bin");
+        Path resultPath = FileSystems.getDefault().getPath("./result.bin");
 
         try {
             // our serialized function, f x = x * 2, as an
@@ -42,7 +44,15 @@ public class HelloInvoke {
             // our serialized argument, 20
             byte[] arg = { 0, 0, 0, 0, 0, 0, 0, 20 };
 
-            byte[] res = new HelloInvoke().invokeHS(clos, clos.length, arg, arg.length);
+            System.out.println("About to call Haskell");
+            HelloInvoke hs = new HelloInvoke();
+            System.out.println("Starting Haskell RTS...");
+            hs.hask_init();
+            System.out.println("Haskell RTS started");
+            byte[] res = hs.invokeHS(clos, clos.length, arg, arg.length);
+            System.out.println("Shutting down Haskell RTS...");
+            hs.hask_end();
+            System.out.println("Came back from Haskell and RTS is down");
             Files.write(resultPath, res);
 
         } catch (IOException e) {

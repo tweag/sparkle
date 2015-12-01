@@ -4,22 +4,18 @@
 #include "Spark_stub.h"
 #include "HelloInvoke.h"
 
-HsBool hask_init() /* __attribute__((constructor)) */ ;
-void   hask_end() /* __attribute__((destructor)) */;
-
-HsBool hask_init()
+JNIEXPORT void JNICALL Java_HelloInvoke_hask_1init
+  (JNIEnv* env, jobject obj)
 {
     int argc = 0;
-    char *argv[] = { NULL } ; // { "+RTS", "-A1G", "-H1G", NULL };
+    char *argv[] = { NULL } ; // or e.g { "+RTS", "-A1G", "-H1G", NULL };
     char **pargv = argv;
 
-    // Initialize Haskell runtime
     hs_init(&argc, &pargv);
-
-    return HS_BOOL_TRUE;
 }
 
-void hask_end()
+JNIEXPORT void JNICALL Java_HelloInvoke_hask_1end
+  (JNIEnv* env, jobject obj)
 {
     hs_exit();
 }
@@ -30,12 +26,8 @@ void invokeHS
   , char** res, long* resSize
   )
 {
-    hask_init(); // setup the RTS
-
-    // call the Haskell function from Spark.hs
+    // call the Haskell function 'invokeC' from Spark.hs
     invokeC(clos, closSize, arg, argSize, res, resSize);
-
-    hask_end(); // tear down the RTS
 }
 
 // TODO: add some error checks
