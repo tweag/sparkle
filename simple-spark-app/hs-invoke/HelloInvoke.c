@@ -4,8 +4,8 @@
 #include "Spark_stub.h"
 #include "HelloInvoke.h"
 
-HsBool hask_init() __attribute__((constructor));
-void   hask_end()  __attribute__((destructor));
+HsBool hask_init() /* __attribute__((constructor)) */ ;
+void   hask_end() /* __attribute__((destructor)) */;
 
 HsBool hask_init()
 {
@@ -30,12 +30,12 @@ void invokeHS
   , char** res, long* resSize
   )
 {
-    /* No need for hask_init()/hask_end(), as they're performed whenever
-       the library is loaded.
-    */
+    hask_init(); // setup the RTS
 
     // call the Haskell function from Spark.hs
     invokeC(clos, closSize, arg, argSize, res, resSize);
+
+    hask_end(); // tear down the RTS
 }
 
 // TODO: add some error checks
