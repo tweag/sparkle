@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include "HsFFI.h"
 #include "Spark_stub.h"
-#include "HelloInvoke.h"
+#include "HaskellRTS.h"
 
-JNIEXPORT void JNICALL Java_HelloInvoke_hask_1init
-  (JNIEnv* env, jobject obj)
+JNIEXPORT void JNICALL Java_HaskellRTS_hask_1init
+  (JNIEnv* env, jclass c)
 {
     int argc = 0;
     char *argv[] = { NULL } ; // or e.g { "+RTS", "-A1G", "-H1G", NULL };
@@ -14,8 +14,8 @@ JNIEXPORT void JNICALL Java_HelloInvoke_hask_1init
     hs_init(&argc, &pargv);
 }
 
-JNIEXPORT void JNICALL Java_HelloInvoke_hask_1end
-  (JNIEnv* env, jobject obj)
+JNIEXPORT void JNICALL Java_HaskellRTS_hask_1end
+  (JNIEnv* env, jclass c)
 {
     hs_exit();
 }
@@ -31,8 +31,8 @@ void invokeHS
 }
 
 // TODO: add some error checks
-JNIEXPORT jbyteArray JNICALL Java_HelloInvoke_invokeHS
-  ( JNIEnv* env, jobject obj
+JNIEXPORT jbyteArray JNICALL Java_HaskellRTS_invokeHS
+  ( JNIEnv* env, jclass c
   , jbyteArray clos, jint closSize
   , jbyteArray arg, jint argSize
   )

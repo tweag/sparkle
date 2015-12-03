@@ -8,23 +8,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class HelloInvoke {
-  private native byte[] invokeHS(byte[] clos, int closLen, byte[] arg, int argLen);
-  private native void   hask_init();
-  private native void   hask_end();
-
-  static {
-      System.loadLibrary("HelloInvoke");
-  }
 
   public static void main(String[] args) {
     String logFile = "./README.md"; // Should be some file on your system
     SparkConf conf = new SparkConf().setAppName("Hello hs-invoke!");
     JavaSparkContext sc = new JavaSparkContext(conf);
     JavaRDD<String> logData = sc.textFile(logFile).cache();
-
-    long numAs = logData.filter(new Function<String, Boolean>() {
-      public Boolean call(String s) { return s.contains("a"); }
-    }).count();
 
     long numBs = logData.filter(new Function<String, Boolean>() {
       public Boolean call(String s) {
@@ -44,15 +33,7 @@ public class HelloInvoke {
             // our serialized argument, 20
             byte[] arg = { 0, 0, 0, 0, 0, 0, 0, 20 };
 
-            System.out.println("About to call Haskell");
-            HelloInvoke hs = new HelloInvoke();
-            System.out.println("Starting Haskell RTS...");
-            hs.hask_init();
-            System.out.println("Haskell RTS started");
-            byte[] res = hs.invokeHS(clos, clos.length, arg, arg.length);
-            System.out.println("Shutting down Haskell RTS...");
-            hs.hask_end();
-            System.out.println("Came back from Haskell and RTS is down");
+            byte[] res = HaskellRTS.invokeHS(clos, clos.length, arg, arg.length);
             Files.write(resultPath, res);
 
         } catch (IOException e) {
@@ -62,6 +43,6 @@ public class HelloInvoke {
       }
     }).count();
 
-    System.out.println("Lines with a: " + numAs + ", lines with b: " + numBs);
+    System.out.println("lines with b: " + numBs);
   }
 }
