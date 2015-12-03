@@ -43,19 +43,8 @@ Now, let's just get our hands on the shared library we've just created.
 $ bash findLib.sh
 ```
 
-This command will tell you where to find it and where to copy it.
-
-## Running the Spark app
-
-Serialize a function and an argument:
+This command will tell you where to find it and where to copy it. Let's give a name to the `simple-spark-app/` directory and use it when launching the Spark application:
 
 ``` bash
-$ stack exec simple-write-closure -- double.bin 20
-$ APPDIR=$PWD
-```
-
-Go into the root directory of your copy of Spark, then:
-
-``` bash
-$ bin/spark-submit --class "HelloInvoke" --master local[8] --driver-library-path $APPDIR --files "\"$APPDIR/double.bin,$APPDIR/arg_double.bin\"" $APPDIR/target/hs-invoke-1.0.jar
+$ APPDIR=$PWD ; cd path/to/spark ; bin/spark-submit --class "HelloInvoke" --master local[8] --driver-library-path $APPDIR $APPDIR/target/hs-invoke-1.0.jar
 ```
