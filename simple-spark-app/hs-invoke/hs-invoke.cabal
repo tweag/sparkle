@@ -7,7 +7,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  c-sources: HelloInvoke.c
+  c-sources: HaskellRTS.c
   ghc-options: -fPIC -shared -dynamic -threaded
   include-dirs: /Library/Java/JavaVirtualMachines/jdk1.8.0_65.jdk/Contents/Home/include /Library/Java/JavaVirtualMachines/jdk1.8.0_65.jdk/Contents/Home/include/darwin
   exposed-modules: Simple, Spark

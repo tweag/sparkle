@@ -8,4 +8,4 @@ TARGET=$PWD/$(ls | grep "hs-invoke" | grep ghc)
 cd $DIR
 
 echo "Please issue the following command:"
-echo "  cp $TARGET libHelloInvoke.${TARGET##*.}"
+echo "  cp $TARGET libHaskellRTS.${TARGET##*.}"

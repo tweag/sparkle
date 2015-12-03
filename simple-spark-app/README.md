@@ -24,7 +24,7 @@ $ cd simple-spark-app
 # compile Java code, generate Java-friendly header
 # for the Java -> C -> Haskell bridge
 $ mvn package
-$ javah -o hs-invoke/HelloInvoke.h -cp target/classes/ HelloInvoke
+$ javah -o hs-invoke/HaskellRTS.h -cp target/classes/ HaskellRTS
 ```
 
 In order for the Java code to call our Haskell/C code, you need to tell Cabal where it can find Java's JNI headers.
