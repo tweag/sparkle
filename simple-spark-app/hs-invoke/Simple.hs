@@ -11,7 +11,7 @@ f :: Int -> Int
 f x = x * 2
 
 wrappedF :: BS.ByteString -> BS.ByteString
-wrappedF = wrap1 f
+wrappedF = wrap f
 
 fClosure :: Closure (BS.ByteString -> BS.ByteString)
 fClosure = closure (static wrappedF)

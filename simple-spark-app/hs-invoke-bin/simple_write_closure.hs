@@ -1,4 +1,4 @@
-import Data.Binary
+import Data.Binary.Serialise.CBOR (serialise)
 import Simple (fSerialized)
 import System.Environment
 
@@ -8,5 +8,5 @@ main :: IO ()
 main = getArgs >>= \as -> case as of
     [filename, arg] -> do
         LBS.writeFile filename fSerialized
-        LBS.writeFile ("arg_" ++ filename) (encode (read arg :: Int))
+        LBS.writeFile ("arg_" ++ filename) (serialise (read arg :: Int))
     _               -> error "You must provide a filename"

@@ -1,7 +1,10 @@
-flags: {}
+flags:
+    binary-serialise-cbor:
+        newtime15: true
 packages:
 - ./hs-invoke
 - ./hs-invoke-bin
+- ../../binary-serialise-cbor
 - ../../distributed-closure
 - ../../distributed-closure/vendor/binary
 extra-deps: []

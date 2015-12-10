@@ -1,5 +1,5 @@
 import Control.Distributed.Closure
-import Data.Binary
+import Data.Binary.Serialise.CBOR (deserialise)
 import GHC.StaticPtr
 import Spark (invoke)
 import System.Environment
@@ -16,7 +16,7 @@ usage :: IO ()
 usage = error "Usage:\t simple_run_closure <path to serialized closure> <path to serialized argument>"
 
 decodeInt :: BS.ByteString -> Int
-decodeInt = decode . LBS.fromStrict
+decodeInt = deserialise . LBS.fromStrict
 
 run :: FilePath -> FilePath -> IO ()
 run closureFile argFile = do
