@@ -6,7 +6,8 @@
 module Spark where
 
 import Control.Distributed.Closure
-import Data.Binary
+import Data.Binary (encode, decode)
+import Data.Binary.Serialise.CBOR (Serialise, serialise, deserialise)
 import Data.ByteString.Unsafe (unsafeUseAsCStringLen, unsafePackCStringLen)
 import Data.Maybe (catMaybes)
 import Foreign.Ptr (Ptr)
@@ -33,12 +34,12 @@ invoke :: BS.ByteString -- ^ serialized closure
 invoke clos arg = decodeClosure clos arg
 
 foreign export ccall invokeC :: Ptr CChar
-						     -> CLong
-						     -> Ptr CChar
-						     -> CLong
-						     -> Ptr (Ptr CChar)
-						     -> Ptr CSize
-						     -> IO ()
+                             -> CLong
+                             -> Ptr CChar
+                             -> CLong
+                             -> Ptr (Ptr CChar)
+                             -> Ptr CSize
+                             -> IO ()
 
 -- | C-friendly version of 'invoke', the one we actually
 --   export to C.
@@ -70,8 +71,8 @@ debugStaticPtrs = do
   where printInfo :: StaticPtr () -> IO ()
         printInfo = print . staticPtrInfo
 
-wrap1 :: (Serializable a, Serializable b)
-      => (a -> b)
-      -> (BS.ByteString -> BS.ByteString)
-wrap1 f = LBS.toStrict . encode . f . decode . LBS.fromStrict
+wrap :: (Serialise a, Serialise b)
+     => (a -> b)
+     -> (BS.ByteString -> BS.ByteString)
+wrap f = LBS.toStrict . serialise . f . deserialise . LBS.fromStrict
 

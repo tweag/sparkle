@@ -8,12 +8,12 @@ cabal-version:       >=1.10
 
 executable simple-write-closure
   main-is: simple_write_closure.hs
-  build-depends: base, binary, bytestring, distributed-closure, hs-invoke
+  build-depends: base, binary-serialise-cbor, bytestring, distributed-closure, hs-invoke
   default-language:    Haskell2010
   ghc-options: -dynamic -threaded
 
 executable simple-run-closure-hs
   main-is: simple_run_closure.hs
-  build-depends: base, binary, bytestring, distributed-closure, hs-invoke
+  build-depends: base, binary-serialise-cbor, bytestring, distributed-closure, hs-invoke
   default-language:    Haskell2010
   ghc-options: -dynamic -threaded
