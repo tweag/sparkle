@@ -1,12 +1,8 @@
 # First Spark + Haskell application
 
-This project shows an example of a Java Spark application that calls some Haskell code (through C) as part of a `filter()` predicate, hence distributed over each "worker" (executor in Spark terminology) of the cluster.
-
-This is fragile and a bit annoying to build/use.
-
 ## Get the code and build it
 
-You must have git, a JDK, maven, the haskell **stack**tool and a freshly-downloaded copy of Apache Spark.
+You must have git, a JDK, maven, the haskell **stack** tool and a freshly-downloaded copy of Apache Spark.
 
 ``` bash
 # get 'distributed-closure' and modified 'binary'
@@ -14,6 +10,9 @@ $ git clone https://github.com/tweag/distributed-closure.git
 $ cd distributed-closure/vendor
 $ git submodule update --init ./binary
 $ cd ../../
+
+# get 'binary-serialise-cbor'
+$ git clone https://github.com/well-typed/binary-serialise-cbor.git
 
 # get this repo
 $ git clone https://github.com/tweag/sparkle.git
