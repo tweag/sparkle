@@ -11,3 +11,5 @@ extra-deps:
 - distributed-closure-0.1.0.0
 - binary-0.7.6.1
 resolver: nightly-2015-12-09
+nix:
+    shell-file: shell.nix
