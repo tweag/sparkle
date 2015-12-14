@@ -49,6 +49,6 @@ let
 in
 
 haskell.buildStackProject {
-  name = "HaskellR";
+  name = "sparkle";
   buildInputs = [ maven openjdk spark ];
 }
