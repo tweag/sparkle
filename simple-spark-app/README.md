@@ -1,38 +1,14 @@
 # First Spark + Haskell application
 
-## Get the code and build it
+## Getting started
 
-You must have git, a JDK, maven, the haskell **stack** tool and a freshly-downloaded copy of Apache Spark.
+Prerequesites: [stack][stack] and the [Nix][nix] package manager (used
+under the hood by Stack to provision the required system
+dependencies).
 
-``` bash
-# get 'distributed-closure' and modified 'binary'
-$ git clone https://github.com/tweag/distributed-closure.git
-$ cd distributed-closure/vendor
-$ git submodule update --init ./binary
-$ cd ../../
-
-# get 'binary-serialise-cbor'
-$ git clone https://github.com/well-typed/binary-serialise-cbor.git
-
-# get this repo
-$ git clone https://github.com/tweag/sparkle.git
-$ cd sparkle
-$ git checkout first-spark-hs-app
-$ cd simple-spark-app
-
-# compile Java code, generate Java-friendly header
-# for the Java -> C -> Haskell bridge
-$ mvn package
-$ javah -o hs-invoke/HaskellRTS.h -cp target/classes/ HaskellRTS
 ```
-
-In order for the Java code to call our Haskell/C code, you need to tell Cabal where it can find Java's JNI headers.
-
-Open `hs-invoke/hs-invoke.cabal` and tweak the `include-dirs` line. The first dir is the one that must contain `jni.h` while the second dir is the one that must contain `jni_md.h`, located in a subdir of the former (`darwin/` or `linux/`, from what I've seen).
-
-Finally, build all the Haskell & C code, then the Spark+Java app.
-
-``` bash
+$ stack exec mvn package
+$ stack exec javah -o hs-invoke/HaskellRTS.h -cp target/classes/HaskellRTS
 $ stack build
 ```
 
@@ -42,8 +18,13 @@ Now, let's just get our hands on the shared library we've just created.
 $ bash findLib.sh
 ```
 
-This command will tell you where to find it and where to copy it. Let's give a name to the `simple-spark-app/` directory and use it when launching the Spark application:
+This command will tell you where to find it and where to copy it.
+Let's give a name to the `simple-spark-app/` directory and use it when
+launching the Spark application:
 
 ``` bash
 $ APPDIR=$PWD ; cd path/to/spark ; bin/spark-submit --class "HelloInvoke" --master local[4] --driver-library-path $APPDIR $APPDIR/target/hs-invoke-1.0-jar-with-dependencies.jar
 ```
+
+[stack]: http://haskellstack.org
+[nix]: http://nixos.org/nix
