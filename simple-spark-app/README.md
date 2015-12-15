@@ -8,7 +8,8 @@ dependencies).
 
 ```
 $ stack exec mvn package
-$ stack exec -- javah -o hs-invoke/HaskellRTS.h -cp target/classes/HaskellRTS
+
+$ $(stack exec which javah) -o hs-invoke/HaskellRTS.h -cp target/classes/ HaskellRTS
 $ stack build
 ```
 
