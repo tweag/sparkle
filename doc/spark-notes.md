@@ -2,6 +2,7 @@
 
 ## Components
 
+```
    User program (SparkContext)
    	   /  \
   ______________
@@ -20,6 +21,7 @@
  |  HBase,  |
  |  ...     |
  |__________|
+ ```
 
 - Nothing is actually computed until
   an "Action" is run: count(), collect(), save(), ...
@@ -68,7 +70,7 @@
     inside the tasks.
 
     retry failed/excessively slow
-    tasks, goes back
+    tasks, go back
     to the DAG Scheduler when
     that happens.
 
@@ -218,12 +220,14 @@ Role:
 
 - Each task looks like:
 
+```
  Ext storage _
               \
    and/or      ->|       Task  (f1 . f2)      -> map to output file
                ->|                               or send back to master
  fetch map  __/
  outputs
+ ```
 
 - Shuffle outputs are written to RAM/disk
   to allow retries
