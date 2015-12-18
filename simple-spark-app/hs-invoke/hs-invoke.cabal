@@ -11,7 +11,7 @@ library
   ghc-options: -fPIC -shared -dynamic -threaded
   exposed-modules: Simple, Spark
   build-depends: base, bytestring, binary, binary-serialise-cbor, distributed-closure
---  extra-libraries: HSrts_thr-ghc7.10.2
+  extra-libraries: HSrts_thr-ghc7.10.2
   default-language:    Haskell2010
 
 -- executable simple-run-closure-c
