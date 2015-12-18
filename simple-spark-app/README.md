@@ -24,7 +24,7 @@ Let's give a name to the `simple-spark-app/` directory and use it when
 launching the Spark application:
 
 ``` bash
-$ APPDIR=$PWD ; cd path/to/spark ; bin/spark-submit --class "HelloInvoke" --master local[4] --driver-library-path $APPDIR $APPDIR/target/hs-invoke-1.0-jar-with-dependencies.jar
+$ stack exec spark-submit -- --class HelloInvoke --driver-library-path . --master local[1] target/hs-invoke-1.0-jar-with-dependencies.jar
 ```
 
 [stack]: http://haskellstack.org
