@@ -9,7 +9,7 @@
 
 ```sh
 $ stack exec mvn package
-$ stack exec -- java -o hs-invoke/HaskellRTS.h -cp target/classes/ HaskellRTS
+$ stack exec -- javah -o hs-invoke/HaskellRTS.h -cp target/classes/ HaskellRTS
 $ stack build
 ```
 
