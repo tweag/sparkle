@@ -50,5 +50,12 @@ in
 
 haskell.buildStackProject {
   name = "sparkle";
-  buildInputs = [ maven openjdk spark ];
+  buildInputs =
+    [ maven
+      openjdk
+      spark
+      # Needed to checkout binary-cbor-serialise
+      git
+      openssh
+    ];
 }
