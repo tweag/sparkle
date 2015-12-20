@@ -7,5 +7,4 @@ cd $(ls | grep hs-invoke)
 TARGET=$PWD/$(ls | grep "hs-invoke" | grep ghc)
 cd $DIR
 
-echo "Please issue the following command:"
-echo "  cp $TARGET libHaskellRTS.${TARGET##*.}"
+echo $TARGET
