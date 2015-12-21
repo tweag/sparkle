@@ -8,7 +8,7 @@ JNIEnv* create_vm(JavaVM **jvm)
   JavaVMOption options;
   args.version = JNI_VERSION_1_6;
   args.nOptions = 1;
-  options.optionString = "-Djava.class.path=./";
+  options.optionString = "-Djava.class.path=./target/classes";
   args.options = &options;
   args.ignoreUnrecognized = 0;
 
@@ -27,9 +27,13 @@ void invoke_class(JNIEnv* env)
 {
     jclass hello_class;
     jmethodID f_method;
+    jmethodID g_method;
+    jint x = 10;
     hello_class = (*env)->FindClass(env, "Hello");
     f_method = (*env)->GetStaticMethodID(env, hello_class, "f", "()V");
+    g_method = (*env)->GetStaticMethodID(env, hello_class, "g", "(I)V");
     (*env)->CallStaticVoidMethod(env, hello_class, f_method, NULL);
+    (*env)->CallStaticVoidMethod(env, hello_class, g_method, x);
 }
 
 int run()
