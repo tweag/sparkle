@@ -58,4 +58,5 @@ haskell.buildStackProject {
       git
       openssh
     ];
+  extraArgs = ["--extra-lib-dirs=${openjdk}/lib/openjdk/jre/lib/amd64/server"];
 }

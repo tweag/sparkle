@@ -5,6 +5,7 @@ packages:
 - simple-spark-app/hs-invoke
 - simple-spark-app/hs-invoke-bin
 - java-to-haskell
+- spark
 - location:
     git: git@github.com:well-typed/binary-serialise-cbor
     commit: 992e2c758f9b5795390208ecea162a6ad0166ce6

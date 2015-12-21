@@ -1,16 +1,15 @@
 name:                java-to-haskell
 version:             0.1
--- synopsis:            
--- description:         
+-- synopsis:
+-- description:
 homepage:            https://github.com/tweag/sparkle
 license:             AllRightsReserved
-license-file:        LICENSE
 author:              Tweag I/O
 maintainer:          alp.mestanogullari@tweag.io
 copyright:           Tweag I/O
--- category:            
+-- category:
 build-type:          Simple
--- extra-source-files:  
+-- extra-source-files:
 cabal-version:       >=1.10
 
 executable java-to-haskell
