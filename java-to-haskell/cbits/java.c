@@ -8,7 +8,7 @@ JNIEnv* create_vm(JavaVM **jvm)
   JavaVMOption options;
   args.version = JNI_VERSION_1_6;
   args.nOptions = 1;
-  options.optionString = "-Djava.class.path=./target/classes";
+  options.optionString = "-Djava.class.path=.";
   args.options = &options;
   args.ignoreUnrecognized = 0;
 

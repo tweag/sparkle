@@ -17,8 +17,8 @@ let
 
         buildInputs =
           buildInputs ++
-	  optional stdenv.isLinux glibcLocales ++
-	  [ ghc pkgconfig ];
+          optional stdenv.isLinux glibcLocales ++
+          [ ghc pkgconfig ];
   
       STACK_IN_NIX_SHELL=1;
       STACK_IN_NIX_EXTRA_ARGS =
@@ -46,6 +46,11 @@ let
 
   spark = pkgs.spark.override { mesosSupport = false; };
 
+  jvmlibdir =
+    if stdenv.isLinux
+      then "${openjdk}/lib/openjdk/jre/lib/amd64/server"
+      else "${openjdk}/jre/lib/server";
+
 in
 
 haskell.buildStackProject {
@@ -58,5 +63,6 @@ haskell.buildStackProject {
       git
       openssh
     ];
-  extraArgs = ["--extra-lib-dirs=${openjdk}/lib/openjdk/jre/lib/amd64/server"];
+  extraArgs = ["--extra-lib-dirs=${jvmlibdir}"];
+  LD_LIBRARY_PATH = jvmlibdir;
 }
