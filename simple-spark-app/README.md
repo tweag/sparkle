@@ -19,15 +19,15 @@ due to a bug in earlier releases.
 Now, let's just get our hands on the shared library we've just created.
 
 ```sh
-$ ghc -o libHaskellRTS.so -dynamic -shared -fPIC -l<rts> $(./findLib.sh)
+# libHaskellRTS.so if on Linux
+# libHaskellRTS.dylib if on OS X
+$ stack exec -- ghc -o libHaskellRTS.so -dynamic -shared -fPIC -l<rts> $(./findLib.sh)
 ```
 
 where `<rts>` stands for the RTS you want to select:
-`HSrts_thr-ghc$VERSION` if you don't know which.
+`HSrts_thr-ghc$VERSION` if you don't know which (e.g `HSrts_thr-ghc7.10.2`).
 
-This command will tell you where to find it and where to copy it.
-Let's give a name to the `simple-spark-app/` directory and use it when
-launching the Spark application:
+You can now launch your Spark application:
 
 ```sh
 $ stack exec spark-submit -- --class HelloInvoke --driver-library-path . --master local[1] target/hs-invoke-1.0-jar-with-dependencies.jar
