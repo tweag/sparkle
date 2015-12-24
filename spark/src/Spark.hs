@@ -13,7 +13,7 @@ import qualified Language.C.Inline as C
 
 C.context (C.baseCtx <> jniCtx)
 
-C.include "<Spark.h>"
+C.include "../SparkClasses.h"
 
 -- withCString :: String -> (CString -> IO a) -> IO a
 

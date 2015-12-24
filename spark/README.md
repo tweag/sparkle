@@ -36,7 +36,7 @@ Now, let's just get our hands on the shared library we've just created.
 ```sh
 # libHaskellRTS.so if on Linux
 # libHaskellRTS.dylib if on OS X
-$ stack exec -- ghc -o libHaskellRTS.so -dynamic -shared -fPIC -l<rts> $(./findLib.sh)
+$ stack exec -- ghc -o libHaskellRTS.so -dynamic -shared -l<rts> $(./findLib.sh)
 ```
 
 where `<rts>` stands for the RTS you want to select:
