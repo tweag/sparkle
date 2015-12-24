@@ -8,15 +8,17 @@ maintainer:          m@tweag.io
 -- copyright:
 -- category:
 build-type:          Simple
--- extra-source-files:
+extra-source-files:  HaskellRTS.h, SparkClasses.h
 cabal-version:       >=1.10
 
 library
-  c-sources: HaskellRTS.c
+  c-sources: HaskellRTS.c, SparkClasses.c, src/Spark.c
+  cc-options: -fPIC
+  include-dirs: .
   ghc-options: -fPIC -shared -dynamic -threaded
   exposed-modules: Spark
-  -- other-modules:
+  other-modules: JNI
   -- other-extensions:
-  build-depends:       base >=4.8 && <4.9
+  build-depends:       base >=4.8 && <4.9, bytestring, containers, inline-c
   hs-source-dirs:      src
   default-language:    Haskell2010

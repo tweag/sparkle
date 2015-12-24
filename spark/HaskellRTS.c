@@ -4,7 +4,7 @@
 #include "Spark_stub.h"
 #include "HaskellRTS.h"
 
-JavaVM* jvm;
+// JavaVM* jvm; defined in HaskellRTS.h
 
 JNIEXPORT void JNICALL Java_HaskellRTS_hask_1init
   (JNIEnv* env, jclass c)
@@ -20,6 +20,7 @@ JNIEXPORT void JNICALL Java_HaskellRTS_sparkMain
   (JNIEnv* env, jclass c)
 {
 	(*env)->GetJavaVM(env, &jvm);
+	// Detach thread?
 	sparkMain();
 }
 
