@@ -7,6 +7,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+JavaVM* jvm;
+
 /*
  * Class:     HaskellRTS
  * Method:    sparkMain
