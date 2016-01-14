@@ -5,6 +5,7 @@
 
 jobject newSparkConf_(JNIEnv* env, const char* appname);
 jobject newSparkContext_(JNIEnv* env, jobject sparkConf);
+jobject parallelize_(JNIEnv* env, jobject sparkContext, int* data, size_t data_length); 
 
 jobject newSparkConf(const char* appname)
 {
@@ -68,7 +69,38 @@ jobject newSparkContext_(JNIEnv* env, jobject sparkConf)
 	return spark_ctx;
 }
 
-// data JObject_
-// type JObject = Ptr JObject_
+jobject parallelize(jobject sparkContext, int* data, size_t data_length)
+{
+        JNIEnv* env;
+        int envStat = (*jvm)->GetEnv(jvm, (void**)&env, JNI_VERSION_1_6);
+        if(envStat == JNI_EDETACHED)
+	{
+		(*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
+	}
+        return parallelize_(env, sparkContext, data, data_length);
+}
 
-// newtype JObject = JObject (Ptr JObject)ǧ
+jobject parallelize_(JNIEnv* env, jobject sparkContext, int* data, size_t data_length)
+{
+  jclass spark_helper_class;
+  jmethodID spark_context_parallelize;
+  jobject resultRDD;
+
+  // printf("Reached parallelize_");
+  spark_helper_class = (*env)->FindClass(env, "Helper");
+  // printf("Class found");
+  spark_context_parallelize =
+    (*env)->GetStaticMethodID(env, spark_helper_class, "parallelize", "(Lorg/apache/spark/api/java/JavaSparkContext;[I)Lorg/apache/spark/api/java/JavaRDD;");
+
+  int i = 0;
+  for(; i < data_length; i++)
+    printf("%d\n", data[i]);
+
+  // printf("After GetStaticMethodID");
+  jintArray finalData = (*env)->NewIntArray(env, data_length);
+  (*env)->SetIntArrayRegion(env, finalData, 0, data_length, data);
+  printf("Right before CallStaticObjectMethod\n");
+  resultRDD = (*env)->CallStaticObjectMethod(env, spark_helper_class, spark_context_parallelize, finalData);
+  printf("CallStaticObjectMethod returned\n");
+  return resultRDD;
+}

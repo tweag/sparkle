@@ -17,6 +17,13 @@ library
   exposed-modules: Spark
   other-modules: JNI
   -- other-extensions:
-  build-depends:       base >=4.8 && <4.9, bytestring, containers, inline-c
+  build-depends:
+    base >=4.8 && <4.9,
+    binary-serialise-cbor,
+    bytestring,
+    containers,
+    distributed-closure,
+    inline-c,
+    vector
   hs-source-dirs:      src
   default-language:    Haskell2010
