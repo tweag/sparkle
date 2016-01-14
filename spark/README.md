@@ -45,7 +45,7 @@ where `<rts>` stands for the RTS you want to select:
 You can now launch your Spark application:
 
 ```sh
-$ stack exec spark-submit -- --class SparkMain --driver-library-path . --master local[1] target/sparkle-1.0-jar-with-dependencies.jar
+$ stack exec spark-submit -- --class SparkMain --driver-library-path .:$(./findLibDir.sh) --master local[1] target/sparkle-1.0-jar-with-dependencies.jar
 ```
 
 [stack]: http://haskellstack.org
