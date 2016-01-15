@@ -8,18 +8,19 @@ maintainer:          m@tweag.io
 -- copyright:
 -- category:
 build-type:          Simple
-extra-source-files:  HaskellRTS.h, SparkClasses.h
+extra-source-files:  HaskellRTS.h, JVM.h, SparkClasses.h
 cabal-version:       >=1.10
 
 library
   c-sources: HaskellRTS.c, SparkClasses.c, src/Spark.c
   cc-options: -Wall
   ghc-options: -fPIC -shared -dynamic -threaded -Wall
-  exposed-modules: Spark
+  exposed-modules: Closure, Spark
   other-modules: JNI
   -- other-extensions:
   build-depends:
     base >=4.8 && <4.9,
+    binary,
     binary-serialise-cbor,
     bytestring,
     containers,

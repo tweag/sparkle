@@ -2,12 +2,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE StaticPointers #-}
 module Spark where
 
+import           Closure
 import           Control.Distributed.Closure
 -- import           Data.Binary.Serialise.CBOR
 import qualified Data.ByteString as BS
 import           Data.ByteString (ByteString)
+import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import           Data.Monoid     ((<>))
 import           Data.Vector     (Vector, fromList)
 import           Foreign.C.String (withCString)
@@ -46,8 +49,8 @@ newSparkContext conf =
 
 type RDD = JObject
 
-parallelize :: SparkContext -> [CInt] -> IO RDD
-parallelize sc vec = withArrayLen vec $ \vecLen vecBuf ->
+parallelize :: SparkContext -> [Int] -> IO RDD
+parallelize sc vec = withArrayLen (map fromIntegral vec) $ \vecLen vecBuf ->
   let vecLen' = fromIntegral vecLen in
   [C.block| jobject {
       parallelize($(jobject sc), $(int* vecBuf), $(size_t vecLen'));
@@ -56,7 +59,14 @@ parallelize sc vec = withArrayLen vec $ \vecLen vecBuf ->
 rddmap :: Closure (Int -> Int)
        -> RDD
        -> IO RDD
-rddmap = undefined
+rddmap clos rdd =
+  unsafeUseAsCStringLen closBS $ \(closBuf, closSize) ->
+  let closSize' = fromIntegral closSize in
+  [C.block| jobject {
+      rddmap($(jobject rdd), $(char* closBuf), $(long closSize'));
+  } |]
+
+  where closBS = clos2bs clos
 
 collect :: RDD -> IO [Int]
 collect rdd = fmap (map fromIntegral) $
@@ -69,13 +79,19 @@ collect rdd = fmap (map fromIntegral) $
     b  <- peek buf
     peekArray (fromIntegral sz) b
 
+f :: Int -> Int
+f x = x * 2
+
+wrapped_f :: Closure (Int -> Int)
+wrapped_f = closure (static f)
+
 sparkMain :: IO ()
 sparkMain = do
     conf <- newSparkConf "Hello sparkle!"
     sc   <- newSparkContext conf
     rdd  <- parallelize sc [1..10]
-    -- soon: rdd' <- rddmap f rdd'
-    res  <- collect rdd
+    rdd' <- rddmap wrapped_f rdd
+    res  <- collect rdd'
     print res
 
 foreign export ccall sparkMain :: IO ()

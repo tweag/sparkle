@@ -7,9 +7,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-JavaVM* jvm;
-
 /*
  * Class:     HaskellRTS
  * Method:    sparkMain
@@ -33,6 +30,14 @@ JNIEXPORT void JNICALL Java_HaskellRTS_hask_1init
  */
 JNIEXPORT void JNICALL Java_HaskellRTS_hask_1end
   (JNIEnv *, jclass);
+
+/*
+ * Class:     HaskellRTS
+ * Method:    invoke
+ * Signature: ([BI)I
+ */
+JNIEXPORT jint JNICALL Java_HaskellRTS_invoke
+  (JNIEnv *, jclass, jbyteArray, jint);
 
 #ifdef __cplusplus
 }

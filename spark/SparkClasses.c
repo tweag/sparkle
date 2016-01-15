@@ -1,12 +1,14 @@
 #include <jni.h>
 #include <stdio.h>
 #include "HaskellRTS.h"
+#include "JVM.h"
 #include "SparkClasses.h"
 
 jobject newSparkConf_(JNIEnv* env, const char* appname);
 jobject newSparkContext_(JNIEnv* env, jobject sparkConf);
 jobject parallelize_(JNIEnv* env, jobject sparkContext, jint* data, size_t data_length);
 void    collect_(JNIEnv* env, jobject rdd, int** buf, size_t* len);
+jobject rddmap_(JNIEnv* env, jobject rdd, char* clos, long closSize);
 
 jobject newSparkConf(const char* appname)
 {
@@ -187,4 +189,57 @@ void collect_(JNIEnv* env, jobject rdd, int** buf, size_t* len)
   finalArr = (*env)->GetIntArrayElements(env, elements, NULL);
 
   *buf = finalArr;
+}
+
+jobject rddmap(jobject rdd, char* clos, long closSize)
+{
+  JNIEnv* env;
+  int envStat = (*jvm)->GetEnv(jvm, (void**)&env, JNI_VERSION_1_6);
+  if(envStat == JNI_EDETACHED)
+  {
+    (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
+  }
+  return rddmap_(env, rdd, clos, closSize);
+}
+
+jobject rddmap_(JNIEnv* env, jobject rdd, char* clos, long closSize)
+{
+  jbyteArray closArr = (*env)->NewByteArray(env, closSize);
+  (*env)->SetByteArrayRegion(env, closArr, 0, closSize, clos);
+
+  jclass spark_helper_class;
+  jmethodID spark_helper_map;
+  jobject resultRDD;
+
+  spark_helper_class = (*env)->FindClass(env, "Helper");
+  if(!spark_helper_class)
+  {
+    printf("!! sparkle: Couldn't find Helper class\n");
+    return NULL;
+  }
+
+  spark_helper_map =
+    (*env)->GetStaticMethodID(env, spark_helper_class, "map", "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;");
+
+  if(!spark_helper_map)
+  {
+    printf("!! sparkle: Couldn't find method Helper.map\n");
+    return NULL;
+  }
+
+  resultRDD = (*env)->CallStaticObjectMethod(env, spark_helper_class, spark_helper_map, rdd, closArr);
+  if(resultRDD == NULL)
+  {
+    printf("!! sparkle: map() returned NULL\n");
+    jthrowable exc;
+    exc = (*env)->ExceptionOccurred(env);
+    if(exc)
+    {
+      (*env)->ExceptionDescribe(env);
+      (*env)->ExceptionClear(env);
+      return NULL;
+    }
+  }
+
+  return resultRDD;
 }

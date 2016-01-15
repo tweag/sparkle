@@ -2,6 +2,7 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.spark.api.java.*;
+import org.apache.spark.api.java.function.Function;
 
 public class Helper
 {
@@ -20,12 +21,23 @@ public class Helper
         return rdd;
     }
 
-    public static int[] collect(JavaRDD rdd)
+    public static int[] collect(JavaRDD<Integer> rdd)
     {
 	List<Integer> l = rdd.collect();
 	int[] res = new int[l.size()];
 	for(int i = 0; i < l.size(); i++)
 	    res[i] = l.get(i).intValue();
 	return res;
+    }
+
+    public static JavaRDD<Integer> map(JavaRDD<Integer> rdd, final byte[] clos)
+    {
+	JavaRDD<Integer> newRDD = rdd.map(new Function<Integer, Integer>() {
+		public Integer call(Integer arg)
+		{
+		    return new Integer(HaskellRTS.invoke(clos, arg.intValue()));
+		}
+	});
+	return newRDD;
     }
 }

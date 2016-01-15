@@ -1,9 +1,6 @@
 DIR=$(pwd)
 
-cd $(stack path --local-install-root)/lib
-cd $(ls | grep ghc)
-cd $(ls | grep spark)
-
+cd $(stack path --dist-dir)/build
 TARGETDIR=$PWD
 cd $DIR
 
