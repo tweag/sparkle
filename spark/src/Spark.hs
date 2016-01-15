@@ -12,7 +12,9 @@ import           Data.Monoid     ((<>))
 import           Data.Vector     (Vector, fromList)
 import           Foreign.C.String (withCString)
 import           Foreign.C.Types
-import           Foreign.Marshal.Array (withArrayLen)
+import           Foreign.Marshal.Array (withArrayLen, peekArray)
+import           Foreign.Marshal.Alloc (alloca)
+import           Foreign.Storable (peek)
 import           JNI
 import qualified Language.C.Inline as C
 
@@ -56,17 +58,24 @@ rddmap :: Closure (Int -> Int)
        -> IO RDD
 rddmap = undefined
 
-collect :: RDD -> IO (Vector Int)
-collect = undefined
+collect :: RDD -> IO [Int]
+collect rdd = fmap (map fromIntegral) $
+  alloca $ \buf ->
+  alloca $ \size -> do
+    [C.block| void {
+      collect($(jobject rdd), $(int** buf), $(size_t* size));
+    } |]
+    sz <- peek size
+    b  <- peek buf
+    peekArray (fromIntegral sz) b
 
 sparkMain :: IO ()
 sparkMain = do
     conf <- newSparkConf "Hello sparkle!"
     sc   <- newSparkContext conf
     rdd  <- parallelize sc [1..10]
-    -- rdd' <- rddmap f rdd'
-    -- res  <- collect rdd'
-    -- print res
-    return ()
+    -- soon: rdd' <- rddmap f rdd'
+    res  <- collect rdd
+    print res
 
 foreign export ccall sparkMain :: IO ()

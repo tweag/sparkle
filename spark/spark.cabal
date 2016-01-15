@@ -13,7 +13,8 @@ cabal-version:       >=1.10
 
 library
   c-sources: HaskellRTS.c, SparkClasses.c, src/Spark.c
-  ghc-options: -fPIC -shared -dynamic -threaded
+  cc-options: -Wall
+  ghc-options: -fPIC -shared -dynamic -threaded -Wall
   exposed-modules: Spark
   other-modules: JNI
   -- other-extensions:
