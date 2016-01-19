@@ -25,26 +25,42 @@ jclass findClass(const char* java_class)
   return class;
 }
 
-jobject newObject(const char* java_class, const char* sig, const jvalue* args)
+jmethodID findMethod(jclass java_class, const char* method_name, const char* sig)
 {
   JNIEnv* env = jniEnv();
-  jclass class_ref;
+  jmethodID mid = (*env)->GetMethodID(env, java_class, method_name, sig);
+  if(!mid)
+  {
+    printf("!! sparkle: Couldn't find method %s with signature %s", method_name, sig);
+    return NULL;
+  }
+  return mid;
+}
+
+jmethodID findStaticMethod(jclass java_class, const char* method_name, const char* sig)
+{
+  JNIEnv* env = jniEnv();
+  jmethodID mid = (*env)->GetStaticMethodID(env, java_class, method_name, sig);
+  if(!mid)
+  {
+    printf("!! sparkle: Couldn't find static method %s with signature %s", method_name, sig);
+    return NULL;
+  }
+  return mid;
+}
+
+jobject newObject(jclass java_class, const char* sig, const jvalue* args)
+{
+  JNIEnv* env = jniEnv();
   jmethodID constr;
   jobject obj;
 
-  class_ref = findClass(java_class);
+  constr = findMethod(java_class, "<init>", sig);
 
-  constr = (*env)->GetMethodID(env, class_ref, "<init>", sig);
-  if(!constr)
-  {
-    printf("!! sparkle: Couldn't find constructor with signature %s in class %s\n", sig, java_class);
-    return NULL;
-  }
-
-  obj = (*env)->NewObjectA(env, class_ref, constr, args);
+  obj = (*env)->NewObjectA(env, java_class, constr, args);
   if(!obj)
   {
-    printf("!! sparkle: Constructor for class %s with signature %s failed\n", java_class, sig);
+    printf("!! sparkle: Constructor with signature %s failed\n", sig);
     return NULL;
   }
 
@@ -70,9 +86,9 @@ jobject newSparkConf(const char* appname)
   spark_conf_class = findClass("org/apache/spark/SparkConf");
 
   spark_conf_set_appname =
-    (*env)->GetMethodID(env, spark_conf_class, "setAppName", "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;");
+    findMethod(spark_conf_class, "setAppName", "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;");
 
-  conf = newObject("org/apache/spark/SparkConf", "()V", NULL);
+  conf = newObject(spark_conf_class, "()V", NULL);
   jappname = newString(appname);
 
   (*env)->CallObjectMethod(env, conf, spark_conf_set_appname, jappname);
@@ -83,7 +99,7 @@ jobject newSparkConf(const char* appname)
 jobject newSparkContext(jobject sparkConf)
 {
   jobject spark_ctx =
-    newObject("org/apache/spark/api/java/JavaSparkContext", "(Lorg/apache/spark/SparkConf;)V", &sparkConf);
+    newObject(findClass("org/apache/spark/api/java/JavaSparkContext"), "(Lorg/apache/spark/SparkConf;)V", &sparkConf);
 
   return spark_ctx;
 }
@@ -97,21 +113,10 @@ jobject parallelize(jobject sparkContext, jint* data, size_t data_length)
 
   env = jniEnv();
 
-  spark_helper_class = (*env)->FindClass(env, "Helper");
-  if(!spark_helper_class)
-  {
-    printf("!! sparkle: Couldn't find Helper class\n");
-    return NULL;
-  }
+  spark_helper_class = findClass("Helper");
   
   spark_helper_parallelize =
-    (*env)->GetStaticMethodID(env, spark_helper_class, "parallelize", "(Lorg/apache/spark/api/java/JavaSparkContext;[I)Lorg/apache/spark/api/java/JavaRDD;");
-
-  if(!spark_helper_parallelize)
-  {
-    printf("!! sparkle: Couldn't find method Helper.parallelize\n");
-    return NULL;
-  }
+    findStaticMethod(env, spark_helper_class, "parallelize", "(Lorg/apache/spark/api/java/JavaSparkContext;[I)Lorg/apache/spark/api/java/JavaRDD;");
   
   jintArray finalData = (*env)->NewIntArray(env, data_length);
 
@@ -148,21 +153,10 @@ void collect(jobject rdd, int** buf, size_t* len)
 
   env = jniEnv();
 
-  spark_helper_class = (*env)->FindClass(env, "Helper");
-  if(!spark_helper_class)
-  {
-    printf("!! sparkle: Couldn't find Helper class\n");
-    return;
-  }
+  spark_helper_class = findClass("Helper");
 
   spark_helper_collect =
-    (*env)->GetStaticMethodID(env, spark_helper_class, "collect", "(Lorg/apache/spark/api/java/JavaRDD;)[I");
-
-  if(!spark_helper_collect)
-  {
-    printf("!! sparkle: Couldn't find method Helper.collect\n");
-    return;
-  }
+    findStaticMethod(spark_helper_class, "collect", "(Lorg/apache/spark/api/java/JavaRDD;)[I");
 
   jintArray elements;
 
@@ -198,21 +192,10 @@ jobject rddmap(jobject rdd, char* clos, long closSize)
   jmethodID spark_helper_map;
   jobject resultRDD;
 
-  spark_helper_class = (*env)->FindClass(env, "Helper");
-  if(!spark_helper_class)
-  {
-    printf("!! sparkle: Couldn't find Helper class\n");
-    return NULL;
-  }
+  spark_helper_class = findClass("Helper");
 
   spark_helper_map =
-    (*env)->GetStaticMethodID(env, spark_helper_class, "map", "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;");
-
-  if(!spark_helper_map)
-  {
-    printf("!! sparkle: Couldn't find method Helper.map\n");
-    return NULL;
-  }
+    findStaticMethod(spark_helper_class, "map", "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;");
 
   resultRDD = (*env)->CallStaticObjectMethod(env, spark_helper_class, spark_helper_map, rdd, closArr);
   if(resultRDD == NULL)
