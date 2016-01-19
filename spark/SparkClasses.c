@@ -49,6 +49,36 @@ jmethodID findStaticMethod(jclass java_class, const char* method_name, const cha
   return mid;
 }
 
+jobject callObjectMethod(jobject obj, jmethodID method, jvalue* args)
+{
+  JNIEnv* env = jniEnv();
+  jobject res = (*env)->CallObjectMethodA(env, obj, method, args);
+  /*
+  if(!res)
+  {
+    printf("!! sparkle: callObjectMethod returned NULL\n");
+    return NULL;
+  }
+  */
+
+  return res;
+}
+
+jobject callStaticObjectMethod(jclass java_class, jmethodID method, jvalue* args)
+{
+  JNIEnv* env = jniEnv();
+  jobject res = (*env)->CallStaticObjectMethodA(env, java_class, method, args);
+  /*
+  if(!res)
+  {
+    printf("!! sparkle: callStaticObjectMethod returned NULL\n");
+    return NULL;
+  }
+  */
+
+  return res;
+}
+
 jobject newObject(jclass java_class, const char* sig, const jvalue* args)
 {
   JNIEnv* env = jniEnv();
@@ -73,62 +103,72 @@ jstring newString(const char* str)
   return (*env)->NewStringUTF(env, str);
 }
 
+jintArray newIntArray(size_t size, int* data)
+{
+  JNIEnv* env = jniEnv();
+  jintArray arr = (*env)->NewIntArray(env, size);
+  if(!arr)
+  {
+    printf("!! sparkle: jintArray of size %zd cannot be allocated", size);
+    return NULL;
+  }
+
+  (*env)->SetIntArrayRegion(env, arr, 0, size, data);
+  return arr;
+}
+
+jbyteArray newByteArray(size_t size, jbyte* data)
+{
+  JNIEnv* env = jniEnv();
+  jbyteArray arr = (*env)->NewByteArray(env, size);
+  if(!arr)
+  {
+    printf("!! sparkle: jbyteArray of size %zd cannot be allocated", size);
+    return NULL;
+  }
+
+  (*env)->SetByteArrayRegion(env, arr, 0, size, data);
+  return arr;
+}
+
 jobject newSparkConf(const char* appname)
 {
-  JNIEnv* env;
-  jclass spark_conf_class;
-  jmethodID spark_conf_set_appname;
-  jobject conf;
-  jstring jappname;
-
-  env = jniEnv();
-
-  spark_conf_class = findClass("org/apache/spark/SparkConf");
-
-  spark_conf_set_appname =
+  JNIEnv* env = jniEnv();
+  jclass spark_conf_class = findClass("org/apache/spark/SparkConf");
+  jmethodID spark_conf_set_appname =
     findMethod(spark_conf_class, "setAppName", "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;");
+  jobject conf = newObject(spark_conf_class, "()V", NULL);
+  jstring jappname = newString(appname);
 
-  conf = newObject(spark_conf_class, "()V", NULL);
-  jappname = newString(appname);
-
-  (*env)->CallObjectMethod(env, conf, spark_conf_set_appname, jappname);
+  callObjectMethod(conf, spark_conf_set_appname, &jappname);
 
   return conf;
 }
 
 jobject newSparkContext(jobject sparkConf)
 {
+  jvalue arg;
+  arg.l = sparkConf;
+
   jobject spark_ctx =
-    newObject(findClass("org/apache/spark/api/java/JavaSparkContext"), "(Lorg/apache/spark/SparkConf;)V", &sparkConf);
+    newObject(findClass("org/apache/spark/api/java/JavaSparkContext"), "(Lorg/apache/spark/SparkConf;)V", &arg);
 
   return spark_ctx;
 }
 
 jobject parallelize(jobject sparkContext, jint* data, size_t data_length)
 {
-  JNIEnv* env;
-  jclass spark_helper_class;
-  jmethodID spark_helper_parallelize;
-  jobject resultRDD;
+  JNIEnv* env = jniEnv();
+  jclass spark_helper_class = findClass("Helper");
+  jmethodID spark_helper_parallelize =
+    findStaticMethod(spark_helper_class, "parallelize", "(Lorg/apache/spark/api/java/JavaSparkContext;[I)Lorg/apache/spark/api/java/JavaRDD;");
+  jintArray finalData = newIntArray(data_length, data);
+  jvalue args[2];
+  args[0].l = sparkContext;
+  args[1].l = finalData;
 
-  env = jniEnv();
+  jobject resultRDD = callStaticObjectMethod(spark_helper_class, spark_helper_parallelize, args);
 
-  spark_helper_class = findClass("Helper");
-  
-  spark_helper_parallelize =
-    findStaticMethod(env, spark_helper_class, "parallelize", "(Lorg/apache/spark/api/java/JavaSparkContext;[I)Lorg/apache/spark/api/java/JavaRDD;");
-  
-  jintArray finalData = (*env)->NewIntArray(env, data_length);
-
-  if(finalData == NULL)
-  {
-    printf("!! sparkle: jintArray could not be allocated\n");
-    return NULL;
-  }
-  
-  (*env)->SetIntArrayRegion(env, finalData, 0, data_length, data);
-
-  resultRDD = (*env)->CallStaticObjectMethod(env, spark_helper_class, spark_helper_parallelize, sparkContext, finalData);
   if(resultRDD == NULL)
   { 
     printf("!! sparkle: parallelize() returned NULL\n");
@@ -147,20 +187,13 @@ jobject parallelize(jobject sparkContext, jint* data, size_t data_length)
 
 void collect(jobject rdd, int** buf, size_t* len)
 {
-  JNIEnv* env;
-  jclass spark_helper_class;
-  jmethodID spark_helper_collect;
-
-  env = jniEnv();
-
-  spark_helper_class = findClass("Helper");
-
-  spark_helper_collect =
+  JNIEnv* env = jniEnv();
+  jclass spark_helper_class = findClass("Helper");
+  jmethodID spark_helper_collect =
     findStaticMethod(spark_helper_class, "collect", "(Lorg/apache/spark/api/java/JavaRDD;)[I");
-
-  jintArray elements;
-
-  elements = (*env)->CallStaticObjectMethod(env, spark_helper_class, spark_helper_collect, rdd);
+  jvalue arg;
+  arg.l = rdd;
+  jintArray elements = callStaticObjectMethod(spark_helper_class, spark_helper_collect, &arg);
   if(elements == NULL)
   {
     printf("!! sparkle: collect() returned NULL\n");
@@ -185,19 +218,16 @@ void collect(jobject rdd, int** buf, size_t* len)
 jobject rddmap(jobject rdd, char* clos, long closSize)
 {
   JNIEnv* env = jniEnv();
-  jbyteArray closArr = (*env)->NewByteArray(env, closSize);
-  (*env)->SetByteArrayRegion(env, closArr, 0, closSize, clos);
-
-  jclass spark_helper_class;
-  jmethodID spark_helper_map;
-  jobject resultRDD;
-
-  spark_helper_class = findClass("Helper");
-
-  spark_helper_map =
+  jbyteArray closArr = newByteArray(closSize, clos);
+  jclass spark_helper_class = findClass("Helper");
+  jmethodID spark_helper_map =
     findStaticMethod(spark_helper_class, "map", "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;");
 
-  resultRDD = (*env)->CallStaticObjectMethod(env, spark_helper_class, spark_helper_map, rdd, closArr);
+  jvalue args[2];
+  args[0].l = rdd;
+  args[1].l = closArr;
+
+  jobject resultRDD = callStaticObjectMethod(spark_helper_class, spark_helper_map, args);
   if(resultRDD == NULL)
   {
     printf("!! sparkle: map() returned NULL\n");
