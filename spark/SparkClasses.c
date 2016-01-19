@@ -4,93 +4,98 @@
 #include "JVM.h"
 #include "SparkClasses.h"
 
-jobject newSparkConf_(JNIEnv* env, const char* appname);
-jobject newSparkContext_(JNIEnv* env, jobject sparkConf);
-jobject parallelize_(JNIEnv* env, jobject sparkContext, jint* data, size_t data_length);
-void    collect_(JNIEnv* env, jobject rdd, int** buf, size_t* len);
-jobject rddmap_(JNIEnv* env, jobject rdd, char* clos, long closSize);
+JNIEnv* jniEnv()
+{
+  JNIEnv* env;
+  int envStat = (*jvm)->GetEnv(jvm, (void**)&env, JNI_VERSION_1_6);
+  if(envStat == JNI_EDETACHED)
+    (*jvm)->AttachCurrentThread(jvm, (void**)& env, NULL);
+  return env;
+}
+
+jclass findClass(const char* java_class)
+{
+  JNIEnv* env = jniEnv();
+  jclass class = (*env)->FindClass(env, java_class);
+  if(!class)
+  {
+    printf("!! sparkle: Couldn't find Java class %s\n", java_class);
+    return NULL;
+  }
+  return class;
+}
+
+jobject newObject(const char* java_class, const char* sig, const jvalue* args)
+{
+  JNIEnv* env = jniEnv();
+  jclass class_ref;
+  jmethodID constr;
+  jobject obj;
+
+  class_ref = findClass(java_class);
+
+  constr = (*env)->GetMethodID(env, class_ref, "<init>", sig);
+  if(!constr)
+  {
+    printf("!! sparkle: Couldn't find constructor with signature %s in class %s\n", sig, java_class);
+    return NULL;
+  }
+
+  obj = (*env)->NewObjectA(env, class_ref, constr, args);
+  if(!obj)
+  {
+    printf("!! sparkle: Constructor for class %s with signature %s failed\n", java_class, sig);
+    return NULL;
+  }
+
+  return obj;
+}
+
+jstring newString(const char* str)
+{
+  JNIEnv* env = jniEnv();
+  return (*env)->NewStringUTF(env, str);
+}
 
 jobject newSparkConf(const char* appname)
 {
-	JNIEnv* env;
-        int envStat = (*jvm)->GetEnv(jvm, (void**)&env, JNI_VERSION_1_6);
-	if(envStat == JNI_EDETACHED)
-	{
-		(*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
-	}
-	return newSparkConf_(env, appname);
-}
+  JNIEnv* env;
+  jclass spark_conf_class;
+  jmethodID spark_conf_set_appname;
+  jobject conf;
+  jstring jappname;
 
-jobject newSparkConf_(JNIEnv* env, const char* appname)
-{
-	jclass spark_conf_class;
-	jmethodID spark_conf_constr;
-	jmethodID spark_conf_set_appname;
-	jobject conf;
-	jstring jappname;
+  env = jniEnv();
 
-	spark_conf_class =
-		(*env)->FindClass(env, "org/apache/spark/SparkConf");
+  spark_conf_class = findClass("org/apache/spark/SparkConf");
 
-	spark_conf_constr =
-		(*env)->GetMethodID(env, spark_conf_class, "<init>", "()V");
+  spark_conf_set_appname =
+    (*env)->GetMethodID(env, spark_conf_class, "setAppName", "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;");
 
-	spark_conf_set_appname =
-		(*env)->GetMethodID(env, spark_conf_class, "setAppName", "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;");
+  conf = newObject("org/apache/spark/SparkConf", "()V", NULL);
+  jappname = newString(appname);
 
-	conf = (*env)->NewObject(env, spark_conf_class, spark_conf_constr);
+  (*env)->CallObjectMethod(env, conf, spark_conf_set_appname, jappname);
 
-	jappname = (*env)->NewStringUTF(env, appname);
-
-	(*env)->CallObjectMethod(env, conf, spark_conf_set_appname, jappname);
-	return conf;
+  return conf;
 }
 
 jobject newSparkContext(jobject sparkConf)
 {
-        JNIEnv* env;
-        int envStat = (*jvm)->GetEnv(jvm, (void**)&env, JNI_VERSION_1_6);
-        if(envStat == JNI_EDETACHED)
-	{
-		(*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
-	}
-        return newSparkContext_(env, sparkConf);
-}
+  jobject spark_ctx =
+    newObject("org/apache/spark/api/java/JavaSparkContext", "(Lorg/apache/spark/SparkConf;)V", &sparkConf);
 
-jobject newSparkContext_(JNIEnv* env, jobject sparkConf)
-{
-	jclass spark_context_class;
-	jmethodID spark_context_constr;
-	jobject spark_ctx;
-
-	spark_context_class = (*env)->FindClass(env, "org/apache/spark/api/java/JavaSparkContext");
-
-	spark_context_constr = (*env)->GetMethodID(env, spark_context_class, "<init>", "(Lorg/apache/spark/SparkConf;)V");
-
-	spark_ctx = (*env)->NewObject(env, spark_context_class, spark_context_constr, sparkConf);
-
-	if(spark_ctx == NULL)
-	  printf("!! sparkle: newly created spark context is NULL\n");
-
-	return spark_ctx;
+  return spark_ctx;
 }
 
 jobject parallelize(jobject sparkContext, jint* data, size_t data_length)
 {
-        JNIEnv* env;
-        int envStat = (*jvm)->GetEnv(jvm, (void**)&env, JNI_VERSION_1_6);
-        if(envStat == JNI_EDETACHED)
-	{
-		(*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
-	}
-        return parallelize_(env, sparkContext, data, data_length);
-}
-
-jobject parallelize_(JNIEnv* env, jobject sparkContext, jint* data, size_t data_length)
-{
+  JNIEnv* env;
   jclass spark_helper_class;
   jmethodID spark_helper_parallelize;
   jobject resultRDD;
+
+  env = jniEnv();
 
   spark_helper_class = (*env)->FindClass(env, "Helper");
   if(!spark_helper_class)
@@ -138,18 +143,10 @@ jobject parallelize_(JNIEnv* env, jobject sparkContext, jint* data, size_t data_
 void collect(jobject rdd, int** buf, size_t* len)
 {
   JNIEnv* env;
-  int envStat = (*jvm)->GetEnv(jvm, (void**)&env, JNI_VERSION_1_6);
-  if(envStat == JNI_EDETACHED)
-  {
-    (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
-  }
-  collect_(env, rdd, buf, len);
-}
-
-void collect_(JNIEnv* env, jobject rdd, int** buf, size_t* len)
-{
   jclass spark_helper_class;
   jmethodID spark_helper_collect;
+
+  env = jniEnv();
 
   spark_helper_class = (*env)->FindClass(env, "Helper");
   if(!spark_helper_class)
@@ -193,17 +190,7 @@ void collect_(JNIEnv* env, jobject rdd, int** buf, size_t* len)
 
 jobject rddmap(jobject rdd, char* clos, long closSize)
 {
-  JNIEnv* env;
-  int envStat = (*jvm)->GetEnv(jvm, (void**)&env, JNI_VERSION_1_6);
-  if(envStat == JNI_EDETACHED)
-  {
-    (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
-  }
-  return rddmap_(env, rdd, clos, closSize);
-}
-
-jobject rddmap_(JNIEnv* env, jobject rdd, char* clos, long closSize)
-{
+  JNIEnv* env = jniEnv();
   jbyteArray closArr = (*env)->NewByteArray(env, closSize);
   (*env)->SetByteArrayRegion(env, closArr, 0, closSize, clos);
 
