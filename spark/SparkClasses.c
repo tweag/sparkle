@@ -133,7 +133,6 @@ jbyteArray newByteArray(size_t size, jbyte* data)
 
 jobject newSparkConf(const char* appname)
 {
-  JNIEnv* env = jniEnv();
   jclass spark_conf_class = findClass("org/apache/spark/SparkConf");
   jmethodID spark_conf_set_appname =
     findMethod(spark_conf_class, "setAppName", "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;");

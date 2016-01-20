@@ -93,5 +93,7 @@ sparkMain = do
     rdd' <- rddmap wrapped_f rdd
     res  <- collect rdd'
     print res
+    cls <- findClass "java/lang/Integer"
+    print cls
 
 foreign export ccall sparkMain :: IO ()
