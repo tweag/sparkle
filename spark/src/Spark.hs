@@ -83,6 +83,7 @@ parallelize sc xs = do
   jxs <- newIntArray (fromIntegral $ length xs) xs
   callStaticObjectMethod cls method [JObj sc, JObj jxs]
 
+{-
 rddmap :: Closure (CInt -> CInt)
        -> RDD
        -> IO RDD
@@ -92,6 +93,19 @@ rddmap clos rdd =
   [C.block| jobject {
       rddmap($(jobject rdd), $(char* closBuf), $(long closSize'));
   } |]
+
+  where closBS = clos2bs clos
+-}
+
+rddmap :: Closure (CInt -> CInt)
+       -> RDD
+       -> IO RDD
+rddmap clos rdd =
+  unsafeUseAsCStringLen closBS $ \(closBuf, closSize) -> do
+    closArr <- newByteArray' (fromIntegral closSize) closBuf
+    cls <- findClass "Helper"
+    method <- findStaticMethod cls "map" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
+    callStaticObjectMethod cls method [JObj rdd, JObj closArr]
 
   where closBS = clos2bs clos
 
