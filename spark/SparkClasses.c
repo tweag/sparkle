@@ -145,6 +145,22 @@ jdoubleArray newDoubleArray(size_t size, jdouble* data)
   return arr;
 }
 
+jobjectArray newObjectArray(size_t size, jclass cls, jobject* data)
+{
+  size_t i = 0;
+  JNIEnv* env = jniEnv();
+  jobjectArray arr = (*env)->NewObjectArray(env, size, cls, NULL);
+  if(!arr)
+  {
+    printf("!! sparkle: jobjectArray of size %zd cannot be allocated", size);
+    return NULL;
+  }
+  for(; i < size; i++)
+    (*env)->SetObjectArrayElement(env, arr, i, data[i]);
+
+  return arr;
+}
+
 jobject newSparkConf(const char* appname)
 {
   jclass spark_conf_class = findClass("org/apache/spark/SparkConf");
