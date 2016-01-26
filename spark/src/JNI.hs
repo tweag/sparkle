@@ -36,6 +36,7 @@ type JString = JObject
 type JIntArray = JObject
 type JByteArray = JObject
 type JDoubleArray = JObject
+type JObjectArray = JObject
 
 data JValue
   = JObj JObject
@@ -64,6 +65,7 @@ foreign import ccall unsafe "callStaticObjectMethod" callStaticObjectMethod' :: 
 foreign import ccall unsafe "newIntArray" newIntArray' :: CSize -> Ptr CInt -> IO JIntArray
 foreign import ccall unsafe "newDoubleArray" newDoubleArray' :: CSize -> Ptr CDouble -> IO JDoubleArray
 foreign import ccall unsafe "newByteArray" newByteArray' :: CSize -> Ptr CChar -> IO JByteArray
+foreign import ccall unsafe "newObjectArray" newObjectArray' :: CSize -> JClass -> Ptr JObject -> IO JObjectArray
 foreign import ccall unsafe "newString" newString' :: Ptr CChar -> IO JString
 
 findClass :: String -> IO JClass
@@ -111,6 +113,11 @@ newByteArray :: CSize -> [CChar] -> IO JByteArray
 newByteArray sz xs =
   withArray xs $ \cxs ->
   newByteArray' sz cxs
+
+newObjectArray :: CSize -> JClass -> [JObject] -> IO JObjectArray
+newObjectArray sz cls xs =
+  withArray xs $ \cxs ->
+  newObjectArray' sz cls cxs
 
 newString :: String -> IO JString
 newString s = withCString s newString'
