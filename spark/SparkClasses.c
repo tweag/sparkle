@@ -131,6 +131,20 @@ jbyteArray newByteArray(size_t size, jbyte* data)
   return arr;
 }
 
+jdoubleArray newDoubleArray(size_t size, jdouble* data)
+{
+  JNIEnv* env = jniEnv();
+  jdoubleArray arr = (*env)->NewByteArray(env, size);
+  if(!arr)
+  {
+    printf("!! sparkle: jdoubleArray of size %zd cannot be allocated", size);
+    return NULL;
+  }
+
+  (*env)->SetDoubleArrayRegion(env, arr, 0, size, data);
+  return arr;
+}
+
 jobject newSparkConf(const char* appname)
 {
   jclass spark_conf_class = findClass("org/apache/spark/SparkConf");

@@ -35,11 +35,13 @@ newtype JMethodID = JMethodID (Ptr JMethodID)
 type JString = JObject
 type JIntArray = JObject
 type JByteArray = JObject
+type JDoubleArray = JObject
 
 data JValue
   = JObj JObject
   | JInt CInt
   | JByte CChar
+  | JDouble CDouble
   -- | ...
 
 type JValuePtr = Ptr JValue
@@ -60,6 +62,7 @@ foreign import ccall unsafe "findStaticMethod" findStaticMethod' :: JClass -> CS
 foreign import ccall unsafe "callObjectMethod" callObjectMethod' :: JObject -> JMethodID -> JValuePtr -> IO JObject
 foreign import ccall unsafe "callStaticObjectMethod" callStaticObjectMethod' :: JClass -> JMethodID -> JValuePtr -> IO JObject
 foreign import ccall unsafe "newIntArray" newIntArray' :: CSize -> Ptr CInt -> IO JIntArray
+foreign import ccall unsafe "newDoubleArray" newDoubleArray' :: CSize -> Ptr CDouble -> IO JDoubleArray
 foreign import ccall unsafe "newByteArray" newByteArray' :: CSize -> Ptr CChar -> IO JByteArray
 foreign import ccall unsafe "newString" newString' :: Ptr CChar -> IO JString
 
@@ -98,6 +101,11 @@ newIntArray :: CSize -> [CInt] -> IO JIntArray
 newIntArray sz xs =
   withArray xs $ \cxs ->
   newIntArray' sz cxs
+
+newDoubleArray :: CSize -> [CDouble] -> IO JDoubleArray
+newDoubleArray sz xs =
+  withArray xs $ \cxs ->
+  newDoubleArray' sz cxs
 
 newByteArray :: CSize -> [CChar] -> IO JByteArray
 newByteArray sz xs =
