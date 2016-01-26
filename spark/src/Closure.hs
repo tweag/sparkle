@@ -17,15 +17,15 @@ import Foreign.Ptr
 
 import qualified Data.ByteString.Lazy as LBS
 
-clos2bs :: Closure (Int -> Int)
+clos2bs :: Closure (CInt -> CInt)
         -> ByteString
 clos2bs = LBS.toStrict . encode
 
 bs2clos :: ByteString
-	-> Closure (Int -> Int)
+	-> Closure (CInt -> CInt)
 bs2clos = decode . LBS.fromStrict
 
-bs2func :: ByteString -> (Int -> Int)
+bs2func :: ByteString -> (CInt -> CInt)
 bs2func = unclosure . bs2clos
 
 -- | Apply a serialized closure to 1+ serialized argument(s), returning
@@ -33,7 +33,7 @@ bs2func = unclosure . bs2clos
 invoke :: ByteString -- ^ serialized closure
        -> CInt       -- ^ serialized argument(s)
        -> CInt       -- ^ serialized result
-invoke clos x = fromIntegral $ bs2func clos (fromIntegral x)
+invoke clos x = bs2func clos x
 
 foreign export ccall invokeC :: Ptr CChar
                              -> CLong
