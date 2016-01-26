@@ -32,31 +32,58 @@ C.include "../SparkClasses.h"
 
 type SparkConf = JObject
 
+{-
 newSparkConf :: String -> IO SparkConf
 newSparkConf name =
     withCString name $ \nameptr -> do
       [C.block| jobject {
            newSparkConf($(char *nameptr));
       } |]
+-}
+
+newSparkConf :: String -> IO SparkConf
+newSparkConf appname = do
+  cls <- findClass "org/apache/spark/SparkConf"
+  setAppName <- findMethod cls "setAppName" "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;"
+  cnf <- newObject cls "()V" []
+  jname <- newString appname
+  callObjectMethod cnf setAppName [JObj jname]
+  return cnf
 
 type SparkContext = JObject
 
+{-
 newSparkContext :: SparkConf -> IO SparkContext
 newSparkContext conf =
     [C.block| jobject {
          newSparkContext($(jobject conf));
     } |]
+-}
+
+newSparkContext :: SparkConf -> IO SparkContext
+newSparkContext conf = do
+  cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
+  newObject cls "(Lorg/apache/spark/SparkConf;)V" [JObj conf]
 
 type RDD = JObject
 
+{-
 parallelize :: SparkContext -> [Int] -> IO RDD
 parallelize sc vec = withArrayLen (map fromIntegral vec) $ \vecLen vecBuf ->
   let vecLen' = fromIntegral vecLen in
   [C.block| jobject {
       parallelize($(jobject sc), $(int* vecBuf), $(size_t vecLen'));
   } |]
+-}
 
-rddmap :: Closure (Int -> Int)
+parallelize :: SparkContext -> [CInt] -> IO RDD
+parallelize sc xs = do
+  cls <- findClass "Helper"
+  method <- findStaticMethod cls "parallelize" "(Lorg/apache/spark/api/java/JavaSparkContext;[I)Lorg/apache/spark/api/java/JavaRDD;"
+  jxs <- newIntArray (fromIntegral $ length xs) xs
+  callStaticObjectMethod cls method [JObj sc, JObj jxs]
+
+rddmap :: Closure (CInt -> CInt)
        -> RDD
        -> IO RDD
 rddmap clos rdd =
@@ -68,7 +95,7 @@ rddmap clos rdd =
 
   where closBS = clos2bs clos
 
-collect :: RDD -> IO [Int]
+collect :: RDD -> IO [CInt]
 collect rdd = fmap (map fromIntegral) $
   alloca $ \buf ->
   alloca $ \size -> do
@@ -79,10 +106,10 @@ collect rdd = fmap (map fromIntegral) $
     b  <- peek buf
     peekArray (fromIntegral sz) b
 
-f :: Int -> Int
+f :: CInt -> CInt
 f x = x * 2
 
-wrapped_f :: Closure (Int -> Int)
+wrapped_f :: Closure (CInt -> CInt)
 wrapped_f = closure (static f)
 
 sparkMain :: IO ()
@@ -95,5 +122,7 @@ sparkMain = do
     print res
     cls <- findClass "java/lang/Integer"
     print cls
+    arr <- newIntArray 10 [1..10]
+    print arr
 
 foreign export ccall sparkMain :: IO ()

@@ -24,19 +24,32 @@ newtype JClass = JClass (Ptr JClass)
 newtype JMethodID = JMethodID (Ptr JMethodID)
   deriving (Eq, Show, Storable)
 
+-- newtype JIntArray = JIntArray (Ptr JIntArray)
+--  deriving (Eq, Show, Storable)
+
+-- newtype JByteArray = JByteArray (Ptr JByteArray)
+--  deriving (Eq, Show, Storable)
+
+-- newtype JString = JString (Ptr JString)
+--  deriving (Eq, Show, Storable)
+type JString = JObject
+type JIntArray = JObject
+type JByteArray = JObject
+
 data JValue
   = JObj JObject
   | JInt CInt
+  | JByte CChar
   -- | ...
 
 type JValuePtr = Ptr JValue
-
 instance Storable JValue where
   sizeOf _ = 8
   alignment _ = 8
 
-  poke p (JObj o) = poke (castPtr p) o
-  poke p (JInt i) = poke (castPtr p) i
+  poke p (JObj o)  = poke (castPtr p) o
+  poke p (JInt i)  = poke (castPtr p) i
+  poke p (JByte b) = poke (castPtr p) b
 
   peek _ = error "Storable JValue: undefined peek"
 
@@ -46,6 +59,9 @@ foreign import ccall unsafe "findMethod" findMethod' :: JClass -> CString -> CSt
 foreign import ccall unsafe "findStaticMethod" findStaticMethod' :: JClass -> CString -> CString -> IO JMethodID
 foreign import ccall unsafe "callObjectMethod" callObjectMethod' :: JObject -> JMethodID -> JValuePtr -> IO JObject
 foreign import ccall unsafe "callStaticObjectMethod" callStaticObjectMethod' :: JClass -> JMethodID -> JValuePtr -> IO JObject
+foreign import ccall unsafe "newIntArray" newIntArray' :: CSize -> Ptr CInt -> IO JIntArray
+foreign import ccall unsafe "newByteArray" newByteArray' :: CSize -> Ptr CChar -> IO JByteArray
+foreign import ccall unsafe "newString" newString' :: Ptr CChar -> IO JString
 
 findClass :: String -> IO JClass
 findClass s = withCString s findClass'
@@ -77,6 +93,19 @@ callStaticObjectMethod :: JClass -> JMethodID -> [JValue] -> IO JObject
 callStaticObjectMethod cls method args =
   withArray args $ \cargs ->
   callStaticObjectMethod' cls method cargs
+
+newIntArray :: CSize -> [CInt] -> IO JIntArray
+newIntArray sz xs =
+  withArray xs $ \cxs ->
+  newIntArray' sz cxs
+
+newByteArray :: CSize -> [CChar] -> IO JByteArray
+newByteArray sz xs =
+  withArray xs $ \cxs ->
+  newByteArray' sz cxs
+
+newString :: String -> IO JString
+newString s = withCString s newString'
 
 jniCtx :: Context
 jniCtx = mempty { ctxTypesTable = fromList tytab }
