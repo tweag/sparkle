@@ -65,7 +65,7 @@ newSparkContext conf = do
   cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
   newObject cls "(Lorg/apache/spark/SparkConf;)V" [JObj conf]
 
-type RDD = JObject
+type RDD a = JObject
 
 {-
 parallelize :: SparkContext -> [Int] -> IO RDD
@@ -76,7 +76,7 @@ parallelize sc vec = withArrayLen (map fromIntegral vec) $ \vecLen vecBuf ->
   } |]
 -}
 
-parallelize :: SparkContext -> [CInt] -> IO RDD
+parallelize :: SparkContext -> [CInt] -> IO (RDD CInt)
 parallelize sc xs = do
   cls <- findClass "Helper"
   method <- findStaticMethod cls "parallelize" "(Lorg/apache/spark/api/java/JavaSparkContext;[I)Lorg/apache/spark/api/java/JavaRDD;"
@@ -97,9 +97,11 @@ rddmap clos rdd =
   where closBS = clos2bs clos
 -}
 
+
+
 rddmap :: Closure (CInt -> CInt)
-       -> RDD
-       -> IO RDD
+       -> RDD CInt
+       -> IO (RDD CInt)
 rddmap clos rdd =
   unsafeUseAsCStringLen closBS $ \(closBuf, closSize) -> do
     closArr <- newByteArray' (fromIntegral closSize) closBuf
@@ -109,7 +111,7 @@ rddmap clos rdd =
 
   where closBS = clos2bs clos
 
-collect :: RDD -> IO [CInt]
+collect :: RDD CInt -> IO [CInt]
 collect rdd = fmap (map fromIntegral) $
   alloca $ \buf ->
   alloca $ \size -> do
@@ -119,6 +121,67 @@ collect rdd = fmap (map fromIntegral) $
     sz <- peek size
     b  <- peek buf
     peekArray (fromIntegral sz) b
+
+{-
+collect :: RDD -> IO [CInt]
+collect rdd =
+  alloca $ \buf ->
+  alloca $ \size -> do
+    cls <- findClass "Helper"
+    method <- findStaticMethod cls "collect" "(Lorg/apache/spark/api/java/JavaRDD;)[I"
+-}
+
+type PairRDD a b = JObject
+
+zipWithIndex :: RDD a -> IO (PairRDD a CLong)
+zipWithIndex rdd = do
+  cls <- findClass "org/apache/spark/api/java/JavaRDD"
+  method <- findMethod cls "zipWithIndex" "()Lorg/apache/spark/api/java/JavaPairRDD;"
+  callObjectMethod rdd method []
+
+wholeTextFiles :: SparkContext -> String -> IO (PairRDD String String)
+wholeTextFiles sc uri = do
+  juri <- newString uri
+  cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
+  method <- findMethod cls "wholeTextFiles" "(Ljava/lang/String;)Lorg/apache/spark/api/java/JavaPairRDD;"
+  callObjectMethod sc method [JObj juri]
+
+type SQLContext = JObject
+
+newSQLContext :: SparkContext -> IO SQLContext
+newSQLContext sc = do
+  cls <- findClass "org/apache/spark/sql/SQLContext"
+  newObject cls "(Lorg/apache/spark/api/java/JavaSparkContext;)V" [JObj sc]
+
+type RegexTokenizer = JObject
+
+newTokenizer :: IO RegexTokenizer
+newTokenizer = do
+  cls <- findClass "org/apache/spark/ml/feature/RegexTokenizer"
+  tok <- newObject cls "()V" []
+  setgaps <- findMethod cls "setGaps" "(Z)Lorg/apache/spark/ml/feature/RegexTokenizer;"
+  setpatt <- findMethod cls "setPattern" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
+  tok' <- callObjectMethod tok setgaps [JBoolean 1]
+  jpatt <- newString "\\p{L}+"
+  callObjectMethod tok' setpatt [JObj jpatt]
+
+type StopWordsRemover = JObject
+
+
+newStopWordsRemover :: [String] -> IO StopWordsRemover
+newStopWordsRemover stopwords = do
+  putStrLn "<<<<<<<<<<<< YO"
+  cls <- findClass "org/apache/spark/ml/feature/StopWordsRemover"
+  print cls
+  swr <- newObject cls "()V" []
+  setSw <- findMethod cls "setStopwords" "([Ljava/lang/String;)Lorg/apache/spark/ml/feature/StopWordsRemover;"
+  stringCls <- findClass "java/lang/String"
+  let len = fromIntegral (length stopwords)
+  jstopwords <- newObjectArray len stringCls =<< mapM newString stopwords
+  swr' <- callObjectMethod swr setSw [JObj jstopwords]
+  setCS <- findMethod cls "setCaseSensitive" "(Z)Lorg/apache/spark/ml/feature/StopWordsRemover;"
+  callObjectMethod swr setCS [JBoolean 0]
+
 
 f :: CInt -> CInt
 f x = x * 2
@@ -130,13 +193,14 @@ sparkMain :: IO ()
 sparkMain = do
     conf <- newSparkConf "Hello sparkle!"
     sc   <- newSparkContext conf
+    sqlc <- newSQLContext sc
     rdd  <- parallelize sc [1..10]
     rdd' <- rddmap wrapped_f rdd
+    irdd <- zipWithIndex rdd'
+    trdd <- wholeTextFiles sc "src/"
     res  <- collect rdd'
+    tok  <- newTokenizer
+    swr  <- newStopWordsRemover ["a", "the", "house"]
     print res
-    cls <- findClass "java/lang/Integer"
-    print cls
-    arr <- newIntArray 10 [1..10]
-    print arr
 
 foreign export ccall sparkMain :: IO ()

@@ -43,6 +43,7 @@ data JValue
   | JInt CInt
   | JByte CChar
   | JDouble CDouble
+  | JBoolean CUChar
   -- | ...
 
 type JValuePtr = Ptr JValue
@@ -50,9 +51,11 @@ instance Storable JValue where
   sizeOf _ = 8
   alignment _ = 8
 
-  poke p (JObj o)  = poke (castPtr p) o
-  poke p (JInt i)  = poke (castPtr p) i
-  poke p (JByte b) = poke (castPtr p) b
+  poke p (JObj o)     = poke (castPtr p) o
+  poke p (JInt i)     = poke (castPtr p) i
+  poke p (JByte b)    = poke (castPtr p) b
+  poke p (JDouble d)  = poke (castPtr p) d
+  poke p (JBoolean b) = poke (castPtr p) b
 
   peek _ = error "Storable JValue: undefined peek"
 
