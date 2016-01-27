@@ -1,5 +1,6 @@
-with (import <nixpkgs> { });
+{ nixpkgs ? import <nixpkgs> {}}:
 
+with nixpkgs;
 with stdenv.lib;
 
 # XXX: Copied from https://github.com/NixOS/nixpkgs/pull/11687.
@@ -44,7 +45,7 @@ let
       '';
 }));};
 
-  spark = pkgs.spark.override { mesosSupport = false; };
+  spark = import ./spark-1.6.0.nix { inherit (nixpkgs) stdenv fetchurl makeWrapper jre pythonPackages mesos; mesosSupport = false; };
 
   jvmlibdir =
     if stdenv.isLinux
