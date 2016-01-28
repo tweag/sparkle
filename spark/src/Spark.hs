@@ -167,14 +167,11 @@ newTokenizer = do
 
 type StopWordsRemover = JObject
 
-
 newStopWordsRemover :: [String] -> IO StopWordsRemover
 newStopWordsRemover stopwords = do
-  putStrLn "<<<<<<<<<<<< YO"
   cls <- findClass "org/apache/spark/ml/feature/StopWordsRemover"
-  print cls
   swr <- newObject cls "()V" []
-  setSw <- findMethod cls "setStopwords" "([Ljava/lang/String;)Lorg/apache/spark/ml/feature/StopWordsRemover;"
+  setSw <- findMethod cls "setStopWords" "([Ljava/lang/String;)Lorg/apache/spark/ml/feature/StopWordsRemover;"
   stringCls <- findClass "java/lang/String"
   let len = fromIntegral (length stopwords)
   jstopwords <- newObjectArray len stringCls =<< mapM newString stopwords
@@ -182,6 +179,20 @@ newStopWordsRemover stopwords = do
   setCS <- findMethod cls "setCaseSensitive" "(Z)Lorg/apache/spark/ml/feature/StopWordsRemover;"
   callObjectMethod swr setCS [JBoolean 0]
 
+type CountVectorizer = JObject
+
+newCountVectorizer :: CInt -> IO CountVectorizer
+newCountVectorizer vocSize = do
+  cls <- findClass "org/apache/spark/ml/feature/CountVectorizer"
+  cv  <- newObject cls "()V" []
+  setInpc <- findMethod cls "setInputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/CountVectorizer;"
+  jfiltered <- newString "filtered"
+  cv' <- callObjectMethod cv setInpc [JObj jfiltered]
+  setOutc <- findMethod cls "setOutputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/CountVectorizer;"
+  jfeatures <- newString "features"
+  cv'' <- callObjectMethod cv' setOutc [JObj jfeatures]
+  setVocSize <- findMethod cls "setVocabSize" "(I)Lorg/apache/spark/ml/feature/CountVectorizer;"
+  callObjectMethod cv'' setVocSize [JInt vocSize]
 
 f :: CInt -> CInt
 f x = x * 2
