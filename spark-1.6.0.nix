@@ -10,7 +10,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url    = "mirror://apache/spark/${name}/${name}-bin-cdh4.tgz";
-    sha256 = "1w60xzzg9mcymin1pmqwx1mvcqmdpfyxhd2dmw5alhnrzi21ycxi";
+    sha256 = "0waq8xx4bjj1yvfbadv1gdvz8s4kh5zasicv2n5623ld6lj7zgad";
   };
 
   buildInputs = [ makeWrapper jre pythonPackages.python pythonPackages.numpy ]
