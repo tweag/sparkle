@@ -2,7 +2,8 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.spark.api.java.*;
-import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.*;
+import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.Row;
@@ -65,5 +66,22 @@ public class Helper
 	st.add(col2, DataTypes.StringType);
 
 	return ctx.createDataFrame(rdd, st);
+    }
+
+    public static JavaRDD<Row> fromDF(DataFrame df)
+    {
+        return df.toJavaRDD();
+    }
+
+    public static JavaPairRDD<String, Vector> fromRows(JavaRDD<Row> rows)
+    {
+        JavaPairRDD<String, Vector> res = rows.mapToPair(
+	    new PairFunction<Row, String, Vector>() {
+		public Tuple2<String, Vector> call(Row r)
+		{
+		    return new Tuple2<String, Vector>(r.getString(0), (Vector) r.get(1));
+		}
+	    });
+        return res.cache();
     }
 }
