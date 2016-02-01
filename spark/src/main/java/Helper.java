@@ -3,6 +3,12 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.spark.api.java.*;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.SQLContext;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.*;
+import scala.Tuple2;
 
 public class Helper
 {
@@ -39,5 +45,25 @@ public class Helper
 		}
 	});
 	return newRDD;
+    }
+
+    public static JavaRDD<Row> toRows(JavaPairRDD<String, String> prdd)
+    {
+	JavaRDD<Row> res = prdd.map(new Function<Tuple2<String, String>, Row>() {
+		public Row call(Tuple2<String, String> tup)
+		{
+		    return RowFactory.create(tup._1(), tup._2());
+		}
+	});
+	return res;
+    }
+
+    public static DataFrame toDF(SQLContext ctx, JavaRDD<Row> rdd, String col1, String col2)
+    {
+	StructType st = new StructType();
+	st.add(col1, DataTypes.StringType);
+	st.add(col2, DataTypes.StringType);
+
+	return ctx.createDataFrame(rdd, st);
     }
 }
