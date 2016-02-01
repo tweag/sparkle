@@ -26,9 +26,7 @@ C.context (C.baseCtx <> jniCtx)
 C.include "../SparkClasses.h"
 
 -- TODO:
--- eventually turn all the 'type's into 'newtype's.
-
--- withCString :: String -> (CString -> IO a) -> IO a
+-- eventually turn all the 'type's into 'newtype's?
 
 type SparkConf = JObject
 
@@ -97,8 +95,6 @@ rddmap clos rdd =
   where closBS = clos2bs clos
 -}
 
-
-
 rddmap :: Closure (CInt -> CInt)
        -> RDD CInt
        -> IO (RDD CInt)
@@ -152,6 +148,23 @@ newSQLContext :: SparkContext -> IO SQLContext
 newSQLContext sc = do
   cls <- findClass "org/apache/spark/sql/SQLContext"
   newObject cls "(Lorg/apache/spark/api/java/JavaSparkContext;)V" [JObj sc]
+
+type Row = JObject
+type DataFrame = JObject
+
+toRows :: PairRDD a b -> IO (RDD Row)
+toRows prdd = do
+  cls <- findClass "Helper"
+  mth <- findStaticMethod cls "toRows" "(Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/api/java/JavaRDD;"
+  callStaticObjectMethod cls mth [JObj prdd]
+
+toDF :: SQLContext -> RDD Row -> String -> String -> IO DataFrame
+toDF sqlc rdd s1 s2 = do
+  cls <- findClass "Helper"
+  mth <- findStaticMethod cls "toDF" "(Lorg/apache/spark/sql/SQLContext;Lorg/apache/spark/api/java/JavaRDD;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/sql/DataFrame;"
+  col1 <- newString s1
+  col2 <- newString s2
+  callStaticObjectMethod cls mth [JObj sqlc, JObj rdd, JObj col1, JObj col2]
 
 type RegexTokenizer = JObject
 
