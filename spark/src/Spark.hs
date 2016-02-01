@@ -194,6 +194,37 @@ newCountVectorizer vocSize = do
   setVocSize <- findMethod cls "setVocabSize" "(I)Lorg/apache/spark/ml/feature/CountVectorizer;"
   callObjectMethod cv'' setVocSize [JInt vocSize]
 
+type LDA = JObject
+
+newLDA :: CDouble -- ^ fraction of documents
+       -> CInt    -- ^ number of topics
+       -> IO LDA
+newLDA frac numTopics = do
+  cls <- findClass "org/apache/spark/mllib/clustering/LDA"
+  lda <- newObject cls "()V" []
+
+  opti_cls <- findClass "org/apache/spark/mllib/clustering/OnlineLDAOptimizer"
+  opti <- newObject opti_cls "()V" []
+  setMiniBatch <- findMethod opti_cls "setMiniBatchFraction" "(D)Lorg/apache/spark/mllib/clustering/OnlineLDAOptimizer;"
+  opti' <- callObjectMethod opti setMiniBatch [JDouble frac]
+
+  setOpti <- findMethod cls "setOptimizer" "(Lorg/apache/spark/mllib/clustering/LDAOptimizer;)Lorg/apache/spark/mllib/clustering/LDA;"
+  lda' <- callObjectMethod lda setOpti [JObj opti']
+
+  setK <- findMethod cls "setK" "(I)Lorg/apache/spark/mllib/clustering/LDA;"
+  lda'' <- callObjectMethod lda' setK [JInt numTopics]
+
+  setMaxIter <- findMethod cls "setMaxIterations" "(I)Lorg/apache/spark/mllib/clustering/LDA;"
+  lda''' <- callObjectMethod lda'' setMaxIter [JInt 2]
+
+  setDocConc <- findMethod cls "setDocConcentration" "(D)Lorg/apache/spark/mllib/clustering/LDA;"
+  lda'''' <- callObjectMethod lda''' setDocConc [JDouble $ negate 1]
+
+  setTopicConc <- findMethod cls "setTopicConcentration" "(D)Lorg/apache/spark/mllib/clustering/LDA;"
+  lda''''' <- callObjectMethod lda'''' setTopicConc [JDouble $ negate 1]
+
+  return lda'''''
+
 f :: CInt -> CInt
 f x = x * 2
 
@@ -212,6 +243,8 @@ sparkMain = do
     res  <- collect rdd'
     tok  <- newTokenizer
     swr  <- newStopWordsRemover ["a", "the", "house"]
+    cv   <- newCountVectorizer 20
+    lda  <- newLDA 0.2 10000
     print res
 
 foreign export ccall sparkMain :: IO ()
