@@ -178,6 +178,12 @@ newTokenizer = do
   jpatt <- newString "\\p{L}+"
   callObjectMethod tok' setpatt [JObj jpatt]
 
+tokenize :: RegexTokenizer -> DataFrame -> IO DataFrame
+tokenize tok df = do
+  cls <- findClass "org/apache/spark/ml/feature/RegexTokenizer"
+  mth <- findMethod cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
+  callObjectMethod tok mth [JObj df]
+
 type StopWordsRemover = JObject
 
 newStopWordsRemover :: [String] -> IO StopWordsRemover
@@ -191,6 +197,12 @@ newStopWordsRemover stopwords = do
   swr' <- callObjectMethod swr setSw [JObj jstopwords]
   setCS <- findMethod cls "setCaseSensitive" "(Z)Lorg/apache/spark/ml/feature/StopWordsRemover;"
   callObjectMethod swr setCS [JBoolean 0]
+
+removeStopWords :: StopWordsRemover -> DataFrame -> IO DataFrame
+removeStopWords sw df = do
+  cls <- findClass "org/apache/spark/ml/feature/StopWordsRemover"
+  mth <- findMethod cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
+  callObjectMethod sw mth [JObj df]
 
 type CountVectorizer = JObject
 
@@ -206,6 +218,28 @@ newCountVectorizer vocSize = do
   cv'' <- callObjectMethod cv' setOutc [JObj jfeatures]
   setVocSize <- findMethod cls "setVocabSize" "(I)Lorg/apache/spark/ml/feature/CountVectorizer;"
   callObjectMethod cv'' setVocSize [JInt vocSize]
+
+type CountVectorizerModel = JObject
+
+fitCV :: CountVectorizer -> DataFrame -> IO CountVectorizerModel
+fitCV cv df = do
+  cls <- findClass "org/apache/spark/ml/feature/CountVectorizer"
+  mth <- findMethod cls "fit" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/ml/feature/CountVectorizerModel;"
+  callObjectMethod cv mth [JObj df]
+
+type SparkVector = JObject
+
+toTokenCounts :: CountVectorizerModel -> DataFrame -> IO (PairRDD String SparkVector)
+toTokenCounts cvModel df = do
+  cls <- findClass "org/apache/spark/ml/feature/CountVectorizerModel"
+  mth <- findMethod cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
+  df' <- callObjectMethod cvModel mth [JObj df]
+
+  helper <- findClass "Helper"
+  fromDF <- findStaticMethod helper "fromDF" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/api/java/JavaRDD;"
+  fromRows <- findStaticMethod helper "fromRows" "(Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
+  rdd <- callStaticObjectMethod helper fromDF [JObj df']
+  callStaticObjectMethod helper fromRows [JObj rdd]
 
 type LDA = JObject
 
