@@ -129,11 +129,14 @@ collect rdd =
 
 type PairRDD a b = JObject
 
-zipWithIndex :: RDD a -> IO (PairRDD a CLong)
+zipWithIndex :: RDD a -> IO (PairRDD CLong a)
 zipWithIndex rdd = do
   cls <- findClass "org/apache/spark/api/java/JavaRDD"
   method <- findMethod cls "zipWithIndex" "()Lorg/apache/spark/api/java/JavaPairRDD;"
-  callObjectMethod rdd method []
+  prdd <- callObjectMethod rdd method []
+  helper <- findClass "Helper"
+  swap <- findStaticMethod cls "swapPairs" "(Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
+  callStaticObjectMethod helper swap [JObj prdd]
 
 wholeTextFiles :: SparkContext -> String -> IO (PairRDD String String)
 wholeTextFiles sc uri = do
@@ -141,6 +144,12 @@ wholeTextFiles sc uri = do
   cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
   method <- findMethod cls "wholeTextFiles" "(Ljava/lang/String;)Lorg/apache/spark/api/java/JavaPairRDD;"
   callObjectMethod sc method [JObj juri]
+
+justValues :: PairRDD a b -> IO (RDD b)
+justValues prdd = do
+  cls <- findClass "org/apache/spark/api/java/JavaPairRDD"
+  values <- findMethod cls "values" "()Lorg/apache/spark/api/java/JavaRDD;"
+  callObjectMethod prdd values []
 
 type SQLContext = JObject
 
@@ -168,15 +177,21 @@ toDF sqlc rdd s1 s2 = do
 
 type RegexTokenizer = JObject
 
-newTokenizer :: IO RegexTokenizer
-newTokenizer = do
+newTokenizer :: String -> String -> IO RegexTokenizer
+newTokenizer icol ocol = do
   cls <- findClass "org/apache/spark/ml/feature/RegexTokenizer"
-  tok <- newObject cls "()V" []
+  tok0 <- newObject cls "()V" []
   setgaps <- findMethod cls "setGaps" "(Z)Lorg/apache/spark/ml/feature/RegexTokenizer;"
   setpatt <- findMethod cls "setPattern" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
-  tok' <- callObjectMethod tok setgaps [JBoolean 1]
+  tok1 <- callObjectMethod tok0 setgaps [JBoolean 1]
   jpatt <- newString "\\p{L}+"
-  callObjectMethod tok' setpatt [JObj jpatt]
+  tok2 <- callObjectMethod tok1 setpatt [JObj jpatt]
+  jicol <- newString icol
+  jocol <- newString ocol
+  seticol <- findMethod cls "setInputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
+  setocol <- findMethod cls "setOutputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
+  tok3 <- callObjectMethod tok2 seticol [JObj jicol]
+  callObjectMethod tok3 setocol [JObj jocol]
 
 tokenize :: RegexTokenizer -> DataFrame -> IO DataFrame
 tokenize tok df = do
@@ -186,17 +201,23 @@ tokenize tok df = do
 
 type StopWordsRemover = JObject
 
-newStopWordsRemover :: [String] -> IO StopWordsRemover
-newStopWordsRemover stopwords = do
+newStopWordsRemover :: [String] -> String -> String -> IO StopWordsRemover
+newStopWordsRemover stopwords icol ocol = do
   cls <- findClass "org/apache/spark/ml/feature/StopWordsRemover"
-  swr <- newObject cls "()V" []
+  swr0 <- newObject cls "()V" []
   setSw <- findMethod cls "setStopWords" "([Ljava/lang/String;)Lorg/apache/spark/ml/feature/StopWordsRemover;"
   stringCls <- findClass "java/lang/String"
   let len = fromIntegral (length stopwords)
   jstopwords <- newObjectArray len stringCls =<< mapM newString stopwords
-  swr' <- callObjectMethod swr setSw [JObj jstopwords]
+  swr1 <- callObjectMethod swr0 setSw [JObj jstopwords]
   setCS <- findMethod cls "setCaseSensitive" "(Z)Lorg/apache/spark/ml/feature/StopWordsRemover;"
-  callObjectMethod swr setCS [JBoolean 0]
+  swr2 <- callObjectMethod swr1 setCS [JBoolean 0]
+  seticol <- findMethod cls "setInputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/StopWordsRemover;"
+  setocol <- findMethod cls "setOutputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/StopWordsRemover;"
+  jicol <- newString icol
+  jocol <- newString ocol
+  swr3 <- callObjectMethod swr2 seticol [JObj jicol]
+  callObjectMethod swr3 setocol [JObj jocol]
 
 removeStopWords :: StopWordsRemover -> DataFrame -> IO DataFrame
 removeStopWords sw df = do
@@ -206,15 +227,15 @@ removeStopWords sw df = do
 
 type CountVectorizer = JObject
 
-newCountVectorizer :: CInt -> IO CountVectorizer
-newCountVectorizer vocSize = do
+newCountVectorizer :: CInt -> String -> String -> IO CountVectorizer
+newCountVectorizer vocSize icol ocol = do
   cls <- findClass "org/apache/spark/ml/feature/CountVectorizer"
   cv  <- newObject cls "()V" []
   setInpc <- findMethod cls "setInputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/CountVectorizer;"
-  jfiltered <- newString "filtered"
+  jfiltered <- newString icol
   cv' <- callObjectMethod cv setInpc [JObj jfiltered]
   setOutc <- findMethod cls "setOutputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/CountVectorizer;"
-  jfeatures <- newString "features"
+  jfeatures <- newString ocol
   cv'' <- callObjectMethod cv' setOutc [JObj jfeatures]
   setVocSize <- findMethod cls "setVocabSize" "(I)Lorg/apache/spark/ml/feature/CountVectorizer;"
   callObjectMethod cv'' setVocSize [JInt vocSize]
@@ -229,7 +250,7 @@ fitCV cv df = do
 
 type SparkVector = JObject
 
-toTokenCounts :: CountVectorizerModel -> DataFrame -> IO (PairRDD String SparkVector)
+toTokenCounts :: CountVectorizerModel -> DataFrame -> IO (PairRDD CLong SparkVector)
 toTokenCounts cvModel df = do
   cls <- findClass "org/apache/spark/ml/feature/CountVectorizerModel"
   mth <- findMethod cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
@@ -272,6 +293,14 @@ newLDA frac numTopics = do
 
   return lda'''''
 
+type LDAModel = JObject
+
+runLDA :: LDA -> PairRDD CLong SparkVector -> IO LDAModel
+runLDA lda rdd = do
+  cls <- findClass "Helper"
+  run <- findStaticMethod cls "runLDA" "(Lorg/apache/spark/mllib/clustering/LDA;Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/mllib/clustering/LDAModel;"
+  callStaticObjectMethod cls run [JObj lda, JObj rdd]
+
 f :: CInt -> CInt
 f x = x * 2
 
@@ -280,18 +309,28 @@ wrapped_f = closure (static f)
 
 sparkMain :: IO ()
 sparkMain = do
-    conf <- newSparkConf "Hello sparkle!"
+    conf <- newSparkConf "Spark Online Latent Dirichlet Analysis in Haskell!"
     sc   <- newSparkContext conf
     sqlc <- newSQLContext sc
-    rdd  <- parallelize sc [1..10]
-    rdd' <- rddmap wrapped_f rdd
-    irdd <- zipWithIndex rdd'
-    trdd <- wholeTextFiles sc "src/"
-    res  <- collect rdd'
-    tok  <- newTokenizer
-    swr  <- newStopWordsRemover ["a", "the", "house"]
-    cv   <- newCountVectorizer 20
-    lda  <- newLDA 0.2 10000
-    print res
+    docs <- wholeTextFiles sc "documents/"
+        >>= justValues
+        >>= zipWithIndex
+    docsRows <- toRows docs
+    docsDF <- toDF sqlc docsRows "docId" "text"
+    tok  <- newTokenizer "text" "words"
+    tokenizedDF <- tokenize tok docsDF
+    swr  <- newStopWordsRemover stopwords "words" "filtered"
+    filteredDF <- removeStopWords swr tokenizedDF
+    cv   <- newCountVectorizer vocabSize "filtered" "features"
+    cvModel <- fitCV cv filteredDF
+    countVectors <- toTokenCounts cvModel filteredDF
+    lda  <- newLDA miniBatchFraction numTopics
+    ldamodel  <- runLDA lda docs
+    return ()
+
+    where stopwords         = undefined
+          numTopics         = 100
+          miniBatchFraction = 0.5
+          vocabSize         = 10000
 
 foreign export ccall sparkMain :: IO ()
