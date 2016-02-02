@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.spark.api.java.*;
 import org.apache.spark.api.java.function.*;
+import org.apache.spark.ml.feature.*;
 import org.apache.spark.mllib.clustering.*;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.sql.DataFrame;
@@ -47,6 +48,11 @@ public class Helper
 		    return new Tuple2<Long, String>(t._2(), t._1());
 		}
 	    });
+    }
+
+    public static RegexTokenizer setupTokenizer(RegexTokenizer rt, String icol, String ocol)
+    {
+	return rt.setInputCol(icol).setOutputCol(ocol);
     }
 
     public static JavaRDD<Integer> map(JavaRDD<Integer> rdd, final byte[] clos)
@@ -100,5 +106,17 @@ public class Helper
     public static LDAModel runLDA(LDA l, JavaPairRDD<Long, Vector> docs)
     {
 	return l.run(docs);
+    }
+
+    public static void describeResults(LDAModel lm, CountVectorizerModel cvm, int maxTermsPerTopic)
+    {
+	if(lm == null)
+	    System.out.println("lm is null");
+        if(cvm == null)
+	    System.out.println("cvm is null");
+
+	Tuple2<int[], double[]>[] topicIndices = lm.describeTopics(maxTermsPerTopic);
+	String[] vocabArray = cvm.vocabulary();
+	// System.out.println(vocabArray.toString());
     }
 }

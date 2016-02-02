@@ -10,6 +10,7 @@ jmethodID findStaticMethod(jclass java_class, const char* method_name, const cha
 /* invoking methods */
 jobject callObjectMethod(jobject obj, jmethodID, jvalue* args);
 jobject callStaticObjectMethod(jclass java_class, jmethodID method, jvalue* args);
+void callStaticVoidMethod (jclass java_class, jmethodID method, jvalue* args);
 
 /* Creating Java values */
 jobject newObject(jclass java_class, const char* sig, const jvalue* args);
