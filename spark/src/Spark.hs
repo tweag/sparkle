@@ -249,16 +249,18 @@ fitCV cv df = do
 
 type SparkVector = JObject
 
-toTokenCounts :: CountVectorizerModel -> DataFrame -> IO (PairRDD CLong SparkVector)
-toTokenCounts cvModel df = do
+toTokenCounts :: CountVectorizerModel -> DataFrame -> String -> String -> IO (PairRDD CLong SparkVector)
+toTokenCounts cvModel df col1 col2 = do
   cls <- findClass "org/apache/spark/ml/feature/CountVectorizerModel"
   mth <- findMethod cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
   df' <- callObjectMethod cvModel mth [JObj df]
 
   helper <- findClass "Helper"
-  fromDF <- findStaticMethod helper "fromDF" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/api/java/JavaRDD;"
+  fromDF <- findStaticMethod helper "fromDF" "(Lorg/apache/spark/sql/DataFrame;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/api/java/JavaRDD;"
   fromRows <- findStaticMethod helper "fromRows" "(Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
-  rdd <- callStaticObjectMethod helper fromDF [JObj df']
+  jcol1 <- newString col1
+  jcol2 <- newString col2
+  rdd <- callStaticObjectMethod helper fromDF [JObj df', JObj jcol1, JObj jcol2]
   callStaticObjectMethod helper fromRows [JObj rdd]
 
 type LDA = JObject
@@ -329,11 +331,10 @@ sparkMain = do
     filteredDF <- removeStopWords swr tokenizedDF
     cv   <- newCountVectorizer vocabSize "filtered" "features"
     cvModel <- fitCV cv filteredDF
-    countVectors <- toTokenCounts cvModel filteredDF
-    checkForException
+    countVectors <- toTokenCounts cvModel filteredDF "docId" "features"
     lda  <- newLDA miniBatchFraction numTopics
-    ldamodel  <- runLDA lda docs
-    checkForException
+    ldamodel  <- runLDA lda countVectors
+    {-
     putStrLn $ "docs: " ++ show docs
     putStrLn $ "docsRows: " ++ show docsRows
     putStrLn $ "docsDF: " ++ show docsDF
@@ -346,12 +347,13 @@ sparkMain = do
     putStrLn $ "countVectors: " ++ show countVectors
     putStrLn $ "lda: " ++ show lda
     putStrLn $ "ldamodel: " ++ show ldamodel
+    -}
     describeResults ldamodel cvModel maxTermsPerTopic
 
-    where numTopics         = 100
-          miniBatchFraction = 0.5
-          vocabSize         = 10000
-          maxTermsPerTopic  = 20
+    where numTopics         = 4
+          miniBatchFraction = 1
+          vocabSize         = 100
+          maxTermsPerTopic  = 5
 
 getStopwords :: IO [String]
 getStopwords = fmap lines (readFile "stopwords.txt")

@@ -86,9 +86,9 @@ public class Helper
 	return df;
     }
 
-    public static JavaRDD<Row> fromDF(DataFrame df)
+    public static JavaRDD<Row> fromDF(DataFrame df, String col1, String col2)
     {
-        return df.toJavaRDD();
+        return df.select(col1, col2).toJavaRDD();
     }
 
     public static JavaPairRDD<Long, Vector> fromRows(JavaRDD<Row> rows)
@@ -110,13 +110,23 @@ public class Helper
 
     public static void describeResults(LDAModel lm, CountVectorizerModel cvm, int maxTermsPerTopic)
     {
-	if(lm == null)
-	    System.out.println("lm is null");
-        if(cvm == null)
-	    System.out.println("cvm is null");
-
-	Tuple2<int[], double[]>[] topicIndices = lm.describeTopics(maxTermsPerTopic);
+	Tuple2<int[], double[]>[] topics = lm.describeTopics(maxTermsPerTopic);
 	String[] vocabArray = cvm.vocabulary();
-	// System.out.println(vocabArray.toString());
+	System.out.println(">>> Vocabulary");
+	for(String w : vocabArray)
+	    System.out.println("\t " + w);
+	for(int i = 0; i < topics.length; i++)
+	{
+	    System.out.println(">>> Topic #" + i);
+	    Tuple2<int[], double[]> topic = topics[i];
+	    int numTerms = topic._1().length;
+	    for(int j = 0; j < numTerms; j++)
+	    {
+		String term = vocabArray[topic._1()[j]];
+		double weight = topic._2()[j];
+		System.out.println("\t" + term + " -> " + weight);
+	    }
+	    System.out.println("-----");
+	}
     }
 }
