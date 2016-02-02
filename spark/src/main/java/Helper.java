@@ -79,11 +79,11 @@ public class Helper
 
     public static DataFrame toDF(SQLContext ctx, JavaRDD<Row> rdd, String col1, String col2)
     {
-	StructType st = new StructType();
-	st.add(col1, DataTypes.LongType);
-	st.add(col2, DataTypes.StringType);
+	StructType st =
+	  new StructType().add(col1, DataTypes.LongType).add(col2, DataTypes.StringType);
 
-	return ctx.createDataFrame(rdd, st);
+	DataFrame df = ctx.createDataFrame(rdd, st);
+	return df;
     }
 
     public static JavaRDD<Row> fromDF(DataFrame df)

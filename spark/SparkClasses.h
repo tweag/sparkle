@@ -18,6 +18,8 @@ jstring newString(const char* str);
 jintArray newIntArray(size_t size, int* data);
 jbyteArray newByteArray(size_t size, jbyte* data);
 
+void checkForExc();
+
 /* Spark functions */
 jobject   newSparkContext(jobject sparkConf);
 jobject   newSparkConf(const char* appname);
