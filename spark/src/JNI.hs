@@ -71,6 +71,7 @@ foreign import ccall unsafe "newDoubleArray" newDoubleArray' :: CSize -> Ptr CDo
 foreign import ccall unsafe "newByteArray" newByteArray' :: CSize -> Ptr CChar -> IO JByteArray
 foreign import ccall unsafe "newObjectArray" newObjectArray' :: CSize -> JClass -> Ptr JObject -> IO JObjectArray
 foreign import ccall unsafe "newString" newString' :: Ptr CChar -> IO JString
+foreign import ccall unsafe "checkForExc" checkForException :: IO ()
 
 findClass :: String -> IO JClass
 findClass s = withCString s findClass'

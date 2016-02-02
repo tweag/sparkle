@@ -167,6 +167,17 @@ jobjectArray newObjectArray(size_t size, jclass cls, jobject* data)
   return arr;
 }
 
+void checkForExc()
+{
+  JNIEnv* env = jniEnv();
+  jthrowable exc = (*env)->ExceptionOccurred(env);
+  if(exc)
+  {
+    (*env)->ExceptionDescribe(env);
+    (*env)->ExceptionClear(env);
+  }
+}
+
 jobject newSparkConf(const char* appname)
 {
   jclass spark_conf_class = findClass("org/apache/spark/SparkConf");

@@ -330,8 +330,10 @@ sparkMain = do
     cv   <- newCountVectorizer vocabSize "filtered" "features"
     cvModel <- fitCV cv filteredDF
     countVectors <- toTokenCounts cvModel filteredDF
+    checkForException
     lda  <- newLDA miniBatchFraction numTopics
     ldamodel  <- runLDA lda docs
+    checkForException
     putStrLn $ "docs: " ++ show docs
     putStrLn $ "docsRows: " ++ show docsRows
     putStrLn $ "docsDF: " ++ show docsDF
