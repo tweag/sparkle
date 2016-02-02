@@ -135,7 +135,7 @@ zipWithIndex rdd = do
   method <- findMethod cls "zipWithIndex" "()Lorg/apache/spark/api/java/JavaPairRDD;"
   prdd <- callObjectMethod rdd method []
   helper <- findClass "Helper"
-  swap <- findStaticMethod cls "swapPairs" "(Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
+  swap <- findStaticMethod helper "swapPairs" "(Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
   callStaticObjectMethod helper swap [JObj prdd]
 
 wholeTextFiles :: SparkContext -> String -> IO (PairRDD String String)
@@ -188,10 +188,9 @@ newTokenizer icol ocol = do
   tok2 <- callObjectMethod tok1 setpatt [JObj jpatt]
   jicol <- newString icol
   jocol <- newString ocol
-  seticol <- findMethod cls "setInputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
-  setocol <- findMethod cls "setOutputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
-  tok3 <- callObjectMethod tok2 seticol [JObj jicol]
-  callObjectMethod tok3 setocol [JObj jocol]
+  helper <- findClass "Helper"
+  setuptok <- findStaticMethod helper "setupTokenizer" "(Lorg/apache/spark/ml/feature/RegexTokenizer;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
+  callStaticObjectMethod helper setuptok [JObj tok2, JObj jicol, JObj jocol]
 
 tokenize :: RegexTokenizer -> DataFrame -> IO DataFrame
 tokenize tok df = do
@@ -298,8 +297,14 @@ type LDAModel = JObject
 runLDA :: LDA -> PairRDD CLong SparkVector -> IO LDAModel
 runLDA lda rdd = do
   cls <- findClass "Helper"
-  run <- findStaticMethod cls "runLDA" "(Lorg/apache/spark/mllib/clustering/LDA;Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/mllib/clustering/LDAModel;"
+  run <- findStaticMethod cls "runLDA" "(Lorg/apache/spark/mllib/clustering/LDA;Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/mllib/clustering/LDAModel;"
   callStaticObjectMethod cls run [JObj lda, JObj rdd]
+
+describeResults :: LDAModel -> CountVectorizerModel -> CInt -> IO ()
+describeResults lm cvm maxTerms = do
+  cls <- findClass "Helper"
+  mth <- findStaticMethod cls "describeResults" "(Lorg/apache/spark/mllib/clustering/LDAModel;Lorg/apache/spark/ml/feature/CountVectorizerModel;I)V"
+  callStaticVoidMethod cls mth [JObj lm, JObj cvm, JInt maxTerms]
 
 f :: CInt -> CInt
 f x = x * 2
@@ -309,6 +314,7 @@ wrapped_f = closure (static f)
 
 sparkMain :: IO ()
 sparkMain = do
+    stopwords <- getStopwords
     conf <- newSparkConf "Spark Online Latent Dirichlet Analysis in Haskell!"
     sc   <- newSparkContext conf
     sqlc <- newSQLContext sc
@@ -326,11 +332,26 @@ sparkMain = do
     countVectors <- toTokenCounts cvModel filteredDF
     lda  <- newLDA miniBatchFraction numTopics
     ldamodel  <- runLDA lda docs
-    return ()
+    putStrLn $ "docs: " ++ show docs
+    putStrLn $ "docsRows: " ++ show docsRows
+    putStrLn $ "docsDF: " ++ show docsDF
+    putStrLn $ "tok: " ++ show tok
+    putStrLn $ "tokenizedDF: " ++ show tokenizedDF
+    putStrLn $ "swr: " ++ show swr
+    putStrLn $ "filteredDF: " ++ show filteredDF
+    putStrLn $ "cv: " ++ show cv
+    putStrLn $ "cvModel: " ++ show cvModel
+    putStrLn $ "countVectors: " ++ show countVectors
+    putStrLn $ "lda: " ++ show lda
+    putStrLn $ "ldamodel: " ++ show ldamodel
+    describeResults ldamodel cvModel maxTermsPerTopic
 
-    where stopwords         = undefined
-          numTopics         = 100
+    where numTopics         = 100
           miniBatchFraction = 0.5
           vocabSize         = 10000
+          maxTermsPerTopic  = 20
+
+getStopwords :: IO [String]
+getStopwords = fmap lines (readFile "stopwords.txt")
 
 foreign export ccall sparkMain :: IO ()

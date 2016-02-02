@@ -79,6 +79,12 @@ jobject callStaticObjectMethod(jclass java_class, jmethodID method, jvalue* args
   return res;
 }
 
+void callStaticVoidMethod(jclass java_class, jmethodID method, jvalue* args)
+{
+  JNIEnv* env = jniEnv();
+  (*env)->CallStaticVoidMethodA(env, java_class, method, args);
+}
+
 jobject newObject(jclass java_class, const char* sig, const jvalue* args)
 {
   JNIEnv* env = jniEnv();
