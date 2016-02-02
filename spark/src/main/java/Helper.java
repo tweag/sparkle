@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.spark.api.java.*;
 import org.apache.spark.api.java.function.*;
+import org.apache.spark.mllib.clustering.*;
 import org.apache.spark.mllib.linalg.Vector;
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.SQLContext;
@@ -37,6 +38,17 @@ public class Helper
 	return res;
     }
 
+    public static JavaPairRDD<Long, String> swapPairs(JavaPairRDD<String, Long> prdd)
+    {
+	return prdd.mapToPair(
+	    new PairFunction<Tuple2<String, Long>, Long, String>() {
+		public Tuple2<Long, String> call(Tuple2<String, Long> t)
+		{
+		    return new Tuple2<Long, String>(t._2(), t._1());
+		}
+	    });
+    }
+
     public static JavaRDD<Integer> map(JavaRDD<Integer> rdd, final byte[] clos)
     {
 	JavaRDD<Integer> newRDD = rdd.map(new Function<Integer, Integer>() {
@@ -48,10 +60,10 @@ public class Helper
 	return newRDD;
     }
 
-    public static JavaRDD<Row> toRows(JavaPairRDD<String, String> prdd)
+    public static JavaRDD<Row> toRows(JavaPairRDD<Long, String> prdd)
     {
-	JavaRDD<Row> res = prdd.map(new Function<Tuple2<String, String>, Row>() {
-		public Row call(Tuple2<String, String> tup)
+	JavaRDD<Row> res = prdd.map(new Function<Tuple2<Long, String>, Row>() {
+		public Row call(Tuple2<Long, String> tup)
 		{
 		    return RowFactory.create(tup._1(), tup._2());
 		}
@@ -62,7 +74,7 @@ public class Helper
     public static DataFrame toDF(SQLContext ctx, JavaRDD<Row> rdd, String col1, String col2)
     {
 	StructType st = new StructType();
-	st.add(col1, DataTypes.StringType);
+	st.add(col1, DataTypes.LongType);
 	st.add(col2, DataTypes.StringType);
 
 	return ctx.createDataFrame(rdd, st);
@@ -73,15 +85,20 @@ public class Helper
         return df.toJavaRDD();
     }
 
-    public static JavaPairRDD<String, Vector> fromRows(JavaRDD<Row> rows)
+    public static JavaPairRDD<Long, Vector> fromRows(JavaRDD<Row> rows)
     {
-        JavaPairRDD<String, Vector> res = rows.mapToPair(
-	    new PairFunction<Row, String, Vector>() {
-		public Tuple2<String, Vector> call(Row r)
+        JavaPairRDD<Long, Vector> res = rows.mapToPair(
+	    new PairFunction<Row, Long, Vector>() {
+		public Tuple2<Long, Vector> call(Row r)
 		{
-		    return new Tuple2<String, Vector>(r.getString(0), (Vector) r.get(1));
+		    return new Tuple2<Long, Vector>((Long) r.get(0), (Vector) r.get(1));
 		}
 	    });
         return res.cache();
+    }
+
+    public static LDAModel runLDA(LDA l, JavaPairRDD<Long, Vector> docs)
+    {
+	return l.run(docs);
     }
 }
