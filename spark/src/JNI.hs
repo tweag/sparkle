@@ -66,6 +66,7 @@ foreign import ccall unsafe "findStaticMethod" findStaticMethod' :: JClass -> CS
 foreign import ccall unsafe "callObjectMethod" callObjectMethod' :: JObject -> JMethodID -> JValuePtr -> IO JObject
 foreign import ccall unsafe "callStaticObjectMethod" callStaticObjectMethod' :: JClass -> JMethodID -> JValuePtr -> IO JObject
 foreign import ccall unsafe "callStaticVoidMethod" callStaticVoidMethod' :: JClass -> JMethodID -> JValuePtr -> IO ()
+foreign import ccall unsafe "callVoidMethod" callVoidMethod' :: JObject -> JMethodID -> JValuePtr -> IO ()
 foreign import ccall unsafe "newIntArray" newIntArray' :: CSize -> Ptr CInt -> IO JIntArray
 foreign import ccall unsafe "newDoubleArray" newDoubleArray' :: CSize -> Ptr CDouble -> IO JDoubleArray
 foreign import ccall unsafe "newByteArray" newByteArray' :: CSize -> Ptr CChar -> IO JByteArray
@@ -98,6 +99,11 @@ callObjectMethod :: JObject -> JMethodID -> [JValue] -> IO JObject
 callObjectMethod obj method args =
   withArray args $ \cargs ->
   callObjectMethod' obj method cargs
+
+callVoidMethod :: JObject -> JMethodID -> [JValue] -> IO ()
+callVoidMethod obj method args =
+  withArray args $ \cargs ->
+  callVoidMethod' obj method cargs
 
 callStaticObjectMethod :: JClass -> JMethodID -> [JValue] -> IO JObject
 callStaticObjectMethod cls method args =

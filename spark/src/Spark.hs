@@ -181,16 +181,15 @@ newTokenizer :: String -> String -> IO RegexTokenizer
 newTokenizer icol ocol = do
   cls <- findClass "org/apache/spark/ml/feature/RegexTokenizer"
   tok0 <- newObject cls "()V" []
-  setgaps <- findMethod cls "setGaps" "(Z)Lorg/apache/spark/ml/feature/RegexTokenizer;"
-  setpatt <- findMethod cls "setPattern" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
-  tok1 <- callObjectMethod tok0 setgaps [JBoolean 1]
-  jpatt <- newString "\\p{L}+"
-  tok2 <- callObjectMethod tok1 setpatt [JObj jpatt]
+  let patt = "\\p{L}+"
+  let gaps = True
+  let jgaps = if gaps then 1 else 0
+  jpatt <- newString patt
   jicol <- newString icol
   jocol <- newString ocol
   helper <- findClass "Helper"
-  setuptok <- findStaticMethod helper "setupTokenizer" "(Lorg/apache/spark/ml/feature/RegexTokenizer;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
-  callStaticObjectMethod helper setuptok [JObj tok2, JObj jicol, JObj jocol]
+  setuptok <- findStaticMethod helper "setupTokenizer" "(Lorg/apache/spark/ml/feature/RegexTokenizer;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
+  callStaticObjectMethod helper setuptok [JObj tok0, JObj jicol, JObj jocol, JBoolean jgaps, JObj jpatt]
 
 tokenize :: RegexTokenizer -> DataFrame -> IO DataFrame
 tokenize tok df = do
@@ -260,6 +259,7 @@ toTokenCounts cvModel df col1 col2 = do
   fromRows <- findStaticMethod helper "fromRows" "(Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
   jcol1 <- newString col1
   jcol2 <- newString col2
+  debugDF df'
   rdd <- callStaticObjectMethod helper fromDF [JObj df', JObj jcol1, JObj jcol2]
   callStaticObjectMethod helper fromRows [JObj rdd]
 
@@ -308,6 +308,27 @@ describeResults lm cvm maxTerms = do
   mth <- findStaticMethod cls "describeResults" "(Lorg/apache/spark/mllib/clustering/LDAModel;Lorg/apache/spark/ml/feature/CountVectorizerModel;I)V"
   callStaticVoidMethod cls mth [JObj lm, JObj cvm, JInt maxTerms]
 
+selectDF :: DataFrame -> [String] -> IO DataFrame
+selectDF df (col:cols) = do
+  cls <- findClass "org/apache/spark/sql/DataFrame"
+  mth <- findMethod cls "select" "(Ljava/lang/String;[Ljava/lang/String;)Lorg/apache/spark/sql/DataFrame;"
+  jcol <- newString col
+  jcols <- mapM newString cols
+  strCls <- findClass "java/lang/String"
+  jcolA <- newObjectArray (fromIntegral $ length jcols) strCls jcols
+  callObjectMethod df mth [JObj jcol, JObj jcolA]
+
+debugDF :: DataFrame -> IO ()
+debugDF df = do
+  cls <- findClass "org/apache/spark/sql/DataFrame"
+  mth <- findMethod cls "show" "()V"
+  callVoidMethod df mth []
+  {-
+  cls <- findClass "Helper"
+  mth <- findStaticMethod cls "debugDF" "(Lorg/apache/spark/sql/DataFrame;)V"
+  callStaticVoidMethod cls mth [JObj df]
+  -}
+
 f :: CInt -> CInt
 f x = x * 2
 
@@ -325,10 +346,18 @@ sparkMain = do
         >>= zipWithIndex
     docsRows <- toRows docs
     docsDF <- toDF sqlc docsRows "docId" "text"
+    debugDF docsDF
+    putStrLn "DOCSDF"
     tok  <- newTokenizer "text" "words"
     tokenizedDF <- tokenize tok docsDF
+    tokenizedDF' <- selectDF tokenizedDF ["docId", "words"]
+    debugDF tokenizedDF'
+    putStrLn "TOKENIZEDDF'"
     swr  <- newStopWordsRemover stopwords "words" "filtered"
-    filteredDF <- removeStopWords swr tokenizedDF
+    filteredDF <- removeStopWords swr tokenizedDF'
+    filteredDF' <- selectDF filteredDF ["docId", "filtered"]
+    debugDF filteredDF'
+    putStrLn "FILTEREDDF'"
     cv   <- newCountVectorizer vocabSize "filtered" "features"
     cvModel <- fitCV cv filteredDF
     countVectors <- toTokenCounts cvModel filteredDF "docId" "features"
@@ -350,9 +379,9 @@ sparkMain = do
     -}
     describeResults ldamodel cvModel maxTermsPerTopic
 
-    where numTopics         = 4
+    where numTopics         = 2 -- 4
           miniBatchFraction = 1
-          vocabSize         = 100
+          vocabSize         = 10 -- 100
           maxTermsPerTopic  = 5
 
 getStopwords :: IO [String]
