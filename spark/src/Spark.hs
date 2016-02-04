@@ -352,11 +352,11 @@ sparkMain = do
     ldamodel  <- runLDA lda countVectors
     describeResults ldamodel cvModel maxTermsPerTopic
 
-    where numTopics         = 4
+    where numTopics         = 10
           miniBatchFraction = 1
-          vocabSize         = 100
-          maxTermsPerTopic  = 5
-          maxIterations     = 2
+          vocabSize         = 600
+          maxTermsPerTopic  = 10
+          maxIterations     = 50
 
 getStopwords :: IO [String]
 getStopwords = fmap lines (readFile "stopwords.txt")
