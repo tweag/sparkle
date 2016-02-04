@@ -221,6 +221,9 @@ getStopwords = fmap lines (readFile "stopwords.txt")
 foreign export ccall sparkMain :: IO ()
 ```
 
+Running the above code on [a dataset consisting of articles from the New York Times](https://github.com/cjrd/TMA/tree/master/data/nyt) yields the following
+output:
+
 ```
 >>> Topic #0
 	atlanta -> 0.05909878836489215
@@ -343,23 +346,100 @@ foreign export ccall sparkMain :: IO ()
 	miles -> 0.011676754602531585
 ```
 
-## Shipping Haskell closures to Java
+## Running Haskell functions over datasets
+
+It's nice that we can drive Spark from Haskell, but this doesn't help in
+distributing _Haskell computations_. What we would like is to be able to,
+e.g, `map` a Haskell function over a Spark dataset. How can we make this
+happen? Java and Scala use their standard `Serializable` machinery to send
+functions and their environments to each node, but this obviously isn't an
+option for us.
+
+Enter a recent GHC extension, [Static Pointers](https://ocharles.org.uk/blog/guest-posts/2014-12-23-static-pointers.html). If you haven't heard of this
+before, you might want to follow the link because what we do in _sparkle_
+is very similar to what's done at the end of this post in the _Static Closures_
+section, except that instead of embedding a static pointer table in
+executables, we embed it in our shared library. We can then use the static
+keys to refer to Haskell functions and transmit it to Java which can send them
+over the wire to the nodes. Finally, each node can run some Haskell code that
+decodes a serialized closure back into a function that it can apply to the
+elements of a dataset.
+
+We heavily rely on the [distributed-closure](http://hackage.haskell.org/package/distributed-closure)
+package which provides the closure serialization machinery out of the box for
+us. All we needed to do was to provide some glue code in Java to wrap the
+invokation of a serialized Haskell function in a Spark-friendly way.
 
 ## Demo: mapping a Haskell function over a dataset
 
+Time for some code, right? Here's a snippet that turns a list of numbers into
+a Spark dataset and then maps a function (`\x -> x * 2`) over this dataset,
+collecting the result back into a Haskell list at the end and printing it.
+
+``` haskell
+{-# LANGUAGE StaticPointers #-}
+
+-- ...
+import Control.Distributed.Closure
+
+f :: CInt -> CInt
+f x = x * 2
+
+-- the 'Closure' type and the 'closure' function are provided by
+-- the distributed-closure package, while 'static' is provided
+-- by the StaticPointers extension
+wrapped_f :: Closure (CInt -> CInt)
+wrapped_f = closure (static f)
+
+sparkMain :: IO ()
+sparkMain = do
+    conf <- newSparkConf "Hello sparkle!"
+    sc   <- newSparkContext conf
+    rdd  <- parallelize sc [1..10]
+    rdd' <- rddmap wrapped_f rdd
+    res  <- collect rdd'
+    print res
+```
+
+The output is what you would expect. We are using the `CInt` type for its
+FFI-friendliness but the entire approach can be significantly generalized.
+
+## Complete code and examples
+
+**to be written after refactoring**
+
 ## Future work
 
+As said at the beginning of this post, this is all in very early stages. There
+are several axis of improvements:
 
+- **JNI bindings**: We only expose the bits of JNI that we needed. We might
+  want to eventually turn that into proper bindings to the entire JNI API,
+  with a nice story for marshalling data back and forth between Haskell and
+  Java. The idea there would be that Java values can either be of primitive
+  types or objects, so this is all we would ever need to convert to (resp.
+  from). We could provide conversion routines for primitive types and `String`
+  while keeping Java  objects opaque. This could then be released
+  as a (separate) library dedicated to interacting with the JVM.
+- **Spark API**: we only cover a ridiculously small fraction of the Spark API.
+  Given enough interest we might want to cover more dataset operations as well
+  as other Spark modules.
+- **Running Haskell functions**: right now, we can only `map` Haskell functions
+  of type `CInt -> CInt`. Our approach here could be extended in two
+  different ways:
 
+  - Use the marshalling story from the "JNI bindings" bullet above to support
+    any function that fits `(FromJObject a, ToJObject b) => a -> b`. This would
+    limit users to data types that can be turned into Java objects (Spark
+    datasets can only store objects).
+  - Encode "arbitrary" Haskell data types as bytestrings, using a format like
+    [CBOR](https://github.com/well-typed/binary-serialise-cbor), to support
+    functions that fit `(Serialise a, Serialise b) => a -> b`, where
+    `Serialise` is the typeclass associated to data types that can be encoded
+    from/to CBOR, in the package linked above. This would have the consequence
+    of having Spark store datasets of bytestrings that could only be understood
+    by our Haskell code out of the box, unless using a CBOR library in other
+    languages as well.
 
-
-
-
-
-
-
-
-
-
-
-
+  In addition to that, we would implement support for other RDD operations that
+  take functions as arguments, in order to offer a warm "Haskelly" API.
