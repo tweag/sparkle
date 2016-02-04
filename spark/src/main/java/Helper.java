@@ -56,7 +56,7 @@ public class Helper
 	         .setOutputCol(ocol)
 	         .setGaps(gaps)
 	         .setPattern(patt)
-	         .setMinTokenLength(3);
+	         .setMinTokenLength(5);
     }
 
     public static JavaRDD<Integer> map(JavaRDD<Integer> rdd, final byte[] clos)
