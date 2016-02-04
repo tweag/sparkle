@@ -52,7 +52,11 @@ public class Helper
 
     public static RegexTokenizer setupTokenizer(RegexTokenizer rt, String icol, String ocol, boolean gaps, String patt)
     {
-	return rt.setInputCol(icol).setOutputCol(ocol).setGaps(gaps).setPattern(patt);
+	return rt.setInputCol(icol)
+	         .setOutputCol(ocol)
+	         .setGaps(gaps)
+	         .setPattern(patt)
+	         .setMinTokenLength(3);
     }
 
     public static JavaRDD<Integer> map(JavaRDD<Integer> rdd, final byte[] clos)
@@ -85,25 +89,6 @@ public class Helper
 
 	DataFrame df = ctx.createDataFrame(rdd, st);
 	return df;
-    }
-
-    public static void debugDF(DataFrame df)
-    {
-	Row[] rows = df.collect();
-	String[] cols = df.columns();
-	for(int i = 0; i < cols.length; i++)
-	{
-	    System.out.print(cols[i] + "\t");
-	}
-	System.out.println("\n-------------------------------");
-	for(Row r: rows)
-	{
-	    for(int i = 0; i < cols.length; i++)
-	    {
-		System.out.print(r.get(i).toString() + "\t");
-	    }
-	    System.out.println("\n-------------------------------");
-	}
     }
 
     public static JavaRDD<Row> fromDF(DataFrame df, String col1, String col2)

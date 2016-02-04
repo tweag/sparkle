@@ -182,7 +182,7 @@ newTokenizer icol ocol = do
   cls <- findClass "org/apache/spark/ml/feature/RegexTokenizer"
   tok0 <- newObject cls "()V" []
   let patt = "\\p{L}+"
-  let gaps = True
+  let gaps = False
   let jgaps = if gaps then 1 else 0
   jpatt <- newString patt
   jicol <- newString icol
@@ -259,7 +259,6 @@ toTokenCounts cvModel df col1 col2 = do
   fromRows <- findStaticMethod helper "fromRows" "(Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
   jcol1 <- newString col1
   jcol2 <- newString col2
-  debugDF df'
   rdd <- callStaticObjectMethod helper fromDF [JObj df', JObj jcol1, JObj jcol2]
   callStaticObjectMethod helper fromRows [JObj rdd]
 
@@ -267,8 +266,9 @@ type LDA = JObject
 
 newLDA :: CDouble -- ^ fraction of documents
        -> CInt    -- ^ number of topics
+       -> CInt    -- ^ maximum number of iterations
        -> IO LDA
-newLDA frac numTopics = do
+newLDA frac numTopics maxIterations = do
   cls <- findClass "org/apache/spark/mllib/clustering/LDA"
   lda <- newObject cls "()V" []
 
@@ -284,7 +284,7 @@ newLDA frac numTopics = do
   lda'' <- callObjectMethod lda' setK [JInt numTopics]
 
   setMaxIter <- findMethod cls "setMaxIterations" "(I)Lorg/apache/spark/mllib/clustering/LDA;"
-  lda''' <- callObjectMethod lda'' setMaxIter [JInt 2]
+  lda''' <- callObjectMethod lda'' setMaxIter [JInt maxIterations]
 
   setDocConc <- findMethod cls "setDocConcentration" "(D)Lorg/apache/spark/mllib/clustering/LDA;"
   lda'''' <- callObjectMethod lda''' setDocConc [JDouble $ negate 1]
@@ -323,11 +323,6 @@ debugDF df = do
   cls <- findClass "org/apache/spark/sql/DataFrame"
   mth <- findMethod cls "show" "()V"
   callVoidMethod df mth []
-  {-
-  cls <- findClass "Helper"
-  mth <- findStaticMethod cls "debugDF" "(Lorg/apache/spark/sql/DataFrame;)V"
-  callStaticVoidMethod cls mth [JObj df]
-  -}
 
 f :: CInt -> CInt
 f x = x * 2
@@ -338,7 +333,7 @@ wrapped_f = closure (static f)
 sparkMain :: IO ()
 sparkMain = do
     stopwords <- getStopwords
-    conf <- newSparkConf "Spark Online Latent Dirichlet Analysis in Haskell!"
+    conf <- newSparkConf "Spark Online Latent Dirichlet Allocation in Haskell!"
     sc   <- newSparkContext conf
     sqlc <- newSQLContext sc
     docs <- wholeTextFiles sc "documents/"
@@ -346,43 +341,22 @@ sparkMain = do
         >>= zipWithIndex
     docsRows <- toRows docs
     docsDF <- toDF sqlc docsRows "docId" "text"
-    debugDF docsDF
-    putStrLn "DOCSDF"
     tok  <- newTokenizer "text" "words"
     tokenizedDF <- tokenize tok docsDF
-    tokenizedDF' <- selectDF tokenizedDF ["docId", "words"]
-    debugDF tokenizedDF'
-    putStrLn "TOKENIZEDDF'"
     swr  <- newStopWordsRemover stopwords "words" "filtered"
-    filteredDF <- removeStopWords swr tokenizedDF'
-    filteredDF' <- selectDF filteredDF ["docId", "filtered"]
-    debugDF filteredDF'
-    putStrLn "FILTEREDDF'"
+    filteredDF <- removeStopWords swr tokenizedDF
     cv   <- newCountVectorizer vocabSize "filtered" "features"
     cvModel <- fitCV cv filteredDF
     countVectors <- toTokenCounts cvModel filteredDF "docId" "features"
-    lda  <- newLDA miniBatchFraction numTopics
+    lda  <- newLDA miniBatchFraction numTopics maxIterations
     ldamodel  <- runLDA lda countVectors
-    {-
-    putStrLn $ "docs: " ++ show docs
-    putStrLn $ "docsRows: " ++ show docsRows
-    putStrLn $ "docsDF: " ++ show docsDF
-    putStrLn $ "tok: " ++ show tok
-    putStrLn $ "tokenizedDF: " ++ show tokenizedDF
-    putStrLn $ "swr: " ++ show swr
-    putStrLn $ "filteredDF: " ++ show filteredDF
-    putStrLn $ "cv: " ++ show cv
-    putStrLn $ "cvModel: " ++ show cvModel
-    putStrLn $ "countVectors: " ++ show countVectors
-    putStrLn $ "lda: " ++ show lda
-    putStrLn $ "ldamodel: " ++ show ldamodel
-    -}
     describeResults ldamodel cvModel maxTermsPerTopic
 
-    where numTopics         = 2 -- 4
+    where numTopics         = 4
           miniBatchFraction = 1
-          vocabSize         = 10 -- 100
+          vocabSize         = 100
           maxTermsPerTopic  = 5
+          maxIterations     = 2
 
 getStopwords :: IO [String]
 getStopwords = fmap lines (readFile "stopwords.txt")
