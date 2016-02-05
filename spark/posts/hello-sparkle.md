@@ -1,15 +1,40 @@
-# Haskell, meet Apache Spark
+# Haskell meets large scale distributed analytics
 
-Over the last few years, [Apache Spark](https://spark.apache.org) has become
-an increasingly appealing option in the industry for writing distributed
-applications. For those not familiar with this framework, it lets you specify
-a chain of high-level operations you want performed on (potentially huge)
-distributed datasets and then splits the work into actual tasks to be
-performed accross an entire cluster. The official APIs let you describe and
-run such applications from Scala, Java, Python and R.
+Large scale distributed applications are complex: there are effects at
+scale that matter far more than when your application is basked in the
+warmth of a single machine. Messages between any two processes may or
+may not make it to their final destination. If reading from a memory
+bank yields corrupted bytes about once a year, with 10,000 nodes this
+is likely to happen within the hour. In a million components system
+some hardware somewhere will be in a failed state, continuously. It
+takes cunning to maximize throughput when network latencies are vastly
+superior to processing units' crunch power. The key idea behind
+distributed computing middlewares such as Hadoop is to capture common
+application patterns, and solve coping with these effects once and for
+all for each such pattern, so that applications writers don't have to
+do so themselves from scratch every time. Today we're introducing an
+early release of Sparkle. The motto: implement a robust and scalable
+distributed computing middleware for Haskell, by reusing Spark.
 
-The goal of this post is to show how we, at Tweag, have been working towards
-adding **Haskell** to this list.
+Why Spark? We could as well have built a complete platform starting
+from the likes of Cloud Haskell, which we maintain. And distributed
+computing engines is increasingly becoming a crowded space. We started
+by asking a simple question: if I'm a data scientist seeking to train
+a model with state-of-the-art machine learning techniques, what is my
+best option to get the job done? Spark is a popular piece of the
+puzzle that leverages the huge Hadoop ecosystem for storage and
+cluster resource management to make it easy to write robust and
+scalable distributed applications as the composition of basic but
+familiar combinators to us FP aficionados: (distributed!) `map`,
+`filter`, `zip`, `reduce`, `concat` and many of their friends. These
+patterns generalize the suprisingly effective MapReduce framework of
+old. And on top of those, Sparks builds an impressively large set of
+general machine learning techniques as a library.
+
+Today, Spark is already available to write scalable Scala, Java, R or
+Python applications. Haskell is a great language for writing clearly
+the kind of intricately complex algorithms common in analytics, **so
+we're throwing it into the mix**.
 
 ## Spark basics
 
@@ -39,19 +64,20 @@ input file, which in this case is Spark's `README.md`. We first ask for the
 input file to be loaded into two partitions. This yields a dataset (`logData`)
 whose entries are lines from the original file. We then construct two datasets
 out of `logData`, one with all the lines containing an "a" and the other with
-all the lines containing a "b". Finally, we count the number of elements in
-each and print those numbers to stdout.
+all the lines containing a "b". Finally, we count the lines in each
+dataset and print that.
 
-From this very high-level description, reminiscent of how we are used to
-writing programs in Haskell, Spark will schedule partition-level tasks to
-be performed on your computer or accross an entire cluster, depending on how you run the application. If any of those tasks fail (e.g if a node gets
-disconnected from the cluster), Spark will automatically reschedule this task
-on another node, which means distributed applications written with Spark
-are fault-tolerant out of the box.
+From this very high-level description, Spark will schedule
+partition-level tasks to be performed on your computer or accross an
+entire cluster, depending on how you run the application. If any of
+those tasks fail (e.g if a node gets disconnected from the cluster),
+Spark will automatically reschedule this task on another node, which
+means distributed applications written with Spark are fault-tolerant
+out of the box.
 
-In addition to common operations like `map`, `filter` or `fold` among others,
-Spark also provides modules for large-scale graph processing, stream
-processing, machine learning and dataframes, all based on this Resilient
+Spark goes far beyond your basic `map`, `filter` or `fold`: Spark also
+provides modules for large-scale graph processing, stream processing,
+machine learning and dataframes, all based on this Resilient
 Distributed Dataset (_RDD_) abstraction.
 
 But how is any of this Haskell's concern?
