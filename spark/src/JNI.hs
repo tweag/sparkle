@@ -1,6 +1,6 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module JNI where
 
 import Data.Map (fromList)
@@ -11,10 +11,6 @@ import Foreign.Storable
 import Language.C.Inline.Context
 import Language.C.Types
 
--- data JNIEnv_
-
--- newtype JNIEnv = JNIEnv (Ptr JNIEnv_)
-
 newtype JObject = JObject (Ptr JObject)
   deriving (Eq, Show, Storable)
 
@@ -24,14 +20,6 @@ newtype JClass = JClass (Ptr JClass)
 newtype JMethodID = JMethodID (Ptr JMethodID)
   deriving (Eq, Show, Storable)
 
--- newtype JIntArray = JIntArray (Ptr JIntArray)
---  deriving (Eq, Show, Storable)
-
--- newtype JByteArray = JByteArray (Ptr JByteArray)
---  deriving (Eq, Show, Storable)
-
--- newtype JString = JString (Ptr JString)
---  deriving (Eq, Show, Storable)
 type JString = JObject
 type JIntArray = JObject
 type JByteArray = JObject
@@ -47,6 +35,7 @@ data JValue
   -- | ...
 
 type JValuePtr = Ptr JValue
+
 instance Storable JValue where
   sizeOf _ = 8
   alignment _ = 8
