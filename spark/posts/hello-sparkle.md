@@ -21,15 +21,18 @@ from the likes of Cloud Haskell, which we maintain. And distributed
 computing engines is increasingly becoming a crowded space. We started
 by asking a simple question: if I'm a data scientist seeking to train
 a model with state-of-the-art machine learning techniques, what is my
-best option to get the job done? Spark is a popular piece of the
-puzzle that leverages the huge Hadoop ecosystem for storage and
-cluster resource management to make it easy to write robust and
-scalable distributed applications as the composition of basic but
-familiar combinators to us FP aficionados: (distributed!) `map`,
-`filter`, `zip`, `reduce`, `concat` and many of their friends. These
-patterns generalize the suprisingly effective MapReduce framework of
-old. And on top of those, Sparks builds an impressively large set of
-general machine learning techniques as a library.
+best option to get the job done? How can I do that without giving up
+Haskell's strong static guarantees and concise syntax?
+
+Spark is a popular piece of the puzzle that leverages the huge Hadoop
+ecosystem for storage and cluster resource management to make it easy
+to write robust and scalable distributed applications as the
+composition of basic but familiar combinators to us FP aficionados:
+(distributed!) `map`, `filter`, `zip`, `reduce`, `concat` and many of
+their friends. These patterns generalize the suprisingly effective
+MapReduce framework of old. And on top of those, Sparks builds an
+impressively large set of general machine learning techniques as
+a library.
 
 Today, Spark is already available to write scalable Scala, Java, R or
 Python applications. Haskell is a great language for writing clearly
@@ -38,156 +41,131 @@ we're throwing it into the mix**.
 
 ## Spark basics
 
-Here is a "Hello World" Spark application in Scala, stolen from the
-[Quick Start](http://spark.apache.org/docs/latest/quick-start.html).
+Let's start with a trivial "Hello World" Spark application in Scala:
 
-``` scala
+```scala
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 
 object SimpleApp {
   def main(args: Array[String]) {
-    val logFile = "YOUR_SPARK_HOME/README.md" // Should be some file on your system
-    val conf = new SparkConf().setAppName("Simple Application")
+    val conf = new SparkConf().setAppName("Hello World")
     val sc = new SparkContext(conf)
-    val logData = sc.textFile(logFile, 2).cache()
-    val numAs = logData.filter(line => line.contains("a")).count()
-    val numBs = logData.filter(line => line.contains("b")).count()
-    println("Lines with a: %s, Lines with b: %s".format(numAs, numBs))
+    val numbers = 1 to 1000 toArray
+    val rdd = sc.parallelize(numbers)
+    val doubled = rdd.map(n => 2 * n)
+    doubled.collect().foreach(println)
   }
 }
 ```
 
-The `main` function describes the operations to be performed on the
-input file, which in this case is Spark's `README.md`. We first ask for the
-input file to be loaded into two partitions. This yields a dataset (`logData`)
-whose entries are lines from the original file. We then construct two datasets
-out of `logData`, one with all the lines containing an "a" and the other with
-all the lines containing a "b". Finally, we count the lines in each
-dataset and print that.
+Nothing too fancy: assuming we have some large vector *somewhere*,
+we'd like to compute a new vector with every element doubled. If the
+vector really is very large, Spark could choose to do this piecewise
+on multiple nodes in parallel.
 
-From this very high-level description, Spark will schedule
-partition-level tasks to be performed on your computer or accross an
-entire cluster, depending on how you run the application. If any of
-those tasks fail (e.g if a node gets disconnected from the cluster),
-Spark will automatically reschedule this task on another node, which
-means distributed applications written with Spark are fault-tolerant
-out of the box.
+Spark will break down this high-level description into a number of
+low-level tasks, then schedule these tasks to be executed on whatever
+nodes in your cluster are available. If any of those tasks fail (e.g
+if a node gets disconnected from the cluster), Spark will
+automatically reschedule this task on another node, which means
+distributed applications written with Spark are fault-tolerant out of
+the box.
 
 Spark goes far beyond your basic `map`, `filter` or `fold`: Spark also
 provides modules for large-scale graph processing, stream processing,
-machine learning and dataframes, all based on this Resilient
-Distributed Dataset (_RDD_) abstraction.
+machine learning and dataframes, all based on a simple abstraction for
+distributed collections called "Resilient Distributed Dataset"
+(_RDD_).
 
-But how is any of this Haskell's concern?
+How does this look like in Haskell? We'll need a little of bit of
+Haskell/Scala bridging code for that. The remainder of this post
+introduces *Sparkle*, which includes just that.
 
-## Distributed Haskell ?
+Be warned that at this stage the latest release of Sparkle is merely
+an early tech preview, not the be-all and end-all solution for writing
+Spark applications in Haskell (release early, release often!).
 
-There are some efforts to provide a platform for distributed computing
-in Haskell, like [Cloud Haskell](http://haskell-distributed.github.io/).
-However, none of the efforts went as far as Spark did, may it be in terms of
-features, ease of use, adoption or overall maturity. Yet Haskell has a lot of
-benefits to offer to the distributed computing world. Can't we find a way to
-leverage Spark's well-tested distributed computing platform, while writing
-Haskell code to describe our applications and even applying Haskell functions
-over distributed datasets? The answer is **yes**.
+## My first Spark app in Haskell
 
-The remainder of this post introduces _sparkle_, our answer to this problem,
-and explains how we solved the various challenges that stood on our way. Be
-warned that this is a very, very early stage demo, not a ready-to-use solution
-for distributed computing in Haskell. We however believe that all the major
-problems have been solved and thus wanted to share our work and excitment
-with the community.
+Here goes:
 
-## Running Haskell code from Java
+```haskell
+{-# LANGUAGE StaticPointers #-}
+module Main where
 
-A Spark application's entry point usually is a Java or Scala program, so one of
-the first problems to solve is: how can we just hand everything off to Haskell?
+import Control.Distributed.Closure
+import Control.Distributed.Spark
 
-This one was actually reasonably easy to solve. Haskell's GHC compiler
-exposes a few functions to manipulate its runtime system from C. On the other
-hand, Java lets you call C functions (using JNI, the _Java Native Interface_).
-If you put these two together, you can initialize GHC's RTS from Java.
+f :: CInt -> CInt
+f x = x * 2
 
-In addition to that, the Haskell FFI lets one export a suitable Haskell
-function to C, which we can then call from Java using _JNI_. While we won't
-explore all the gory details involved in getting this to work in this post
-(most of which reside in passing the right options to build a suitable shared
-library with GHC's RTS and a Haskell function in it), we definitely plan on
-documenting the entire procedure soon, along with a demo application.
-
-Put simply, what we did on this front lets us call a Haskell function, like:
-
-``` haskell
-haskellMain :: IO ()
-haskellMain = putStrLn "Hello from Haskell"
+sparkMain :: IO ()
+sparkMain = do
+    conf <- newSparkConf "Hello sparkle!"
+    sc <- newSparkContext conf
+    rdd1 <- parallelize sc [1..1000]
+    rdd2 <- rddmap (closure (static f)) rdd1
+    result <- collect rdd2
+    print result
 ```
 
-by exporting it in a shared library and loading the said library from Java,
-making sure we initialize GHC's RTS before anything else.
+Note that once again, Spark may choose to perform the mapping of `f`
+over the dataset on one or more remote nodes in the cluster. But if
+`f` is an arbitrary closure, how does this one get shipped around the
+cluster? Does Sparkle somehow know how to serialize closures into
+a sequence of bytes, hand it to Spark, and tell Spark how to
+deserialize this closure on the other end of the wire?
 
-## Calling Java from Haskell
+That's where the `-XStaticPointers`
+[extension][extension-static-pointers] comes in. If you haven't heard
+of this before, you might want to follow the link because what we do
+in Sparkle is very similar to what's done at the end of that post, in
+the _Static Closures_ section. The gist is that we *don't* know how to
+serialize *arbitrary* closures, but we do know, thanks to the
+`distributed-closure` package, how to serialize and ship *static
+closures*, i.e. closures composed of only top-level bindings and
+serializable arguments. In Haskell, we need to ask the compiler to
+check that the closure really is static by using the `static` keyword.
+Spark in Scala has similar limitations, but the static closure check
+is entirely implicit (no keywoard required, at the cost of some
+significant extra magic in the compiler).
 
-While the previous section was about calling Haskell from Java, this one is
-about the opposite direction: calling Java code from Haskell. Indeed, if we
-want to write Spark applications in Haskell, we need access to Spark's
-classes and methods, in order to initialize a Spark context, create
-distributed datasets and perform operations on them.
+[extension-static-pointers]: https://ocharles.org.uk/blog/guest-posts/2014-12-23-static-pointers.html
 
-Fortunately, JNI is not only about calling C from Java. It offers a bridge in
-the opposite direction as well, very much like Haskell's FFI. What this means
-is that any Java implementation comes with a C library for manipulating the
-JVM, through dedicated [types](http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html)
-and [functions](http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/functions.html). A couple of `foreign import`s later, we were able to load
-Java classes, instantiate them and call their methods, all of this from Haskell
-code.
+TODO command to execute.
 
-Here's how you would call the `toString()` method on a Java `Object`, using
-our preliminary bindings to JNI:
+So operationally, Spark handles the input data, notices that our
+application is one big map over the whole input data set, figures out
+a smart allocation of available nodes to perform parts of the map,
+ships a symbolic representation of the function to map (a "static
+pointer") to those nodes as necessary, and combines the results
+transparently so that we don't have to.
 
-``` haskell
-toString :: JObject -> IO JObject
-toString obj = do
-  -- first, we ask the JVM to give us a handle on the Object class
-  cls   <- findClass "java/lang/Object"
-
-  -- we then get our hands on the toString method of that class
-  -- with the given signature
-  tostr <- findMethod cls "toString" "()Ljava/lang/String;"
-
-  -- we finally invoke the toString method on the object we are given,
-  -- which takes no argument (hence the empty list)
-  callObjectMethod obj tostr []
-```
-
-At the moment we do not expose Haskell wrappers for all the types and
-functions from the JNI and instead covered only what we needed to write
-our initial _sparkle_ demo applications. 
-
-Note: "signature" above refers to [the JVM's encoding of type signatures](http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html#wp16432).
+It's a nice enough toy example, but we'll explore next how to use
+Sparkle for a real machine learning use case.
 
 ## Online Latent Dirichlet Allocation, in Haskell
 
-One of our goals was to be able to write the equivalent of
+We'll try
 [this Scala application](https://gist.github.com/feynmanliang/3b6555758a27adcb527d)
-in Haskell. A short description of what Latent Dirichlet Allocation consists in
-can be found in [the accompanying blog post](https://databricks.com/blog/2015/09/22/large-scale-topic-modeling-improvements-to-lda-on-spark.html), but here's
-a one-sentence summary: given a collection of text documents, the algorithm
-tries to infer the different topics discussed in the said documents. The
-"online" variation consists in learning an LDA model incrementally, instead of
-having to go through the entire collection of documents before it can give us
-a model. For the curious, this variation is described in [this paper](https://www.cs.princeton.edu/~blei/papers/HoffmanBleiBach2010b.pdf).
+in Haskell. The goal: classify Wikipedia articles according to the
+overall topic they're likely to be covering (zoology? television?
+distributed computing?). The method we'll use for this is called
+Latent Dirichlet Allocation (LDA), as described in
+[the accompanying blog post](https://databricks.com/blog/2015/09/22/large-scale-topic-modeling-improvements-to-lda-on-spark.html),
+but here's a one-sentence summary: given a collection of text
+documents, the algorithm tries to infer the different topics discussed
+in the said documents. The "online" variation consists in learning an
+LDA model incrementally, instead of having to go through the entire
+collection of documents before it can give us a model. For the
+curious, this variation is described in
+[this paper](https://www.cs.princeton.edu/~blei/papers/HoffmanBleiBach2010b.pdf).
 
-Most of the work for implementing this demo consisted in using our JNI bindings
-from the previous section in order to expose the relevant Spark classes and
-methods. Given that we have close to nothing in place to facilitate marshalling
-between Haskell and Java at the moment, we wrote some "helper" code in Java
-that we call out to. We hope to kill those bits as we go.
+```haskell
+TODO write imports etc for standalone program.
 
-The end result is a function that gets loaded and called from Java:
-
-``` haskell
 sparkMain :: IO ()
 sparkMain = do
     stopwords <- getStopwords
@@ -372,63 +350,75 @@ output:
 	miles -> 0.011676754602531585
 ```
 
-## Running Haskell functions over datasets
+## Under the hood: how did we do it?
 
-It's nice that we can drive Spark from Haskell, but this doesn't help in
-distributing _Haskell computations_. What we would like is to be able to,
-e.g, `map` a Haskell function over a Spark dataset. How can we make this
-happen? Java and Scala use their standard `Serializable` machinery to send
-functions and their environments to each node, but this obviously isn't an
-option for us.
+## Running Haskell code from Java
 
-Enter a recent GHC extension, [Static Pointers](https://ocharles.org.uk/blog/guest-posts/2014-12-23-static-pointers.html). If you haven't heard of this
-before, you might want to follow the link because what we do in _sparkle_
-is very similar to what's done at the end of this post in the _Static Closures_
-section, except that instead of embedding a static pointer table in
-executables, we embed it in our shared library. We can then use the static
-keys to refer to Haskell functions and transmit it to Java which can send them
-over the wire to the nodes. Finally, each node can run some Haskell code that
-decodes a serialized closure back into a function that it can apply to the
-elements of a dataset.
+A Spark application's entry point usually is a Java or Scala program, so one of
+the first problems to solve is: how can we just hand everything off to Haskell?
 
-We heavily rely on the [distributed-closure](http://hackage.haskell.org/package/distributed-closure)
-package which provides the closure serialization machinery out of the box for
-us. All we needed to do was to provide some glue code in Java to wrap the
-invokation of a serialized Haskell function in a Spark-friendly way.
+This one was actually reasonably easy to solve. Haskell's GHC compiler
+exposes a few functions to manipulate its runtime system from C. On the other
+hand, Java lets you call C functions (using JNI, the _Java Native Interface_).
+If you put these two together, you can initialize GHC's RTS from Java.
 
-## Demo: mapping a Haskell function over a dataset
+In addition to that, the Haskell FFI lets one export a suitable Haskell
+function to C, which we can then call from Java using _JNI_. While we won't
+explore all the gory details involved in getting this to work in this post
+(most of which reside in passing the right options to build a suitable shared
+library with GHC's RTS and a Haskell function in it), we definitely plan on
+documenting the entire procedure soon, along with a demo application.
 
-Time for some code, right? Here's a snippet that turns a list of numbers into
-a Spark dataset and then maps a function (`\x -> x * 2`) over this dataset,
-collecting the result back into a Haskell list at the end and printing it.
+Put simply, what we did on this front lets us call a Haskell function, like:
 
 ``` haskell
-{-# LANGUAGE StaticPointers #-}
-
--- ...
-import Control.Distributed.Closure
-
-f :: CInt -> CInt
-f x = x * 2
-
--- the 'Closure' type and the 'closure' function are provided by
--- the distributed-closure package, while 'static' is provided
--- by the StaticPointers extension
-wrapped_f :: Closure (CInt -> CInt)
-wrapped_f = closure (static f)
-
-sparkMain :: IO ()
-sparkMain = do
-    conf <- newSparkConf "Hello sparkle!"
-    sc   <- newSparkContext conf
-    rdd  <- parallelize sc [1..10]
-    rdd' <- rddmap wrapped_f rdd
-    res  <- collect rdd'
-    print res
+haskellMain :: IO ()
+haskellMain = putStrLn "Hello from Haskell"
 ```
 
-The output is what you would expect. We are using the `CInt` type for its
-FFI-friendliness but the entire approach can be significantly generalized.
+by exporting it in a shared library and loading the said library from Java,
+making sure we initialize GHC's RTS before anything else.
+
+## Calling Java from Haskell
+
+While the previous section was about calling Haskell from Java, this one is
+about the opposite direction: calling Java code from Haskell. Indeed, if we
+want to write Spark applications in Haskell, we need access to Spark's
+classes and methods, in order to initialize a Spark context, create
+distributed datasets and perform operations on them.
+
+Fortunately, JNI is not only about calling C from Java. It offers a bridge in
+the opposite direction as well, very much like Haskell's FFI. What this means
+is that any Java implementation comes with a C library for manipulating the
+JVM, through dedicated [types](http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html)
+and [functions](http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/functions.html). A couple of `foreign import`s later, we were able to load
+Java classes, instantiate them and call their methods, all of this from Haskell
+code.
+
+Here's how you would call the `toString()` method on a Java `Object`, using
+our preliminary bindings to JNI:
+
+``` haskell
+toString :: JObject -> IO JObject
+toString obj = do
+  -- first, we ask the JVM to give us a handle on the Object class
+  cls   <- findClass "java/lang/Object"
+
+  -- we then get our hands on the toString method of that class
+  -- with the given signature
+  tostr <- findMethod cls "toString" "()Ljava/lang/String;"
+
+  -- we finally invoke the toString method on the object we are given,
+  -- which takes no argument (hence the empty list)
+  callObjectMethod obj tostr []
+```
+
+At the moment we do not expose Haskell wrappers for all the types and
+functions from the JNI and instead covered only what we needed to write
+our initial _sparkle_ demo applications.
+
+Note: "signature" above refers to [the JVM's encoding of type signatures](http://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html#wp16432).
+
 
 ## Complete code and examples
 
@@ -469,3 +459,58 @@ are several axis of improvements:
 
   In addition to that, we would implement support for other RDD operations that
   take functions as arguments, in order to offer a warm "Haskelly" API.
+
+## SCRATCH SPACE
+
+## Spark basics
+
+Here is a "Hello World" Spark application in Scala, stolen from the
+[Quick Start](http://spark.apache.org/docs/latest/quick-start.html).
+
+``` scala
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkContext._
+import org.apache.spark.SparkConf
+
+object SimpleApp {
+  def main(args: Array[String]) {
+    val logFile = "YOUR_SPARK_HOME/README.md" // Should be some file on your system
+    val conf = new SparkConf().setAppName("Simple Application")
+    val sc = new SparkContext(conf)
+    val logData = sc.textFile(logFile, 2).cache()
+    val numAs = logData.filter(line => line.contains("a")).count()
+    val numBs = logData.filter(line => line.contains("b")).count()
+    println("Lines with a: %s, Lines with b: %s".format(numAs, numBs))
+  }
+}
+```
+
+The `main` function describes the operations to be performed on the
+input file, which in this case is Spark's `README.md`. We first ask for the
+input file to be loaded into two partitions. This yields a dataset (`logData`)
+whose entries are lines from the original file. We then construct two datasets
+out of `logData`, one with all the lines containing an "a" and the other with
+all the lines containing a "b". Finally, we count the lines in each
+dataset and print that.
+
+From this very high-level description, Spark will schedule
+partition-level tasks to be performed on your computer or accross an
+entire cluster, depending on how you run the application. If any of
+those tasks fail (e.g if a node gets disconnected from the cluster),
+Spark will automatically reschedule this task on another node, which
+means distributed applications written with Spark are fault-tolerant
+out of the box.
+
+Spark goes far beyond your basic `map`, `filter` or `fold`: Spark also
+provides modules for large-scale graph processing, stream processing,
+machine learning and dataframes, all based on a simple abstraction for
+distributed collections called "Resilient Distributed Dataset"
+(_RDD_).
+
+How does this look like in Haskell? We'll need a little of bit of
+Haskell/Scala bridging code for that. The remainder of this post
+introduces *Sparkle*, which includes just that.
+
+Be warned that at this stage the latest release of Sparkle is merely
+an early tech preview, not the be-all and end-all solution for writing
+Spark applications in Haskell (release early, release often!).
