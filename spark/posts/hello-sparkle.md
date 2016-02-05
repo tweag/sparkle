@@ -460,6 +460,24 @@ are several axis of improvements:
   In addition to that, we would implement support for other RDD operations that
   take functions as arguments, in order to offer a warm "Haskelly" API.
 
+## Conclusion
+
+While everything in this post can hardly be considered as more than a proof of
+concept, we managed to solve the two main problems in making Haskell a first
+class citizen of the Spark ecosystem: we can specify entire Spark applications
+directly in Haskell and we can apply Haskell functions over values that live
+in the JVM. With some further work, one could turn an "isolated" Haskell
+program into a distributed, fault-tolerant application with very little effort.
+This isn't the only benefit though: we would gain access to all the Spark
+modules out there, and would allow Spark application writers to use the entire
+Haskell ecosystem in their applications as well!
+
+This project is, along with other efforts like [HaskellR](http://tweag.github.io/HaskellR/), an attempt at connecting Haskell with other successful
+technologies. We can imagine that more companies would be inclined to use
+our favorite programming language if it plays well with other technologies
+that they use. We certainly hope that a first class support for Haskell in
+Spark will help.
+
 ## SCRATCH SPACE
 
 ## Spark basics
