@@ -17,6 +17,10 @@ jstring newString(const char* str);
 jintArray newIntArray(size_t size, int* data);
 jbyteArray newByteArray(size_t size, jbyte* data);
 
+/* Converting Java values to Haskell ones */
+size_t jstringLen(jstring s);
+const char* jstringChars(jstring s);
+
 void checkForExc();
 
 /* Spark functions */
