@@ -4,7 +4,7 @@
 #include "Closure_stub.h"
 #include "HelloSpark_stub.h"
 #include "HaskellRTS.h"
-#include "JVM.h"
+#include "Java.h"
 
 JNIEXPORT void JNICALL Java_HaskellRTS_hask_1init
   (JNIEnv* env, jclass c)
@@ -19,6 +19,7 @@ JNIEXPORT void JNICALL Java_HaskellRTS_hask_1init
 JNIEXPORT void JNICALL Java_HaskellRTS_sparkMain
   (JNIEnv* env, jclass c)
 {
+    JavaVM* jvm;
     (*env)->GetJavaVM(env, &jvm);
     // Detach thread?
     sparkMain(jvm);
@@ -30,13 +31,20 @@ JNIEXPORT void JNICALL Java_HaskellRTS_hask_1end
     hs_exit();
 }
 
-JNIEXPORT jobject JNICALL Java_HaskellRTS_invoke
-  (JNIEnv* env, jclass haskellrts_class, jbyteArray clos, jobject arg)
+JNIEXPORT jboolean JNICALL Java_HaskellRTS_invoke
+  (JNIEnv* env, jclass haskellrts_class, jbyteArray clos, jstring arg)
 {
   long len = (long) (*env)->GetArrayLength(env, clos);
 
   char* closBuf = (char *) malloc(len * sizeof(char));
   closBuf = (*env)->GetByteArrayElements(env, clos, NULL);
 
-  return invokeC(closBuf, len, arg);
+  long argLen = jstringLen(env, arg);
+  char* str = jstringChars(env, arg);
+  HsBool p = invokeC(closBuf, len, str, argLen);
+
+  if(p == HS_BOOL_TRUE)
+    return JNI_TRUE;
+  else
+    return JNI_FALSE;
 }

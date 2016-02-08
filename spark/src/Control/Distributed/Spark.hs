@@ -52,10 +52,12 @@ parallelize env sc xs = do
   jxs <- newIntArray env (fromIntegral $ length xs) xs
   callStaticObjectMethod env cls method [JObj sc, JObj jxs]
 
-rddmap :: JNIEnv
-       -> Closure (JObject -> IO JObject)
-       -> RDD JObject
-       -> IO (RDD JObject)
+{-
+rddmap :: (FromJObject a, ToJObject b)
+       => JNIEnv
+       -> Closure (a -> b)
+       -> RDD a
+       -> IO (RDD b)
 rddmap env clos rdd =
   unsafeUseAsCStringLen closBS $ \(closBuf, closSize) -> do
     closArr <- newByteArray' env (fromIntegral closSize) closBuf
@@ -63,7 +65,42 @@ rddmap env clos rdd =
     method <- findStaticMethod env cls "map" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
     callStaticObjectMethod env cls method [JObj rdd, JObj closArr]
 
+  where closBS = clos2bs clos'
+        clos'  = closure (static wrap) `cap` clos 
+-}
+
+{-
+filter :: FromJObject a
+       => JNIEnv
+       -> Closure (a -> Bool)
+       -> RDD a
+       -> IO (RDD a)
+filter env clos rdd = do
+  unsafeUseAsCStringLen closBS $ \(closBuf, closSize) -> do
+    closArr <- newByteArray' env (fromIntegral closSize) closBuf
+    cls <- findClass env "Helper"
+    method <- findStaticMethod env cls "filter" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
+    callStaticObjectMethod env cls method [JObj rdd, JObj closArr]
+
+  where closBS = clos2bs clos'
+        clos'  = closure (static wrap) `cap` clos 
+-}
+
+filter :: JNIEnv -> Closure (String -> Bool) -> RDD String -> IO (RDD String)
+filter env clos rdd = do
+  unsafeUseAsCStringLen closBS $ \(closBuf, closSize) -> do
+    closArr <- newByteArray' env (fromIntegral closSize) closBuf
+    cls <- findClass env "Helper"
+    method <- findStaticMethod env cls "filter" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
+    callStaticObjectMethod env cls method [JObj rdd, JObj closArr]
+
   where closBS = clos2bs clos
+
+count :: JNIEnv -> RDD a -> IO CLong
+count env rdd = do
+  cls <- findClass env "org/apache/spark/api/java/JavaRDD"
+  mth <- findMethod env cls "count" "()J"
+  callLongMethod env rdd mth []
 
 {-
 -- TODO: rewrite this without using inline-c

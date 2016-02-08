@@ -13,6 +13,7 @@ jobject callObjectMethod(JNIEnv* e, jobject obj, jmethodID, jvalue* args);
 void callVoidMethod(JNIEnv* e, jobject obj, jmethodID, jvalue* args);
 jobject callStaticObjectMethod(JNIEnv* e, jclass java_class, jmethodID method, jvalue* args);
 void callStaticVoidMethod (JNIEnv* e, jclass java_class, jmethodID method, jvalue* args);
+long callLongMethod (JNIEnv* e, jobject obj, jmethodID method, jvalue* args);
 
 /* Creating Java values */
 jobject newObject(JNIEnv* e, jclass java_class, const char* sig, const jvalue* args);

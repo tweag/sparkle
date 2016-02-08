@@ -38,6 +38,7 @@ data JValue
   | JByte CChar
   | JDouble CDouble
   | JBoolean CUChar
+  | JLong CLong
   -- | ...
 
 type JValuePtr = Ptr JValue
@@ -51,6 +52,7 @@ instance Storable JValue where
   poke p (JByte b)    = poke (castPtr p) b
   poke p (JDouble d)  = poke (castPtr p) d
   poke p (JBoolean b) = poke (castPtr p) b
+  poke p (JLong l)    = poke (castPtr p) l
 
   peek _ = error "Storable JValue: undefined peek"
 
@@ -63,6 +65,7 @@ foreign import ccall unsafe "callObjectMethod" callObjectMethod' :: JNIEnv -> JO
 foreign import ccall unsafe "callStaticObjectMethod" callStaticObjectMethod' :: JNIEnv -> JClass -> JMethodID -> JValuePtr -> IO JObject
 foreign import ccall unsafe "callStaticVoidMethod" callStaticVoidMethod' :: JNIEnv -> JClass -> JMethodID -> JValuePtr -> IO ()
 foreign import ccall unsafe "callVoidMethod" callVoidMethod' :: JNIEnv -> JObject -> JMethodID -> JValuePtr -> IO ()
+foreign import ccall safe "callLongMethod" callLongMethod' :: JNIEnv -> JObject -> JMethodID -> JValuePtr -> IO CLong
 foreign import ccall unsafe "newIntArray" newIntArray' :: JNIEnv -> CSize -> Ptr CInt -> IO JIntArray
 foreign import ccall unsafe "newDoubleArray" newDoubleArray' :: JNIEnv -> CSize -> Ptr CDouble -> IO JDoubleArray
 foreign import ccall unsafe "newByteArray" newByteArray' :: JNIEnv -> CSize -> Ptr CChar -> IO JByteArray
@@ -112,6 +115,11 @@ callStaticVoidMethod :: JNIEnv -> JClass -> JMethodID -> [JValue] -> IO ()
 callStaticVoidMethod env cls method args =
   withArray args $ \cargs ->
   callStaticVoidMethod' env cls method cargs
+
+callLongMethod :: JNIEnv -> JObject -> JMethodID -> [JValue] -> IO CLong
+callLongMethod env obj method args =
+  withArray args $ \cargs ->
+  callLongMethod' env obj method cargs
 
 newIntArray :: JNIEnv -> CSize -> [CInt] -> IO JIntArray
 newIntArray env sz xs =
