@@ -147,6 +147,8 @@ significant extra magic in the compiler).
 
 [extension-static-pointers]: https://ocharles.org.uk/blog/guest-posts/2014-12-23-static-pointers.html
 
+To run this example from the repo (requires Stack and Nix):
+
 ``` bash
 # from a clone of github.com/tweag/sparkle
 $ ./build.sh hello
