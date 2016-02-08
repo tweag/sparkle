@@ -92,23 +92,36 @@ Spark applications in Haskell (release early, release often!).
 Here goes:
 
 ```haskell
-{-# LANGUAGE StaticPointers #-}
-module Main where
+{-# LANGUAGE StaticPointers #-}
+
+module HelloSpark where
 
 import Control.Distributed.Closure
-import Control.Distributed.Spark
+import Control.Distributed.Spark as RDD
+import Control.Distributed.Spark.Closure
+import Control.Distributed.Spark.JNI
+import Data.List (isInfixOf)
 
-f :: CInt -> CInt
-f x = x * 2
+f1 :: String -> Bool
+f1 s = "a" `isInfixOf` s
 
-sparkMain :: IO ()
-sparkMain = do
-    conf <- newSparkConf "Hello sparkle!"
-    sc <- newSparkContext conf
-    rdd1 <- parallelize sc [1..1000]
-    rdd2 <- rddmap (closure (static f)) rdd1
-    result <- collect rdd2
-    print result
+f2 :: String -> Bool
+f2 s = "b" `isInfixOf` s
+
+sparkMain :: JVM -> IO ()
+sparkMain jvm = do
+    env  <- jniEnv jvm
+    conf <- newSparkConf env "Hello sparkle!"
+    sc   <- newSparkContext env conf
+    rdd  <- textFile env sc "stack.yaml"
+    as   <- RDD.filter env (closure $ static f1) rdd
+    bs   <- RDD.filter env (closure $ static f2) rdd
+    numAs <- RDD.count env as
+    numBs <- RDD.count env bs
+    putStrLn $ show numAs ++ " lines with a, "
+            ++ show numBs ++ " lines with b."
+
+foreign export ccall sparkMain :: JVM -> IO ()
 ```
 
 Note that once again, Spark may choose to perform the mapping of `f`
@@ -129,12 +142,16 @@ closures*, i.e. closures composed of only top-level bindings and
 serializable arguments. In Haskell, we need to ask the compiler to
 check that the closure really is static by using the `static` keyword.
 Spark in Scala has similar limitations, but the static closure check
-is entirely implicit (no keywoard required, at the cost of some
+is entirely implicit (no keyword required, at the cost of some
 significant extra magic in the compiler).
 
 [extension-static-pointers]: https://ocharles.org.uk/blog/guest-posts/2014-12-23-static-pointers.html
 
-TODO command to execute.
+``` bash
+# from a clone of github.com/tweag/sparkle
+$ ./build.sh hello
+$ ./run.sh hello
+```
 
 So operationally, Spark handles the input data, notices that our
 application is one big map over the whole input data set, figures out
@@ -164,55 +181,35 @@ curious, this variation is described in
 [this paper](https://www.cs.princeton.edu/~blei/papers/HoffmanBleiBach2010b.pdf).
 
 ```haskell
-TODO write imports etc for standalone program.
+module SparkLDA where
 
-sparkMain :: IO ()
-sparkMain = do
+import Control.Distributed.Spark
+import Control.Distributed.Spark.JNI
+import Foreign.C.Types
+
+sparkMain :: JVM -> IO ()
+sparkMain jvm = do
+    env <- jniEnv jvm
     stopwords <- getStopwords
+    conf <- newSparkConf env "Spark Online Latent Dirichlet Allocation in Haskell!"
+    sc   <- newSparkContext env conf
+    sqlc <- newSQLContext env sc
+    docs <- wholeTextFiles env sc "nyt/"
+        >>= justValues env
+        >>= zipWithIndex env
+    docsRows <- toRows env docs
+    docsDF <- toDF env sqlc docsRows "docId" "text"
+    tok  <- newTokenizer env "text" "words"
+    tokenizedDF <- tokenize env tok docsDF
+    swr  <- newStopWordsRemover env stopwords "words" "filtered"
+    filteredDF <- removeStopWords env swr tokenizedDF
+    cv   <- newCountVectorizer env vocabSize "filtered" "features"
+    cvModel <- fitCV env cv filteredDF
+    countVectors <- toTokenCounts env cvModel filteredDF "docId" "features"
+    lda  <- newLDA env miniBatchFraction numTopics maxIterations
+    ldamodel  <- runLDA env lda countVectors
+    describeResults env ldamodel cvModel maxTermsPerTopic
 
-    conf <- newSparkConf "Spark Online Latent Dirichlet Allocation in Haskell!"
-    sc   <- newSparkContext conf
-    sqlc <- newSQLContext sc
-
-    -- we load our collection of documents.
-    -- each document is an element of the dataset 
-    docs <- wholeTextFiles sc "documents/"
-        >>= justValues
-        >>= zipWithIndex
-
-    -- we convert our collection of documents into a Spark DataFrame
-    -- 1st column: "docId" = document id
-    -- 2nd column: "text"  = document content
-    docsRows <- toRows docs
-    docsDF <- toDF sqlc docsRows "docId" "text"
-
-    -- we setup the tokenizer to run on the "text"
-    -- column and output the result in a "words" column
-    tok  <- newTokenizer "text" "words"
-    tokenizedDF <- tokenize tok docsDF
-
-    -- we remove stopwords from the "words" column, putting
-    -- the result in a "filtered" column
-    swr  <- newStopWordsRemover stopwords "words" "filtered"
-    filteredDF <- removeStopWords swr tokenizedDF
-
-    -- we extract the appropriate features for LDA to run on,
-    -- consisting in vectors (of numbers) for each document
-    cv   <- newCountVectorizer vocabSize "filtered" "features"
-    cvModel <- fitCV cv filteredDF
-    countVectors <- toTokenCounts cvModel filteredDF "docId" "features"
-
-    -- we finally run the online LDA algorithm on the features
-    -- we've just extracted and extract a model of our document collection
-    -- out of it
-    lda  <- newLDA miniBatchFraction numTopics maxIterations
-    ldamodel  <- runLDA lda countVectors
-
-    -- this outputs the different "topics" inferred by the LDA model
-    -- in a human-friendly way
-    describeResults ldamodel cvModel maxTermsPerTopic
-
-    -- dataset-dependent parameters
     where numTopics         = 10
           miniBatchFraction = 1
           vocabSize         = 600
@@ -222,13 +219,17 @@ sparkMain = do
 getStopwords :: IO [String]
 getStopwords = fmap lines (readFile "stopwords.txt")
 
-foreign export ccall sparkMain :: IO ()
+foreign export ccall sparkMain :: JVM -> IO ()
 ```
 
 Running the above code on [a dataset consisting of articles from the New York Times](https://github.com/cjrd/TMA/tree/master/data/nyt) yields the following
 output:
 
-```
+``` bash
+# again, from a clone of github.com/tweag/sparkle
+$ ./build.sh lda
+$ ./run.sh lda
+[...]
 >>> Topic #0
 	atlanta -> 0.05909878836489215
 	journal -> 0.03736792191830798
@@ -352,7 +353,7 @@ output:
 
 ## Under the hood: how did we do it?
 
-## Running Haskell code from Java
+### Running Haskell code from Java
 
 A Spark application's entry point usually is a Java or Scala program, so one of
 the first problems to solve is: how can we just hand everything off to Haskell?
@@ -379,7 +380,7 @@ haskellMain = putStrLn "Hello from Haskell"
 by exporting it in a shared library and loading the said library from Java,
 making sure we initialize GHC's RTS before anything else.
 
-## Calling Java from Haskell
+### Calling Java from Haskell
 
 While the previous section was about calling Haskell from Java, this one is
 about the opposite direction: calling Java code from Haskell. Indeed, if we
@@ -396,21 +397,21 @@ Java classes, instantiate them and call their methods, all of this from Haskell
 code.
 
 Here's how you would call the `toString()` method on a Java `Object`, using
-our preliminary bindings to JNI:
+our preliminary "bindings" to JNI:
 
 ``` haskell
-toString :: JObject -> IO JObject
-toString obj = do
+toString :: JNIEnv -> JObject -> IO JObject
+toString env obj = do
   -- first, we ask the JVM to give us a handle on the Object class
-  cls   <- findClass "java/lang/Object"
+  cls   <- findClass env "java/lang/Object"
 
   -- we then get our hands on the toString method of that class
   -- with the given signature
-  tostr <- findMethod cls "toString" "()Ljava/lang/String;"
+  tostr <- findMethod env cls "toString" "()Ljava/lang/String;"
 
   -- we finally invoke the toString method on the object we are given,
   -- which takes no argument (hence the empty list)
-  callObjectMethod obj tostr []
+  callObjectMethod env obj tostr []
 ```
 
 At the moment we do not expose Haskell wrappers for all the types and
@@ -422,7 +423,10 @@ Note: "signature" above refers to [the JVM's encoding of type signatures](http:/
 
 ## Complete code and examples
 
-**to be written after refactoring**
+All the code for _sparkle_, including the two demos from this blog post, is
+available [here](https://github.com/tweag/sparkle). The `examples/` folder
+contains the code for the demos while the `spark/` folder contains all the
+code that makes the demos work.
 
 ## Future work
 
@@ -440,9 +444,11 @@ are several axis of improvements:
 - **Spark API**: we only cover a ridiculously small fraction of the Spark API.
   Given enough interest we might want to cover more dataset operations as well
   as other Spark modules.
-- **Running Haskell functions**: right now, we can only `map` Haskell functions
-  of type `CInt -> CInt`. Our approach here could be extended in two
-  different ways:
+- **Running Haskell functions**: right now, we can barely use Haskell
+  functions -- only for `filter` and only with predicates `String -> Bool`.
+  This is obviously not enough as we want to support a larger class
+  of Haskell computations, for `map`, `filter`, `reduce` and friends. We are
+  thinking of two approaches here:
 
   - Use the marshalling story from the "JNI bindings" bullet above to support
     any function that fits `(FromJObject a, ToJObject b) => a -> b`. This would
@@ -456,9 +462,6 @@ are several axis of improvements:
     of having Spark store datasets of bytestrings that could only be understood
     by our Haskell code out of the box, unless using a CBOR library in other
     languages as well.
-
-  In addition to that, we would implement support for other RDD operations that
-  take functions as arguments, in order to offer a warm "Haskelly" API.
 
 ## Conclusion
 
@@ -478,57 +481,3 @@ our favorite programming language if it plays well with other technologies
 that they use. We certainly hope that a first class support for Haskell in
 Spark will help.
 
-## SCRATCH SPACE
-
-## Spark basics
-
-Here is a "Hello World" Spark application in Scala, stolen from the
-[Quick Start](http://spark.apache.org/docs/latest/quick-start.html).
-
-``` scala
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
-
-object SimpleApp {
-  def main(args: Array[String]) {
-    val logFile = "YOUR_SPARK_HOME/README.md" // Should be some file on your system
-    val conf = new SparkConf().setAppName("Simple Application")
-    val sc = new SparkContext(conf)
-    val logData = sc.textFile(logFile, 2).cache()
-    val numAs = logData.filter(line => line.contains("a")).count()
-    val numBs = logData.filter(line => line.contains("b")).count()
-    println("Lines with a: %s, Lines with b: %s".format(numAs, numBs))
-  }
-}
-```
-
-The `main` function describes the operations to be performed on the
-input file, which in this case is Spark's `README.md`. We first ask for the
-input file to be loaded into two partitions. This yields a dataset (`logData`)
-whose entries are lines from the original file. We then construct two datasets
-out of `logData`, one with all the lines containing an "a" and the other with
-all the lines containing a "b". Finally, we count the lines in each
-dataset and print that.
-
-From this very high-level description, Spark will schedule
-partition-level tasks to be performed on your computer or accross an
-entire cluster, depending on how you run the application. If any of
-those tasks fail (e.g if a node gets disconnected from the cluster),
-Spark will automatically reschedule this task on another node, which
-means distributed applications written with Spark are fault-tolerant
-out of the box.
-
-Spark goes far beyond your basic `map`, `filter` or `fold`: Spark also
-provides modules for large-scale graph processing, stream processing,
-machine learning and dataframes, all based on a simple abstraction for
-distributed collections called "Resilient Distributed Dataset"
-(_RDD_).
-
-How does this look like in Haskell? We'll need a little of bit of
-Haskell/Scala bridging code for that. The remainder of this post
-introduces *Sparkle*, which includes just that.
-
-Be warned that at this stage the latest release of Sparkle is merely
-an early tech preview, not the be-all and end-all solution for writing
-Spark applications in Haskell (release early, release often!).
