@@ -164,6 +164,18 @@ jobjectArray newObjectArray(size_t size, jclass cls, jobject* data)
   return arr;
 }
 
+size_t jstringLen(jstring s)
+{
+  JNIEnv* env = jniEnv();
+  return (*env)->GetStringUTFLength(env, s);
+}
+
+const char* jstringChars(jstring s)
+{
+  JNIEnv* env = jniEnv();
+  return (*env)->GetStringUTFChars(env, s, NULL);
+}
+
 void checkForExc()
 {
   JNIEnv* env = jniEnv();

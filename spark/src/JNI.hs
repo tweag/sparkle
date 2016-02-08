@@ -61,6 +61,8 @@ foreign import ccall unsafe "newDoubleArray" newDoubleArray' :: CSize -> Ptr CDo
 foreign import ccall unsafe "newByteArray" newByteArray' :: CSize -> Ptr CChar -> IO JByteArray
 foreign import ccall unsafe "newObjectArray" newObjectArray' :: CSize -> JClass -> Ptr JObject -> IO JObjectArray
 foreign import ccall unsafe "newString" newString' :: Ptr CChar -> IO JString
+foreign import ccall unsafe "jstringLen" jstringLen :: JString -> IO CSize
+foreign import ccall unsafe "jstringChars" jstringChars :: JString -> IO (Ptr CChar)
 foreign import ccall unsafe "checkForExc" checkForException :: IO ()
 
 findClass :: String -> IO JClass
@@ -126,6 +128,12 @@ newObjectArray sz cls xs =
 
 newString :: String -> IO JString
 newString s = withCString s newString'
+
+fromJString :: JString -> IO String
+fromJString str = do
+  sz <- jstringLen str
+  cs <- jstringChars str
+  peekCStringLen (cs, fromIntegral sz)
 
 jniCtx :: Context
 jniCtx = mempty { ctxTypesTable = fromList tytab }
