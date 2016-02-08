@@ -1,12 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "HsFFI.h"
-// #include "Closure_stub.h"
+#include "Closure_stub.h"
 #include "HelloSpark_stub.h"
 #include "HaskellRTS.h"
 #include "JVM.h"
-
-// JavaVM* jvm; defined in JVM.h
 
 JNIEXPORT void JNICALL Java_HaskellRTS_hask_1init
   (JNIEnv* env, jclass c)
