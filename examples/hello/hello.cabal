@@ -17,7 +17,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     HelloSpark
-  c-sources:           cbits/HaskellRTS.c
+  c-sources:           cbits/HaskellRTS.c, cbits/JVM.c
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.7 && <5, spark, distributed-closure
