@@ -21,23 +21,11 @@ JNIEXPORT void JNICALL Java_HaskellRTS_sparkMain
 {
 	(*env)->GetJavaVM(env, &jvm);
 	// Detach thread?
-	sparkMain();
+	sparkMain(jvm);
 }
 
 JNIEXPORT void JNICALL Java_HaskellRTS_hask_1end
   (JNIEnv* env, jclass c)
 {
     hs_exit();
-}
-
-JNIEXPORT jint JNICALL Java_HaskellRTS_invoke
-  (JNIEnv* env, jclass haskellrts_class, jbyteArray clos, jint arg)
-{
-  long len = (long) (*env)->GetArrayLength(env, clos);
-
-  char* closBuf = (char *) malloc(len * sizeof(char));
-  closBuf = (*env)->GetByteArrayElements(env, clos, NULL);
-
-  jint res = invokeC(closBuf, len, arg);
-  return res;
 }

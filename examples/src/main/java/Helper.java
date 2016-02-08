@@ -59,12 +59,12 @@ public class Helper
 	         .setMinTokenLength(5);
     }
 
-    public static JavaRDD<Integer> map(JavaRDD<Integer> rdd, final byte[] clos)
+    public static JavaRDD<Object> map(JavaRDD<Object> rdd, final byte[] clos)
     {
-	JavaRDD<Integer> newRDD = rdd.map(new Function<Integer, Integer>() {
-		public Integer call(Integer arg)
+	JavaRDD<Object> newRDD = rdd.map(new Function<Object, Object>() {
+		public Object call(Object arg)
 		{
-		    return new Integer(HaskellRTS.invoke(clos, arg.intValue()));
+		    return HaskellRTS.invoke(clos, arg);
 		}
 	});
 	return newRDD;

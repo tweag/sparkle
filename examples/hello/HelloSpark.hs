@@ -15,13 +15,14 @@ f x = x * 2
 wrapped_f :: Closure (CInt -> CInt)
 wrapped_f = closure (static f)
 
-sparkMain :: IO ()
-sparkMain = do
-    conf <- newSparkConf "Hello sparkle!"
-    sc   <- newSparkContext conf
-    rdd  <- parallelize sc [1..10]
-    rdd' <- rddmap wrapped_f rdd
-    res  <- collect rdd'
-    print res
+sparkMain :: JVM -> IO ()
+sparkMain jvm = do
+    env  <- jniEnv jvm
+    conf <- newSparkConf env "Hello sparkle!"
+    sc   <- newSparkContext env conf
+    rdd  <- textFile env sc "stack.yml"
+    -- rdd' <- rddmap env wrapped_f rdd
+    -- res  <- collect env rdd'
+    putStrLn "done"
 
-foreign export ccall sparkMain :: IO ()
+foreign export ccall sparkMain :: JVM -> IO ()
