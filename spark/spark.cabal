@@ -11,14 +11,16 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  c-sources: cbits/Java.c, cbits/JVM.c
+  c-sources: cbits/Java.c
   cc-options: -Wall
-  includes: JVM.h, Java.h, Closure_stub.h
+  includes: Java.h, Closure_stub.h
   include-dirs: cbits
-  install-includes: JVM.h, Java.h, Closure_stub.h
+  install-includes: Java.h, Closure_stub.h
   ghc-options: -fPIC -shared -dynamic -threaded -Wall
-  exposed-modules: Control.Distributed.Spark, Closure
-  other-modules: JNI
+  exposed-modules:
+    Control.Distributed.Spark,
+    Control.Distributed.Spark.Closure,
+    Control.Distributed.Spark.JNI
   -- other-extensions:
   build-depends:
     base >=4.8 && <4.9,

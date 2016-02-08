@@ -12,5 +12,5 @@ public class HaskellRTS
   private static native void hask_init();
   private static native void hask_end();
 
-  public static native int invoke(byte[] clos, int arg);
+  public static native Object invoke(byte[] clos, Object arg);
 }

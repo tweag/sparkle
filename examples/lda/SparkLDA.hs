@@ -1,29 +1,31 @@
 module SparkLDA where
 
 import Control.Distributed.Spark
+import Control.Distributed.Spark.JNI
 import Foreign.C.Types
 
-sparkMain :: IO ()
-sparkMain = do
+sparkMain :: JVM -> IO ()
+sparkMain jvm = do
+    env <- jniEnv jvm
     stopwords <- getStopwords
-    conf <- newSparkConf "Spark Online Latent Dirichlet Allocation in Haskell!"
-    sc   <- newSparkContext conf
-    sqlc <- newSQLContext sc
-    docs <- wholeTextFiles sc "nyt/"
-        >>= justValues
-        >>= zipWithIndex
-    docsRows <- toRows docs
-    docsDF <- toDF sqlc docsRows "docId" "text"
-    tok  <- newTokenizer "text" "words"
-    tokenizedDF <- tokenize tok docsDF
-    swr  <- newStopWordsRemover stopwords "words" "filtered"
-    filteredDF <- removeStopWords swr tokenizedDF
-    cv   <- newCountVectorizer vocabSize "filtered" "features"
-    cvModel <- fitCV cv filteredDF
-    countVectors <- toTokenCounts cvModel filteredDF "docId" "features"
-    lda  <- newLDA miniBatchFraction numTopics maxIterations
-    ldamodel  <- runLDA lda countVectors
-    describeResults ldamodel cvModel maxTermsPerTopic
+    conf <- newSparkConf env "Spark Online Latent Dirichlet Allocation in Haskell!"
+    sc   <- newSparkContext env conf
+    sqlc <- newSQLContext env sc
+    docs <- wholeTextFiles env sc "nyt/"
+        >>= justValues env
+        >>= zipWithIndex env
+    docsRows <- toRows env docs
+    docsDF <- toDF env sqlc docsRows "docId" "text"
+    tok  <- newTokenizer env "text" "words"
+    tokenizedDF <- tokenize env tok docsDF
+    swr  <- newStopWordsRemover env stopwords "words" "filtered"
+    filteredDF <- removeStopWords env swr tokenizedDF
+    cv   <- newCountVectorizer env vocabSize "filtered" "features"
+    cvModel <- fitCV env cv filteredDF
+    countVectors <- toTokenCounts env cvModel filteredDF "docId" "features"
+    lda  <- newLDA env miniBatchFraction numTopics maxIterations
+    ldamodel  <- runLDA env lda countVectors
+    describeResults env ldamodel cvModel maxTermsPerTopic
 
     where numTopics         = 10
           miniBatchFraction = 1
@@ -34,4 +36,4 @@ sparkMain = do
 getStopwords :: IO [String]
 getStopwords = fmap lines (readFile "stopwords.txt")
 
-foreign export ccall sparkMain :: IO ()
+foreign export ccall sparkMain :: JVM -> IO ()
