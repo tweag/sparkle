@@ -1,28 +1,31 @@
 #include <jni.h>
 
+/* JVM */
+JNIEnv* jniEnv(JavaVM* jvm);
+
 /* Finding classes and methods */
-jclass findClass(const char* java_class);
-jmethodID findMethod(jclass java_class, const char* method_name, const char* sig);
-jmethodID findStaticMethod(jclass java_class, const char* method_name, const char* sig);
+jclass findClass(JNIEnv* e, const char* java_class);
+jmethodID findMethod(JNIEnv* e, jclass java_class, const char* method_name, const char* sig);
+jmethodID findStaticMethod(JNIEnv* e, jclass java_class, const char* method_name, const char* sig);
 
 /* invoking methods */
-jobject callObjectMethod(jobject obj, jmethodID, jvalue* args);
-void callVoidMethod(jobject obj, jmethodID, jvalue* args);
-jobject callStaticObjectMethod(jclass java_class, jmethodID method, jvalue* args);
-void callStaticVoidMethod (jclass java_class, jmethodID method, jvalue* args);
+jobject callObjectMethod(JNIEnv* e, jobject obj, jmethodID, jvalue* args);
+void callVoidMethod(JNIEnv* e, jobject obj, jmethodID, jvalue* args);
+jobject callStaticObjectMethod(JNIEnv* e, jclass java_class, jmethodID method, jvalue* args);
+void callStaticVoidMethod (JNIEnv* e, jclass java_class, jmethodID method, jvalue* args);
 
 /* Creating Java values */
-jobject newObject(jclass java_class, const char* sig, const jvalue* args);
-jstring newString(const char* str);
-jintArray newIntArray(size_t size, int* data);
-jbyteArray newByteArray(size_t size, jbyte* data);
+jobject newObject(JNIEnv* e, jclass java_class, const char* sig, const jvalue* args);
+jstring newString(JNIEnv* e, const char* str);
+jintArray newIntArray(JNIEnv* e, size_t size, int* data);
+jbyteArray newByteArray(JNIEnv* e, size_t size, jbyte* data);
 
 /* Converting Java values to Haskell ones */
-size_t jstringLen(jstring s);
-const char* jstringChars(jstring s);
+size_t jstringLen(JNIEnv* e, jstring s);
+const char* jstringChars(JNIEnv* e, jstring s);
 
-void checkForExc();
+void checkForExc(JNIEnv* e);
 
 /* Spark functions */
 // TODO: get rid of this
-void      collect(jobject rdd, int** buf, size_t* len);
+void      collect(JNIEnv* e, jobject rdd, int** buf, size_t* len);

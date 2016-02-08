@@ -34,10 +34,10 @@ JNIEXPORT void JNICALL Java_HaskellRTS_hask_1end
 /*
  * Class:     HaskellRTS
  * Method:    invoke
- * Signature: ([BI)I
+ * Signature: ([BLjava/lang/Object;)Ljava/lang/Object;
  */
-JNIEXPORT jint JNICALL Java_HaskellRTS_invoke
-  (JNIEnv *, jclass, jbyteArray, jint);
+JNIEXPORT jobject JNICALL Java_HaskellRTS_invoke
+  (JNIEnv *, jclass, jbyteArray, jobject);
 
 #ifdef __cplusplus
 }

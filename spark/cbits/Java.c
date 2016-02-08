@@ -1,11 +1,18 @@
 #include <jni.h>
 #include <stdio.h>
-#include "JVM.h"
 #include "Java.h"
 
-jclass findClass(const char* java_class)
+JNIEnv* jniEnv(JavaVM* jvm)
 {
-  JNIEnv* env = jniEnv();
+  JNIEnv* env;
+  int envStat = (*jvm)->GetEnv(jvm, (void**)&env, JNI_VERSION_1_6);
+  if(envStat == JNI_EDETACHED)
+    (*jvm)->AttachCurrentThread(jvm, (void**)& env, NULL);
+  return env;
+}
+
+jclass findClass(JNIEnv* env, const char* java_class)
+{
   jclass class = (*env)->FindClass(env, java_class);
   if(!class)
   {
@@ -15,9 +22,8 @@ jclass findClass(const char* java_class)
   return class;
 }
 
-jmethodID findMethod(jclass java_class, const char* method_name, const char* sig)
+jmethodID findMethod(JNIEnv* env, jclass java_class, const char* method_name, const char* sig)
 {
-  JNIEnv* env = jniEnv();
   jmethodID mid = (*env)->GetMethodID(env, java_class, method_name, sig);
   if(!mid)
   {
@@ -27,9 +33,8 @@ jmethodID findMethod(jclass java_class, const char* method_name, const char* sig
   return mid;
 }
 
-jmethodID findStaticMethod(jclass java_class, const char* method_name, const char* sig)
+jmethodID findStaticMethod(JNIEnv* env, jclass java_class, const char* method_name, const char* sig)
 {
-  JNIEnv* env = jniEnv();
   jmethodID mid = (*env)->GetStaticMethodID(env, java_class, method_name, sig);
   if(!mid)
   {
@@ -39,9 +44,8 @@ jmethodID findStaticMethod(jclass java_class, const char* method_name, const cha
   return mid;
 }
 
-jobject callObjectMethod(jobject obj, jmethodID method, jvalue* args)
+jobject callObjectMethod(JNIEnv* env, jobject obj, jmethodID method, jvalue* args)
 {
-  JNIEnv* env = jniEnv();
   jobject res = (*env)->CallObjectMethodA(env, obj, method, args);
   /*
   if(!res)
@@ -54,15 +58,13 @@ jobject callObjectMethod(jobject obj, jmethodID method, jvalue* args)
   return res;
 }
 
-void callVoidMethod(jclass java_class, jmethodID method, jvalue* args)
+void callVoidMethod(JNIEnv* env, jclass java_class, jmethodID method, jvalue* args)
 {
-  JNIEnv* env = jniEnv();
   (*env)->CallVoidMethodA(env, java_class, method, args);
 }
 
-jobject callStaticObjectMethod(jclass java_class, jmethodID method, jvalue* args)
+jobject callStaticObjectMethod(JNIEnv* env, jclass java_class, jmethodID method, jvalue* args)
 {
-  JNIEnv* env = jniEnv();
   jobject res = (*env)->CallStaticObjectMethodA(env, java_class, method, args);
   /*
   if(!res)
@@ -75,19 +77,17 @@ jobject callStaticObjectMethod(jclass java_class, jmethodID method, jvalue* args
   return res;
 }
 
-void callStaticVoidMethod(jclass java_class, jmethodID method, jvalue* args)
+void callStaticVoidMethod(JNIEnv* env, jclass java_class, jmethodID method, jvalue* args)
 {
-  JNIEnv* env = jniEnv();
   (*env)->CallStaticVoidMethodA(env, java_class, method, args);
 }
 
-jobject newObject(jclass java_class, const char* sig, const jvalue* args)
+jobject newObject(JNIEnv* env, jclass java_class, const char* sig, const jvalue* args)
 {
-  JNIEnv* env = jniEnv();
   jmethodID constr;
   jobject obj;
 
-  constr = findMethod(java_class, "<init>", sig);
+  constr = findMethod(env, java_class, "<init>", sig);
 
   obj = (*env)->NewObjectA(env, java_class, constr, args);
   if(!obj)
@@ -99,15 +99,13 @@ jobject newObject(jclass java_class, const char* sig, const jvalue* args)
   return obj;
 }
 
-jstring newString(const char* str)
+jstring newString(JNIEnv* env, const char* str)
 {
-  JNIEnv* env = jniEnv();
   return (*env)->NewStringUTF(env, str);
 }
 
-jintArray newIntArray(size_t size, int* data)
+jintArray newIntArray(JNIEnv* env, size_t size, int* data)
 {
-  JNIEnv* env = jniEnv();
   jintArray arr = (*env)->NewIntArray(env, size);
   if(!arr)
   {
@@ -119,9 +117,8 @@ jintArray newIntArray(size_t size, int* data)
   return arr;
 }
 
-jbyteArray newByteArray(size_t size, jbyte* data)
+jbyteArray newByteArray(JNIEnv* env, size_t size, jbyte* data)
 {
-  JNIEnv* env = jniEnv();
   jbyteArray arr = (*env)->NewByteArray(env, size);
   if(!arr)
   {
@@ -133,9 +130,8 @@ jbyteArray newByteArray(size_t size, jbyte* data)
   return arr;
 }
 
-jdoubleArray newDoubleArray(size_t size, jdouble* data)
+jdoubleArray newDoubleArray(JNIEnv* env, size_t size, jdouble* data)
 {
-  JNIEnv* env = jniEnv();
   jdoubleArray arr = (*env)->NewByteArray(env, size);
   if(!arr)
   {
@@ -147,10 +143,9 @@ jdoubleArray newDoubleArray(size_t size, jdouble* data)
   return arr;
 }
 
-jobjectArray newObjectArray(size_t size, jclass cls, jobject* data)
+jobjectArray newObjectArray(JNIEnv* env, size_t size, jclass cls, jobject* data)
 {
   size_t i = 0;
-  JNIEnv* env = jniEnv();
   jobjectArray arr = (*env)->NewObjectArray(env, size, cls, NULL);
   if(!arr)
   {
@@ -163,21 +158,18 @@ jobjectArray newObjectArray(size_t size, jclass cls, jobject* data)
   return arr;
 }
 
-size_t jstringLen(jstring s)
+size_t jstringLen(JNIEnv* env, jstring s)
 {
-  JNIEnv* env = jniEnv();
   return (*env)->GetStringUTFLength(env, s);
 }
 
-const char* jstringChars(jstring s)
+const char* jstringChars(JNIEnv* env, jstring s)
 {
-  JNIEnv* env = jniEnv();
   return (*env)->GetStringUTFChars(env, s, NULL);
 }
 
-void checkForExc()
+void checkForExc(JNIEnv* env)
 {
-  JNIEnv* env = jniEnv();
   jthrowable exc = (*env)->ExceptionOccurred(env);
   if(exc)
   {
@@ -187,15 +179,14 @@ void checkForExc()
 }
 
 // TODO: get rid of this
-void collect(jobject rdd, int** buf, size_t* len)
+void collect(JNIEnv* env, jobject rdd, int** buf, size_t* len)
 {
-  JNIEnv* env = jniEnv();
-  jclass spark_helper_class = findClass("Helper");
+  jclass spark_helper_class = findClass(env, "Helper");
   jmethodID spark_helper_collect =
-    findStaticMethod(spark_helper_class, "collect", "(Lorg/apache/spark/api/java/JavaRDD;)[I");
+    findStaticMethod(env, spark_helper_class, "collect", "(Lorg/apache/spark/api/java/JavaRDD;)[I");
   jvalue arg;
   arg.l = rdd;
-  jintArray elements = callStaticObjectMethod(spark_helper_class, spark_helper_collect, &arg);
+  jintArray elements = callStaticObjectMethod(env, spark_helper_class, spark_helper_collect, &arg);
   if(elements == NULL)
   {
     printf("!! sparkle: collect() returned NULL\n");
