@@ -87,6 +87,13 @@ zipWithIndex rdd = do
   swap <- findStaticMethod helper "swapPairs" "(Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
   callStaticObjectMethod helper swap [JObj prdd]
 
+textFile :: SparkContext -> String -> IO (RDD String)
+textFile sc path = do
+  jpath <- newString path
+  cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
+  method <- findMethod cls "textFile" "(Ljava/lang/String;)Lorg/apache/spark/api/java/JavaRDD;"
+  callObjectMethod sc method [JObj jpath]
+
 wholeTextFiles :: SparkContext -> String -> IO (PairRDD String String)
 wholeTextFiles sc uri = do
   juri <- newString uri
