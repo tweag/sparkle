@@ -1,6 +1,5 @@
 #include <jni.h>
 #include <stdio.h>
-#include "HaskellRTS.h"
 #include "JVM.h"
 #include "Java.h"
 

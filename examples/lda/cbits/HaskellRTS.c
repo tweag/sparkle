@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "HsFFI.h"
-// #include "Closure_stub.h"
+#include "Closure_stub.h"
 #include "SparkLDA_stub.h"
 #include "HaskellRTS.h"
 #include "JVM.h"

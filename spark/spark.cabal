@@ -8,15 +8,17 @@ maintainer:          alp.mestanogullari@tweag.io
 copyright:           2016 Tweag I/O Ltd
 -- category:
 build-type:          Simple
-extra-source-files:  cbits/JVM.h, cbits/Java.h
 cabal-version:       >=1.10
 
 library
   c-sources: cbits/Java.c, cbits/JVM.c
   cc-options: -Wall
+  includes: JVM.h, Java.h, Closure_stub.h
+  include-dirs: cbits
+  install-includes: JVM.h, Java.h, Closure_stub.h
   ghc-options: -fPIC -shared -dynamic -threaded -Wall
-  exposed-modules: Control.Distributed.Spark
-  other-modules: Closure JNI
+  exposed-modules: Control.Distributed.Spark, Closure
+  other-modules: JNI
   -- other-extensions:
   build-depends:
     base >=4.8 && <4.9,

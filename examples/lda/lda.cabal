@@ -12,11 +12,11 @@ maintainer:          alp.mestanogullari@tweag.io
 copyright:           2016 Tweag I/O Ltd
 -- category:            
 build-type:          Simple
-extra-source-files:  cbits/HaskellRTS.h
 cabal-version:       >=1.10
 
 library
   c-sources:           cbits/HaskellRTS.c
+  includes:            cbits/HaskellRTS.h
   exposed-modules:     SparkLDA     
   -- other-modules:       
   -- other-extensions:    
