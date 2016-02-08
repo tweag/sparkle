@@ -59,6 +59,7 @@ public class Helper
 	         .setMinTokenLength(5);
     }
 
+    /*
     public static JavaRDD<Object> map(JavaRDD<Object> rdd, final byte[] clos)
     {
 	JavaRDD<Object> newRDD = rdd.map(new Function<Object, Object>() {
@@ -69,6 +70,19 @@ public class Helper
 	});
 	return newRDD;
     }
+    */
+
+    public static JavaRDD<String> filter(JavaRDD<String> rdd, final byte[] clos)
+    {
+	JavaRDD<String> newRDD = rdd.filter(new Function<String, Boolean>() {
+		public Boolean call(String arg)
+		{
+		    return new Boolean(HaskellRTS.invoke(clos, arg));
+		}
+	});
+	return newRDD;
+    }
+
 
     public static JavaRDD<Row> toRows(JavaPairRDD<Long, String> prdd)
     {

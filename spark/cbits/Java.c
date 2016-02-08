@@ -82,6 +82,11 @@ void callStaticVoidMethod(JNIEnv* env, jclass java_class, jmethodID method, jval
   (*env)->CallStaticVoidMethodA(env, java_class, method, args);
 }
 
+long callLongMethod(JNIEnv* env, jobject obj, jmethodID method, jvalue* args)
+{
+  return (*env)->CallLongMethodA(env, obj, method, args);
+}
+
 jobject newObject(JNIEnv* env, jclass java_class, const char* sig, const jvalue* args)
 {
   jmethodID constr;
