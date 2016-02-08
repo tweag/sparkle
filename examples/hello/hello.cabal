@@ -12,12 +12,12 @@ maintainer:          alp.mestanogullari@tweag.io
 copyright:           2016 Tweag I/O Ltd
 -- category:            
 build-type:          Simple
-extra-source-files:  cbits/HaskellRTS.h
 cabal-version:       >=1.10
 
 library
   exposed-modules:     HelloSpark
-  c-sources:           cbits/HaskellRTS.c, cbits/JVM.c
+  c-sources:           cbits/HaskellRTS.c
+  includes:            cbits/HaskellRTS.h
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.7 && <5, spark, distributed-closure
