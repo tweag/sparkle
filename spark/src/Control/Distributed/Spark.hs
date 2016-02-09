@@ -66,7 +66,14 @@ rddmap env clos rdd =
     callStaticObjectMethod env cls method [JObj rdd, JObj closArr]
 
   where closBS = clos2bs clos'
-        clos'  = closure (static wrap) `cap` clos 
+        clos'  = closure (static wrap) `cap` clos
+-}
+
+{-
+map :: Closure (Dict (FromObject a, ToObject b)) -> Closure (a -> b) -> Rdd a -> IO (Rdd b)
+map cdict cf rdd =
+    let Dict = unclosure cdict
+    in closure (static wrap) `cap` cf `cap` cpure rdd
 -}
 
 {-
