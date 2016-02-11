@@ -1,6 +1,6 @@
 flags:
-   binary-serialise-cbor:
-       newtime15: true
+  binary-serialise-cbor:
+    newtime15: true
 packages:
 - sparkle
 - examples/hello
@@ -12,4 +12,5 @@ extra-deps:
 - distributed-closure-0.2.1.0
 resolver: lts-5.1
 nix:
-    shell-file: shell.nix
+  enable: false
+  shell-file: shell.nix
