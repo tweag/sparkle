@@ -4,7 +4,7 @@ module HelloSpark where
 
 import Control.Distributed.Closure
 import Control.Distributed.Spark as RDD
-import Control.Distributed.Spark.JNI
+import Foreign.Java
 import Data.List (isInfixOf)
 
 f1 :: String -> Bool

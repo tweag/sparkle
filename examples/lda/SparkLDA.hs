@@ -1,7 +1,7 @@
 module SparkLDA where
 
 import Control.Distributed.Spark
-import Control.Distributed.Spark.JNI
+import Foreign.Java
 
 sparkMain :: JVM -> IO ()
 sparkMain jvm = do
