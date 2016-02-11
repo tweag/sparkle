@@ -24,9 +24,7 @@ instance ToJObject JObject where
 instance ToJObject Bool where
   toJObject env b = do
     cls <- findClass env "java/lang/Boolean"
-    newObject env cls "(Z)V" [JBoolean b']
-
-    where b' = if b then 1 else 0
+    newObject env cls "(Z)V" [JBoolean (fromIntegral (fromEnum b))]
 
 class FromJObject a where
   fromJObject :: JNIEnv -> JObject -> IO a
