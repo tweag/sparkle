@@ -182,33 +182,3 @@ void checkForExc(JNIEnv* env)
     (*env)->ExceptionClear(env);
   }
 }
-
-// TODO: get rid of this
-void collect(JNIEnv* env, jobject rdd, int** buf, size_t* len)
-{
-  jclass spark_helper_class = findClass(env, "Helper");
-  jmethodID spark_helper_collect =
-    findStaticMethod(env, spark_helper_class, "collect", "(Lorg/apache/spark/api/java/JavaRDD;)[I");
-  jvalue arg;
-  arg.l = rdd;
-  jintArray elements = callStaticObjectMethod(env, spark_helper_class, spark_helper_collect, &arg);
-  if(elements == NULL)
-  {
-    printf("!! sparkle: collect() returned NULL\n");
-    jthrowable exc;
-    exc = (*env)->ExceptionOccurred(env);
-    if(exc)
-    {
-      (*env)->ExceptionDescribe(env);
-      (*env)->ExceptionClear(env);
-      return;
-    }
-  }
-
-  *len = (*env)->GetArrayLength(env, elements);
-
-  int* finalArr = (int*) malloc((*len) * sizeof(int));
-  finalArr = (*env)->GetIntArrayElements(env, elements, NULL);
-
-  *buf = finalArr;
-}
