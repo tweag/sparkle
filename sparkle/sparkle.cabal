@@ -1,12 +1,9 @@
 name:                sparkle
 version:             0.1
--- synopsis:
--- description:
 license:             AllRightsReserved
 author:              Tweag I/O
 maintainer:          alp.mestanogullari@tweag.io
 copyright:           2016 Tweag I/O Ltd
--- category:
 build-type:          Simple
 cabal-version:       >=1.10
 
@@ -21,7 +18,6 @@ library
     Control.Distributed.Spark,
     Control.Distributed.Spark.Closure,
     Control.Distributed.Spark.JNI
-  -- other-extensions:
   build-depends:
     base >=4.8 && <4.9,
     binary,
