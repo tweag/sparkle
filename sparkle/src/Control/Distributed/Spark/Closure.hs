@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Control.Distributed.Spark.Closure where
 
 import Control.Distributed.Closure
@@ -45,44 +46,36 @@ wrap f env jarg = do
   arg <- fromJObject env jarg
   toJObject env (f arg)
 
---clos2bs :: Closure (JNIEnv -> JObject -> IO JObject)
---        -> ByteString
 clos2bs :: Closure (String -> Bool) -> ByteString
 clos2bs = LBS.toStrict . encode
 
---bs2clos :: ByteString
---        -> Closure (JNIEnv -> JObject -> IO JObject)
 bs2clos :: ByteString -> Closure (String -> Bool)
 bs2clos = decode . LBS.fromStrict
 
---bs2func :: ByteString -> (JNIEnv -> JObject -> IO JObject)
 bs2func :: ByteString -> String -> Bool
 bs2func = unclosure . bs2clos
 
 -- | Apply a serialized closure to 1+ serialized argument(s), returning
 --   a serialized result.
---invoke :: ByteString -- ^ serialized closure
---       -> JNIEnv
---       -> JObject    -- ^ argument
---       -> IO JObject -- ^ result
 invoke :: ByteString -> String -> Bool
 invoke clos x = bs2func clos x
 
-foreign export ccall invokeC :: Ptr CChar
-                             -> CLong
-                             -> Ptr CChar
-                             -> CLong
-                             -> IO Bool
+foreign export ccall invokeC
+  :: Ptr CChar
+  -> CLong
+  -> Ptr CChar
+  -> CLong
+  -> IO Bool
 
 -- | C-friendly version of 'invoke', the one we actually
 --   export to C.
-invokeC :: Ptr CChar       -- ^ serialized closure buffer
-        -> CLong           -- ^ size (in bytes) of serialized closure
-        -> Ptr CChar
-        -> CLong
-        -> IO Bool
+invokeC
+  :: Ptr CChar       -- ^ serialized closure buffer
+  -> CLong           -- ^ size (in bytes) of serialized closure
+  -> Ptr CChar
+  -> CLong
+  -> IO Bool
 invokeC clos closSize arg argSize = do
     clos' <- unsafePackCStringLen (clos, fromIntegral closSize)
     arg' <- peekCStringLen (arg, fromIntegral argSize)
-    putStrLn $ "Calling invokeC on: " ++ arg'
     return $ invoke clos' arg'
