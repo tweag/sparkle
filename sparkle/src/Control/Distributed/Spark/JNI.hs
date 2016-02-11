@@ -40,9 +40,6 @@ data JValue
   | JDouble CDouble
   | JBoolean CUChar
   | JLong CLong
-  -- | ...
-
-type JValuePtr = Ptr JValue
 
 instance Storable JValue where
   sizeOf _ = 8
@@ -59,14 +56,14 @@ instance Storable JValue where
 
 foreign import ccall unsafe "jniEnv" jniEnv :: JVM -> IO JNIEnv
 foreign import ccall unsafe "findClass" findClass' :: JNIEnv -> CString -> IO JClass
-foreign import ccall unsafe "newObject" newObject' :: JNIEnv -> JClass -> CString -> JValuePtr -> IO JObject
+foreign import ccall unsafe "newObject" newObject' :: JNIEnv -> JClass -> CString -> Ptr JValue -> IO JObject
 foreign import ccall unsafe "findMethod" findMethod' :: JNIEnv -> JClass -> CString -> CString -> IO JMethodID
 foreign import ccall unsafe "findStaticMethod" findStaticMethod' :: JNIEnv -> JClass -> CString -> CString -> IO JMethodID
-foreign import ccall unsafe "callObjectMethod" callObjectMethod' :: JNIEnv -> JObject -> JMethodID -> JValuePtr -> IO JObject
-foreign import ccall unsafe "callStaticObjectMethod" callStaticObjectMethod' :: JNIEnv -> JClass -> JMethodID -> JValuePtr -> IO JObject
-foreign import ccall unsafe "callStaticVoidMethod" callStaticVoidMethod' :: JNIEnv -> JClass -> JMethodID -> JValuePtr -> IO ()
-foreign import ccall unsafe "callVoidMethod" callVoidMethod' :: JNIEnv -> JObject -> JMethodID -> JValuePtr -> IO ()
-foreign import ccall safe "callLongMethod" callLongMethod' :: JNIEnv -> JObject -> JMethodID -> JValuePtr -> IO CLong
+foreign import ccall unsafe "callObjectMethod" callObjectMethod' :: JNIEnv -> JObject -> JMethodID -> Ptr JValue -> IO JObject
+foreign import ccall unsafe "callStaticObjectMethod" callStaticObjectMethod' :: JNIEnv -> JClass -> JMethodID -> Ptr JValue -> IO JObject
+foreign import ccall unsafe "callStaticVoidMethod" callStaticVoidMethod' :: JNIEnv -> JClass -> JMethodID -> Ptr JValue -> IO ()
+foreign import ccall unsafe "callVoidMethod" callVoidMethod' :: JNIEnv -> JObject -> JMethodID -> Ptr JValue -> IO ()
+foreign import ccall safe "callLongMethod" callLongMethod' :: JNIEnv -> JObject -> JMethodID -> Ptr JValue -> IO CLong
 foreign import ccall unsafe "newIntArray" newIntArray' :: JNIEnv -> CSize -> Ptr CInt -> IO JIntArray
 foreign import ccall unsafe "newDoubleArray" newDoubleArray' :: JNIEnv -> CSize -> Ptr CDouble -> IO JDoubleArray
 foreign import ccall unsafe "newByteArray" newByteArray' :: JNIEnv -> CSize -> Ptr CChar -> IO JByteArray
