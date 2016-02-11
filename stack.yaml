@@ -2,7 +2,7 @@ flags:
    binary-serialise-cbor:
        newtime15: true
 packages:
-- spark
+- sparkle
 - examples/hello
 - examples/lda
 - location:
