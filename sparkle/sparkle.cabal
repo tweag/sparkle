@@ -11,11 +11,11 @@ library
   c-sources: cbits/Java.c
   cc-options: -Wall
   include-dirs: cbits
-  install-includes: Java.h, Closure_stub.h
+  install-includes: Java.h Closure_stub.h
   ghc-options: -fPIC -shared -dynamic -threaded -Wall
   exposed-modules:
-    Control.Distributed.Spark,
-    Control.Distributed.Spark.Closure,
+    Control.Distributed.Spark
+    Control.Distributed.Spark.Closure
     Control.Distributed.Spark.JNI
   build-depends:
     base >=4.8 && <4.9,

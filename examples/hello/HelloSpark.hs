@@ -1,4 +1,4 @@
-{-# LANGUAGE StaticPointers #-}
+{-# LANGUAGE StaticPointers #-}
 
 module HelloSpark where
 
@@ -9,7 +9,7 @@ import Control.Distributed.Spark.JNI
 import Data.List (isInfixOf)
 
 f1 :: String -> Bool
-f1 s = "a" `isInfixOf` s 
+f1 s = "a" `isInfixOf` s
 
 f2 :: String -> Bool
 f2 s = "b" `isInfixOf` s
