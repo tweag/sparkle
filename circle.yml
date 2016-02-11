@@ -1,0 +1,27 @@
+machine:
+  environment:
+    PATH: ~/.local/bin:~/spark/bin:$PATH
+
+dependencies:
+  cache_directories:
+  - "~/.stack"
+  - "~/spark"
+
+  override:
+  # Work around who knows what ld.bfd bug.
+  - sudo update-alternatives --install "/usr/bin/ld" "ld" "/usr/bin/ld.gold" 20
+  - sudo update-alternatives --install "/usr/bin/ld" "ld" "/usr/bin/ld.bfd" 10
+  - mkdir -p ~/spark
+  - curl -L --retry 3 http://apache.mindstudios.com/spark/spark-1.6.0/spark-1.6.0.tgz | tar xz -C ~/spark --strip-components=1
+  - cd ~/spark && ./sbt/sbt assembly
+  - mkdir -p ~/.local/bin
+  - curl -L --retry 3 https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+  - stack --no-terminal setup
+  # XXX Roundabout method due to CircleCI parser bug.
+  - echo 'extra-include-dirsCOLON [/usr/lib/jvm/java-7-openjdk-amd64/include]' > ~/.stack/config.yaml
+  - sed -i s/COLON/:/ ~/.stack/config.yaml
+  - stack --no-terminal build --only-snapshot --prefetch
+
+test:
+  override:
+  - stack --no-terminal build --pedantic
