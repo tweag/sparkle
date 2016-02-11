@@ -26,7 +26,3 @@ size_t jstringLen(JNIEnv* e, jstring s);
 const char* jstringChars(JNIEnv* e, jstring s);
 
 void checkForExc(JNIEnv* e);
-
-/* Spark functions */
-// TODO: get rid of this
-void      collect(JNIEnv* e, jobject rdd, int** buf, size_t* len);
