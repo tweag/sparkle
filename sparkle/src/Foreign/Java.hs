@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Control.Distributed.Spark.JNI where
+module Foreign.Java where
 
 import Data.Map (fromList)
 import Foreign.C

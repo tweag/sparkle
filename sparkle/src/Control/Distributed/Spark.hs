@@ -7,7 +7,7 @@ module Control.Distributed.Spark where
 
 import           Control.Distributed.Closure
 import           Control.Distributed.Spark.Closure
-import           Control.Distributed.Spark.JNI
+import           Foreign.Java
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
 import           Foreign.C.Types
 

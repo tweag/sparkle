@@ -5,12 +5,12 @@
 module Control.Distributed.Spark.Closure where
 
 import Control.Distributed.Closure
-import Control.Distributed.Spark.JNI
 import Data.Binary (encode, decode)
 import Data.ByteString (ByteString)
 import Data.ByteString.Unsafe (unsafePackCStringLen)
 import Foreign.C.String
 import Foreign.C.Types
+import Foreign.Java
 import Foreign.Ptr
 
 import qualified Data.ByteString.Lazy as LBS

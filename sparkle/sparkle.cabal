@@ -16,7 +16,7 @@ library
   exposed-modules:
     Control.Distributed.Spark
     Control.Distributed.Spark.Closure
-    Control.Distributed.Spark.JNI
+    Foreign.Java
   build-depends:
     base >=4.8 && <4.9,
     binary >=0.7,
