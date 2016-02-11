@@ -4,7 +4,6 @@
 #include "Closure_stub.h"
 #include "SparkLDA_stub.h"
 #include "HaskellRTS.h"
-#include "JVM.h"
 
 JNIEXPORT void JNICALL Java_HaskellRTS_hask_1init
   (JNIEnv* env, jclass c)
@@ -19,6 +18,7 @@ JNIEXPORT void JNICALL Java_HaskellRTS_hask_1init
 JNIEXPORT void JNICALL Java_HaskellRTS_sparkMain
   (JNIEnv* env, jclass c)
 {
+	JavaVM *jvm;
 	(*env)->GetJavaVM(env, &jvm);
 	// Detach thread?
 	sparkMain(jvm);
