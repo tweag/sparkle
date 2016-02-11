@@ -8,19 +8,8 @@ module Control.Distributed.Spark where
 import           Control.Distributed.Closure
 import           Control.Distributed.Spark.Closure
 import           Control.Distributed.Spark.JNI
--- import           Data.Binary.Serialise.CBOR
-import qualified Data.ByteString as BS
-import           Data.ByteString (ByteString)
 import           Data.ByteString.Unsafe (unsafeUseAsCStringLen)
-import           Data.Monoid     ((<>))
-import           Foreign.C.String (withCString)
 import           Foreign.C.Types
-import           Foreign.Marshal.Array (withArrayLen, peekArray)
-import           Foreign.Marshal.Alloc (alloca)
-import           Foreign.Storable (peek)
-import qualified Language.C.Inline as C
-
-C.context (C.baseCtx <> jniCtx)
 
 -- TODO:
 -- eventually turn all the 'type's into 'newtype's?
@@ -33,7 +22,7 @@ newSparkConf env appname = do
   setAppName <- findMethod env cls "setAppName" "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;"
   cnf <- newObject env cls "()V" []
   jname <- newString env appname
-  callObjectMethod env cnf setAppName [JObj jname]
+  _ <- callObjectMethod env cnf setAppName [JObj jname]
   return cnf
 
 type SparkContext = JObject
@@ -90,7 +79,7 @@ filter env clos rdd = do
     callStaticObjectMethod env cls method [JObj rdd, JObj closArr]
 
   where closBS = clos2bs clos'
-        clos'  = closure (static wrap) `cap` clos 
+        clos'  = closure (static wrap) `cap` clos
 -}
 
 filter :: JNIEnv -> Closure (String -> Bool) -> RDD String -> IO (RDD String)
@@ -313,6 +302,7 @@ describeResults env lm cvm maxTerms = do
   callStaticVoidMethod env cls mth [JObj lm, JObj cvm, JInt maxTerms]
 
 selectDF :: JNIEnv -> DataFrame -> [String] -> IO DataFrame
+selectDF _ _ [] = error "selectDF: not enough arguments."
 selectDF env df (col:cols) = do
   cls <- findClass env "org/apache/spark/sql/DataFrame"
   mth <- findMethod env cls "select" "(Ljava/lang/String;[Ljava/lang/String;)Lorg/apache/spark/sql/DataFrame;"
