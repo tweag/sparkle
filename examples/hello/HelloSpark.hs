@@ -4,7 +4,6 @@ module HelloSpark where
 
 import Control.Distributed.Closure
 import Control.Distributed.Spark as RDD
-import Control.Distributed.Spark.Closure
 import Control.Distributed.Spark.JNI
 import Data.List (isInfixOf)
 
