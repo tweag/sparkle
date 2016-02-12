@@ -17,6 +17,9 @@ library
     Control.Distributed.Spark
     Control.Distributed.Spark.Closure
     Foreign.Java
+  other-modules:
+    Foreign.Java.Types
+    Foreign.Java.Internal
   build-depends:
     base >=4.8 && <4.9,
     binary >=0.7,
