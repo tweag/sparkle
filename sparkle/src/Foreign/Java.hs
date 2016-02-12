@@ -60,9 +60,9 @@ foreign import ccall unsafe "newObject" newObject' :: JNIEnv -> JClass -> CStrin
 foreign import ccall unsafe "findMethod" findMethod' :: JNIEnv -> JClass -> CString -> CString -> IO JMethodID
 foreign import ccall unsafe "findStaticMethod" findStaticMethod' :: JNIEnv -> JClass -> CString -> CString -> IO JMethodID
 foreign import ccall unsafe "callObjectMethod" callObjectMethod' :: JNIEnv -> JObject -> JMethodID -> Ptr JValue -> IO JObject
-foreign import ccall unsafe "callStaticObjectMethod" callStaticObjectMethod' :: JNIEnv -> JClass -> JMethodID -> Ptr JValue -> IO JObject
-foreign import ccall unsafe "callStaticVoidMethod" callStaticVoidMethod' :: JNIEnv -> JClass -> JMethodID -> Ptr JValue -> IO ()
-foreign import ccall unsafe "callVoidMethod" callVoidMethod' :: JNIEnv -> JObject -> JMethodID -> Ptr JValue -> IO ()
+foreign import ccall safe "callStaticObjectMethod" callStaticObjectMethod' :: JNIEnv -> JClass -> JMethodID -> Ptr JValue -> IO JObject
+foreign import ccall safe "callStaticVoidMethod" callStaticVoidMethod' :: JNIEnv -> JClass -> JMethodID -> Ptr JValue -> IO ()
+foreign import ccall safe "callVoidMethod" callVoidMethod' :: JNIEnv -> JObject -> JMethodID -> Ptr JValue -> IO ()
 foreign import ccall safe "callLongMethod" callLongMethod' :: JNIEnv -> JObject -> JMethodID -> Ptr JValue -> IO CLong
 foreign import ccall unsafe "newIntArray" newIntArray' :: JNIEnv -> CSize -> Ptr CInt -> IO JIntArray
 foreign import ccall unsafe "newDoubleArray" newDoubleArray' :: JNIEnv -> CSize -> Ptr CDouble -> IO JDoubleArray
