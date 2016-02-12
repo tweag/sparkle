@@ -4,13 +4,10 @@
 
 module Foreign.Java where
 
-import Data.Map (fromList)
 import Foreign.C
 import Foreign.Marshal.Array
 import Foreign.Ptr
 import Foreign.Storable
-import Language.C.Inline.Context
-import Language.C.Types
 
 newtype JVM = JVM (Ptr JVM)
   deriving (Eq, Show, Storable)
@@ -147,11 +144,3 @@ fromJString env str = do
   sz <- jstringLen env str
   cs <- jstringChars env str
   peekCStringLen (cs, fromIntegral sz)
-
-jniCtx :: Context
-jniCtx = mempty { ctxTypesTable = fromList tytab }
-  where
-    tytab =
-      [ (TypeName "jobject", [t| JObject |])
-      , (TypeName "JNIEnv", [t| JNIEnv |])
-      ]
