@@ -29,23 +29,29 @@ newtype JObject = JObject_ (Ptr JObject)
   deriving (Eq, Show, Storable)
 
 data JValue
-  = JObject JObject
-  | JInt CInt
+  = JBoolean Word8
   | JByte CChar
-  | JDouble CDouble
-  | JBoolean CUChar
-  | JLong CLong
+  | JChar Word16
+  | JShort Int8
+  | JInt Int32
+  | JLong Int64
+  | JFloat Float
+  | JDouble Double
+  | JObject JObject
 
 instance Storable JValue where
   sizeOf _ = 8
   alignment _ = 8
 
-  poke p (JObject x)  = poke (castPtr p) x
-  poke p (JInt i)     = poke (castPtr p) i
-  poke p (JByte b)    = poke (castPtr p) b
-  poke p (JDouble d)  = poke (castPtr p) d
-  poke p (JBoolean b) = poke (castPtr p) b
-  poke p (JLong l)    = poke (castPtr p) l
+  poke p (JBoolean x) = poke (castPtr p) x
+  poke p (JByte x) = poke (castPtr p) x
+  poke p (JChar x) = poke (castPtr p) x
+  poke p (JShort x) = poke (castPtr p) x
+  poke p (JInt x) = poke (castPtr p) x
+  poke p (JLong x) = poke (castPtr p) x
+  poke p (JFloat x) = poke (castPtr p) x
+  poke p (JDouble x) = poke (castPtr p) x
+  poke p (JObject x) = poke (castPtr p) x
 
   peek _ = error "Storable JValue: undefined peek"
 
