@@ -28,13 +28,6 @@ newtype JMethodID = JMethodID_ (Ptr JMethodID)
 newtype JObject = JObject_ (Ptr JObject)
   deriving (Eq, Show, Storable)
 
-type JClass = JObject
-type JString = JObject
-type JIntArray = JObject
-type JByteArray = JObject
-type JDoubleArray = JObject
-type JObjectArray = JObject
-
 data JValue
   = JObject JObject
   | JInt CInt
@@ -55,6 +48,20 @@ instance Storable JValue where
   poke p (JLong l)    = poke (castPtr p) l
 
   peek _ = error "Storable JValue: undefined peek"
+
+type JClass = JObject
+type JString = JObject
+type JArray = JObject
+type JObjectArray = JObject
+type JBooleanArray = JObject
+type JByteArray = JObject
+type JCharArray = JObject
+type JShortArray = JObject
+type JIntArray = JObject
+type JLongArray = JObject
+type JFloatArray = JObject
+type JDoubleArray = JObject
+type JThrowable = JObject
 
 jniCtx :: Context
 jniCtx = mempty { ctxTypesTable = fromList tytab }
