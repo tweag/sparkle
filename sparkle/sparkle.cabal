@@ -8,7 +8,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  c-sources: cbits/Java.c
+  c-sources: src/Foreign/Java.c
   cc-options: -Wall
   include-dirs: cbits
   install-includes: Java.h Closure_stub.h
@@ -19,7 +19,6 @@ library
     Foreign.Java
   other-modules:
     Foreign.Java.Types
-    Foreign.Java.Internal
   build-depends:
     base >=4.8 && <4.9,
     binary >=0.7,
