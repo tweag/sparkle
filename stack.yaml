@@ -8,8 +8,11 @@ packages:
 - location:
     git: git@github.com:well-typed/binary-serialise-cbor
     commit: 992e2c758f9b5795390208ecea162a6ad0166ce6
-extra-deps:
-- distributed-closure-0.2.1.0
+  extra-dep: true
+- location:
+    git: git@github.com:tweag/distributed-closure
+    commit: a0055dc39fe6d9cf2829786808b7ef6ecf3ed107
+  extra-dep: true
 resolver: lts-5.1
 nix:
   enable: false
