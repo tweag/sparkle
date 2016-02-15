@@ -1,10 +1,17 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Foreign.Java.Types where
 
-import Foreign.C
+import Data.Int
+import Data.Map (fromList)
+import Data.Word
+import Foreign.C (CChar)
 import Foreign.Ptr
 import Foreign.Storable (Storable(..))
+import Language.C.Types
+import Language.C.Inline.Context
 
 newtype JVM = JVM_ (Ptr JVM)
   deriving (Eq, Show, Storable)
@@ -48,3 +55,40 @@ instance Storable JValue where
   poke p (JLong l)    = poke (castPtr p) l
 
   peek _ = error "Storable JValue: undefined peek"
+
+jniCtx :: Context
+jniCtx = mempty { ctxTypesTable = fromList tytab }
+  where
+    tytab =
+      [ -- Primitive types
+        (TypeName "jboolean", [t| Word8 |])
+      , (TypeName "jbyte", [t| CChar |])
+      , (TypeName "jchar", [t| Word16 |])
+      , (TypeName "jshort", [t| Int16 |])
+      , (TypeName "jint", [t| Int32 |])
+      , (TypeName "jlong", [t| Int64 |])
+      , (TypeName "jfloat", [t| Float |])
+      , (TypeName "jdouble", [t| Double |])
+      -- Reference types
+      , (TypeName "jobject", [t| JObject |])
+      , (TypeName "jclass", [t| JObject |])
+      , (TypeName "jstring", [t| JObject |])
+      , (TypeName "jarray", [t| JObject |])
+      , (TypeName "jobjectArray", [t| JObject |])
+      , (TypeName "jbooleanArray", [t| JObject |])
+      , (TypeName "jbyteArray", [t| JObject |])
+      , (TypeName "jcharArray", [t| JObject |])
+      , (TypeName "jshortArray", [t| JObject |])
+      , (TypeName "jintArray", [t| JObject |])
+      , (TypeName "jlongArray", [t| JObject |])
+      , (TypeName "jfloatArray", [t| JObject |])
+      , (TypeName "jdoubleArray", [t| JObject |])
+      , (TypeName "jthrowable", [t| JObject |])
+      -- Internal types
+      , (TypeName "JVM", [t| JVM |])
+      , (TypeName "JNIEnv", [t| JNIEnv |])
+      , (TypeName "jfieldID", [t| JFieldID |])
+      , (TypeName "jmethodID", [t| JMethodID |])
+      , (TypeName "jsize", [t| Int32 |])
+      , (TypeName "jvalue", [t| JValue |])
+      ]
