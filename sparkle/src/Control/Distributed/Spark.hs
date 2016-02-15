@@ -22,7 +22,7 @@ newSparkConf env appname = do
   setAppName <- findMethod env cls "setAppName" "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;"
   cnf <- newObject env cls "()V" []
   jname <- newString env appname
-  _ <- callObjectMethod env cnf setAppName [JObj jname]
+  _ <- callObjectMethod env cnf setAppName [JObject jname]
   return cnf
 
 type SparkContext = JObject
@@ -30,7 +30,7 @@ type SparkContext = JObject
 newSparkContext :: JNIEnv -> SparkConf -> IO SparkContext
 newSparkContext env conf = do
   cls <- findClass env "org/apache/spark/api/java/JavaSparkContext"
-  newObject env cls "(Lorg/apache/spark/SparkConf;)V" [JObj conf]
+  newObject env cls "(Lorg/apache/spark/SparkConf;)V" [JObject conf]
 
 type RDD a = JObject
 
@@ -39,7 +39,7 @@ parallelize env sc xs = do
   cls <- findClass env "Helper"
   method <- findStaticMethod env cls "parallelize" "(Lorg/apache/spark/api/java/JavaSparkContext;[I)Lorg/apache/spark/api/java/JavaRDD;"
   jxs <- newIntArray env (fromIntegral $ length xs) xs
-  callStaticObjectMethod env cls method [JObj sc, JObj jxs]
+  callStaticObjectMethod env cls method [JObject sc, JObject jxs]
 
 {-
 rddmap :: (FromJObject a, ToJObject b)
@@ -52,7 +52,7 @@ rddmap env clos rdd =
     closArr <- newByteArray' env (fromIntegral closSize) closBuf
     cls <- findClass env "Helper"
     method <- findStaticMethod env cls "map" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
-    callStaticObjectMethod env cls method [JObj rdd, JObj closArr]
+    callStaticObjectMethod env cls method [JObject rdd, JObject closArr]
 
   where closBS = clos2bs clos'
         clos'  = closure (static wrap) `cap` clos
@@ -76,7 +76,7 @@ filter env clos rdd = do
     closArr <- newByteArray' env (fromIntegral closSize) closBuf
     cls <- findClass env "Helper"
     method <- findStaticMethod env cls "filter" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
-    callStaticObjectMethod env cls method [JObj rdd, JObj closArr]
+    callStaticObjectMethod env cls method [JObject rdd, JObject closArr]
 
   where closBS = clos2bs clos'
         clos'  = closure (static wrap) `cap` clos
@@ -88,7 +88,7 @@ filter env clos rdd = do
     closArr <- newByteArray' env (fromIntegral closSize) closBuf
     cls <- findClass env "Helper"
     method <- findStaticMethod env cls "filter" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
-    callStaticObjectMethod env cls method [JObj rdd, JObj closArr]
+    callStaticObjectMethod env cls method [JObject rdd, JObject closArr]
 
   where closBS = clos2bs clos
 
@@ -121,21 +121,21 @@ zipWithIndex env rdd = do
   prdd <- callObjectMethod env rdd method []
   helper <- findClass env "Helper"
   swap <- findStaticMethod env helper "swapPairs" "(Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
-  callStaticObjectMethod env helper swap [JObj prdd]
+  callStaticObjectMethod env helper swap [JObject prdd]
 
 textFile :: JNIEnv -> SparkContext -> String -> IO (RDD String)
 textFile env sc path = do
   jpath <- newString env path
   cls <- findClass env "org/apache/spark/api/java/JavaSparkContext"
   method <- findMethod env cls "textFile" "(Ljava/lang/String;)Lorg/apache/spark/api/java/JavaRDD;"
-  callObjectMethod env sc method [JObj jpath]
+  callObjectMethod env sc method [JObject jpath]
 
 wholeTextFiles :: JNIEnv -> SparkContext -> String -> IO (PairRDD String String)
 wholeTextFiles env sc uri = do
   juri <- newString env uri
   cls <- findClass env "org/apache/spark/api/java/JavaSparkContext"
   method <- findMethod env cls "wholeTextFiles" "(Ljava/lang/String;)Lorg/apache/spark/api/java/JavaPairRDD;"
-  callObjectMethod env sc method [JObj juri]
+  callObjectMethod env sc method [JObject juri]
 
 justValues :: JNIEnv -> PairRDD a b -> IO (RDD b)
 justValues env prdd = do
@@ -148,7 +148,7 @@ type SQLContext = JObject
 newSQLContext :: JNIEnv -> SparkContext -> IO SQLContext
 newSQLContext env sc = do
   cls <- findClass env "org/apache/spark/sql/SQLContext"
-  newObject env cls "(Lorg/apache/spark/api/java/JavaSparkContext;)V" [JObj sc]
+  newObject env cls "(Lorg/apache/spark/api/java/JavaSparkContext;)V" [JObject sc]
 
 type Row = JObject
 type DataFrame = JObject
@@ -157,7 +157,7 @@ toRows :: JNIEnv -> PairRDD a b -> IO (RDD Row)
 toRows env prdd = do
   cls <- findClass env "Helper"
   mth <- findStaticMethod env cls "toRows" "(Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/api/java/JavaRDD;"
-  callStaticObjectMethod env cls mth [JObj prdd]
+  callStaticObjectMethod env cls mth [JObject prdd]
 
 toDF :: JNIEnv -> SQLContext -> RDD Row -> String -> String -> IO DataFrame
 toDF env sqlc rdd s1 s2 = do
@@ -165,7 +165,7 @@ toDF env sqlc rdd s1 s2 = do
   mth <- findStaticMethod env cls "toDF" "(Lorg/apache/spark/sql/SQLContext;Lorg/apache/spark/api/java/JavaRDD;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/sql/DataFrame;"
   col1 <- newString env s1
   col2 <- newString env s2
-  callStaticObjectMethod env cls mth [JObj sqlc, JObj rdd, JObj col1, JObj col2]
+  callStaticObjectMethod env cls mth [JObject sqlc, JObject rdd, JObject col1, JObject col2]
 
 type RegexTokenizer = JObject
 
@@ -181,13 +181,13 @@ newTokenizer env icol ocol = do
   jocol <- newString env ocol
   helper <- findClass env "Helper"
   setuptok <- findStaticMethod env helper "setupTokenizer" "(Lorg/apache/spark/ml/feature/RegexTokenizer;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
-  callStaticObjectMethod env helper setuptok [JObj tok0, JObj jicol, JObj jocol, JBoolean jgaps, JObj jpatt]
+  callStaticObjectMethod env helper setuptok [JObject tok0, JObject jicol, JObject jocol, JBoolean jgaps, JObject jpatt]
 
 tokenize :: JNIEnv -> RegexTokenizer -> DataFrame -> IO DataFrame
 tokenize env tok df = do
   cls <- findClass env "org/apache/spark/ml/feature/RegexTokenizer"
   mth <- findMethod env cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
-  callObjectMethod env tok mth [JObj df]
+  callObjectMethod env tok mth [JObject df]
 
 type StopWordsRemover = JObject
 
@@ -199,21 +199,21 @@ newStopWordsRemover env stopwords icol ocol = do
   stringCls <- findClass env "java/lang/String"
   let len = fromIntegral (length stopwords)
   jstopwords <- newObjectArray env len stringCls =<< mapM (newString env) stopwords
-  swr1 <- callObjectMethod env swr0 setSw [JObj jstopwords]
+  swr1 <- callObjectMethod env swr0 setSw [JObject jstopwords]
   setCS <- findMethod env cls "setCaseSensitive" "(Z)Lorg/apache/spark/ml/feature/StopWordsRemover;"
   swr2 <- callObjectMethod env swr1 setCS [JBoolean 0]
   seticol <- findMethod env cls "setInputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/StopWordsRemover;"
   setocol <- findMethod env cls "setOutputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/StopWordsRemover;"
   jicol <- newString env icol
   jocol <- newString env ocol
-  swr3 <- callObjectMethod env swr2 seticol [JObj jicol]
-  callObjectMethod env swr3 setocol [JObj jocol]
+  swr3 <- callObjectMethod env swr2 seticol [JObject jicol]
+  callObjectMethod env swr3 setocol [JObject jocol]
 
 removeStopWords :: JNIEnv -> StopWordsRemover -> DataFrame -> IO DataFrame
 removeStopWords env sw df = do
   cls <- findClass env "org/apache/spark/ml/feature/StopWordsRemover"
   mth <- findMethod env cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
-  callObjectMethod env sw mth [JObj df]
+  callObjectMethod env sw mth [JObject df]
 
 type CountVectorizer = JObject
 
@@ -223,10 +223,10 @@ newCountVectorizer env vocSize icol ocol = do
   cv  <- newObject env cls "()V" []
   setInpc <- findMethod env cls "setInputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/CountVectorizer;"
   jfiltered <- newString env icol
-  cv' <- callObjectMethod env cv setInpc [JObj jfiltered]
+  cv' <- callObjectMethod env cv setInpc [JObject jfiltered]
   setOutc <- findMethod env cls "setOutputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/CountVectorizer;"
   jfeatures <- newString env ocol
-  cv'' <- callObjectMethod env cv' setOutc [JObj jfeatures]
+  cv'' <- callObjectMethod env cv' setOutc [JObject jfeatures]
   setVocSize <- findMethod env cls "setVocabSize" "(I)Lorg/apache/spark/ml/feature/CountVectorizer;"
   callObjectMethod env cv'' setVocSize [JInt vocSize]
 
@@ -236,7 +236,7 @@ fitCV :: JNIEnv -> CountVectorizer -> DataFrame -> IO CountVectorizerModel
 fitCV env cv df = do
   cls <- findClass env "org/apache/spark/ml/feature/CountVectorizer"
   mth <- findMethod env cls "fit" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/ml/feature/CountVectorizerModel;"
-  callObjectMethod env cv mth [JObj df]
+  callObjectMethod env cv mth [JObject df]
 
 type SparkVector = JObject
 
@@ -244,15 +244,15 @@ toTokenCounts :: JNIEnv -> CountVectorizerModel -> DataFrame -> String -> String
 toTokenCounts env cvModel df col1 col2 = do
   cls <- findClass env "org/apache/spark/ml/feature/CountVectorizerModel"
   mth <- findMethod env cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
-  df' <- callObjectMethod env cvModel mth [JObj df]
+  df' <- callObjectMethod env cvModel mth [JObject df]
 
   helper <- findClass env "Helper"
   fromDF <- findStaticMethod env helper "fromDF" "(Lorg/apache/spark/sql/DataFrame;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/api/java/JavaRDD;"
   fromRows <- findStaticMethod env helper "fromRows" "(Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
   jcol1 <- newString env col1
   jcol2 <- newString env col2
-  rdd <- callStaticObjectMethod env helper fromDF [JObj df', JObj jcol1, JObj jcol2]
-  callStaticObjectMethod env helper fromRows [JObj rdd]
+  rdd <- callStaticObjectMethod env helper fromDF [JObject df', JObject jcol1, JObject jcol2]
+  callStaticObjectMethod env helper fromRows [JObject rdd]
 
 type LDA = JObject
 
@@ -271,7 +271,7 @@ newLDA env frac numTopics maxIterations = do
   opti' <- callObjectMethod env opti setMiniBatch [JDouble frac]
 
   setOpti <- findMethod env cls "setOptimizer" "(Lorg/apache/spark/mllib/clustering/LDAOptimizer;)Lorg/apache/spark/mllib/clustering/LDA;"
-  lda' <- callObjectMethod env lda setOpti [JObj opti']
+  lda' <- callObjectMethod env lda setOpti [JObject opti']
 
   setK <- findMethod env cls "setK" "(I)Lorg/apache/spark/mllib/clustering/LDA;"
   lda'' <- callObjectMethod env lda' setK [JInt numTopics]
@@ -293,13 +293,13 @@ runLDA :: JNIEnv -> LDA -> PairRDD CLong SparkVector -> IO LDAModel
 runLDA env lda rdd = do
   cls <- findClass env "Helper"
   run <- findStaticMethod env cls "runLDA" "(Lorg/apache/spark/mllib/clustering/LDA;Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/mllib/clustering/LDAModel;"
-  callStaticObjectMethod env cls run [JObj lda, JObj rdd]
+  callStaticObjectMethod env cls run [JObject lda, JObject rdd]
 
 describeResults :: JNIEnv -> LDAModel -> CountVectorizerModel -> CInt -> IO ()
 describeResults env lm cvm maxTerms = do
   cls <- findClass env "Helper"
   mth <- findStaticMethod env cls "describeResults" "(Lorg/apache/spark/mllib/clustering/LDAModel;Lorg/apache/spark/ml/feature/CountVectorizerModel;I)V"
-  callStaticVoidMethod env cls mth [JObj lm, JObj cvm, JInt maxTerms]
+  callStaticVoidMethod env cls mth [JObject lm, JObject cvm, JInt maxTerms]
 
 selectDF :: JNIEnv -> DataFrame -> [String] -> IO DataFrame
 selectDF _ _ [] = error "selectDF: not enough arguments."
@@ -310,7 +310,7 @@ selectDF env df (col:cols) = do
   jcols <- mapM (newString env) cols
   strCls <- findClass env "java/lang/String"
   jcolA <- newObjectArray env (fromIntegral $ length jcols) strCls jcols
-  callObjectMethod env df mth [JObj jcol, JObj jcolA]
+  callObjectMethod env df mth [JObject jcol, JObject jcolA]
 
 debugDF :: JNIEnv -> DataFrame -> IO ()
 debugDF env df = do
