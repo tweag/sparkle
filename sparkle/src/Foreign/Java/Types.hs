@@ -6,16 +6,19 @@ import Foreign.C
 import Foreign.Ptr
 import Foreign.Storable (Storable(..))
 
-newtype JVM = JVM (Ptr JVM)
+newtype JVM = JVM_ (Ptr JVM)
   deriving (Eq, Show, Storable)
 
-newtype JNIEnv = JNIEnv (Ptr JNIEnv)
+newtype JNIEnv = JNIEnv_ (Ptr JNIEnv)
   deriving (Eq, Show, Storable)
 
-newtype JObject = JObject (Ptr JObject)
+newtype JFieldID = JFieldID_ (Ptr JFieldID)
   deriving (Eq, Show, Storable)
 
-newtype JMethodID = JMethodID (Ptr JMethodID)
+newtype JMethodID = JMethodID_ (Ptr JMethodID)
+  deriving (Eq, Show, Storable)
+
+newtype JObject = JObject_ (Ptr JObject)
   deriving (Eq, Show, Storable)
 
 type JClass = JObject
@@ -26,7 +29,7 @@ type JDoubleArray = JObject
 type JObjectArray = JObject
 
 data JValue
-  = JObj JObject
+  = JObject JObject
   | JInt CInt
   | JByte CChar
   | JDouble CDouble
@@ -37,7 +40,7 @@ instance Storable JValue where
   sizeOf _ = 8
   alignment _ = 8
 
-  poke p (JObj o)     = poke (castPtr p) o
+  poke p (JObject x)  = poke (castPtr p) x
   poke p (JInt i)     = poke (castPtr p) i
   poke p (JByte b)    = poke (castPtr p) b
   poke p (JDouble d)  = poke (castPtr p) d
