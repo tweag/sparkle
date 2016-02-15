@@ -15,12 +15,10 @@ newtype JNIEnv = JNIEnv (Ptr JNIEnv)
 newtype JObject = JObject (Ptr JObject)
   deriving (Eq, Show, Storable)
 
-newtype JClass = JClass (Ptr JClass)
-  deriving (Eq, Show, Storable)
-
 newtype JMethodID = JMethodID (Ptr JMethodID)
   deriving (Eq, Show, Storable)
 
+type JClass = JObject
 type JString = JObject
 type JIntArray = JObject
 type JByteArray = JObject
