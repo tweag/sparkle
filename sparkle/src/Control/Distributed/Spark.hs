@@ -26,7 +26,7 @@ newSparkConf env appname = do
   cls <- findClass env "org/apache/spark/SparkConf"
   setAppName <- findMethod env cls "setAppName" "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;"
   cnf <- newObject env cls "()V" []
-  jname <- newString env appname
+  jname <- reflect env appname
   _ <- callObjectMethod env cnf setAppName [JObject jname]
   return cnf
 
