@@ -1,6 +1,8 @@
+package io.tweag.sparkle;
+
 public class SparkMain {
 
   public static void main(String[] args) {
-    HaskellRTS.sparkMain();
+    io.tweag.sparkle.Sparkle.sparkMain();
   }
 }
