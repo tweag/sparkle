@@ -44,7 +44,7 @@ module Foreign.Java
   , newDoubleArray
   , newByteArray
   , newObjectArray
-  , newStringUTF
+  , newString
   , getArrayLength
   , getStringUTFLength
   , getIntArrayElements
@@ -67,7 +67,7 @@ import Data.Word
 import Data.ByteString (ByteString)
 import Data.Monoid ((<>))
 import Data.Typeable (Typeable)
-import Foreign.C (CChar, withCString)
+import Foreign.C (CChar)
 import Foreign.Java.Types
 import Foreign.Marshal.Array
 import Foreign.Ptr (Ptr, nullPtr)
@@ -289,13 +289,13 @@ newObjectArray (JNIEnv_ env) sz cls =
                                         $(jclass cls),
                                         NULL) } |]
 
-newStringUTF :: JNIEnv -> String -> IO JString
-newStringUTF (JNIEnv_ env) str =
+newString :: JNIEnv -> Ptr Word16 -> Int32 -> IO JString
+newString (JNIEnv_ env) ptr len =
     throwIfException env $
-    withCString str $ \cstr ->
     [CU.exp| jstring {
-      (*$(JNIEnv *env))->NewStringUTF($(JNIEnv *env),
-                                      $(char *cstr)) } |]
+      (*$(JNIEnv *env))->NewString($(JNIEnv *env),
+                                   $(jchar *ptr),
+                                   $(jsize len)) } |]
 
 getArrayLength :: JNIEnv -> JArray -> IO Int32
 getArrayLength (JNIEnv_ env) array =
