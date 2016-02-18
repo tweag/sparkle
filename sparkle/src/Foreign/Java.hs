@@ -61,7 +61,8 @@ module Foreign.Java
   , setObjectArrayElement
   ) where
 
-import Control.Exception (Exception, throwIO)
+import Control.Exception (Exception, finally, throwIO)
+import Control.Monad (unless)
 import Data.Int
 import Data.Word
 import Data.ByteString (ByteString)
@@ -93,13 +94,11 @@ instance Exception ArrayCopyFailed
 
 -- | Map Java exceptions to Haskell exceptions.
 throwIfException :: Ptr JNIEnv -> IO a -> IO a
-throwIfException env m = do
-    x <- m
+throwIfException env m = m `finally` do
     JObject_ excptr <- [CU.exp| jthrowable { (*$(JNIEnv *env))->ExceptionOccurred($(JNIEnv *env)) } |]
-    if excptr == nullPtr
-    then return x
-    else do
+    unless (excptr == nullPtr) $ do
       [CU.exp| void { (*$(JNIEnv *env))->ExceptionDescribe($(JNIEnv *env)) } |]
+      [CU.exp| void { (*$(JNIEnv *env))->ExceptionClear($(JNIEnv *env)) } |]
       throwIO $ JavaException (JObject_ excptr)
 
 -- | Check whether a pointer is null.
