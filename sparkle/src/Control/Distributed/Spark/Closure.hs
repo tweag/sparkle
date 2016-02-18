@@ -22,6 +22,11 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 import Data.Typeable (Typeable, (:~:)(..), eqT, typeOf)
 import Foreign.C.String
+import qualified Data.Vector.Storable as Vector
+import Data.Vector.Storable (Vector)
+import qualified Data.Vector.Storable.Mutable as MVector
+import Data.Vector.Storable.Mutable (IOVector)
+import Foreign (FunPtr, Ptr, Storable, newForeignPtr, withForeignPtr)
 import Foreign.Java
 
 data Type a
@@ -185,6 +190,18 @@ instance Reflect Text ('Base Text) where
       Text.useAsPtr x $ \ptr len ->
         newString env ptr (fromIntegral len)
 
+instance Reify (IOVector Int32) ('Base (IOVector Int32)) where
+  reify env = reifyMVector env (getIntArrayElements env) (releaseIntArrayElements env)
+
+instance Reflect (IOVector Int32) ('Base (IOVector Int32)) where
+  reflect env = reflectMVector (newIntArray env) (setIntArrayRegion env)
+
+instance Reify (Vector Int32) ('Base (Vector Int32)) where
+  reify env = Vector.freeze <=< reify env
+
+instance Reflect (Vector Int32) ('Base (Vector Int32)) where
+  reflect env = reflect env <=< Vector.thaw
+
 instance Reify a (Uncurry a) => Reify [a] ('Base [a]) where
   reify env jobj = do
       n <- getArrayLength env jobj
@@ -202,9 +219,34 @@ instance Reflect a (Uncurry a) => Reflect [a] ('Base [a]) where
     return array
 
 foreign import ccall "wrapper" wrapFinalizer
+  :: (Ptr a -> IO ())
+  -> IO (FunPtr (Ptr a -> IO ()))
 
-instance Reflect String ('Base String) where
-  reflect env x = newStringUTF env x
+reifyMVector
+  :: Storable a
+  => JNIEnv
+  -> (JArray -> IO (Ptr a))
+  -> (JArray -> Ptr a -> IO ())
+  -> JArray
+  -> IO (IOVector a)
+reifyMVector env mk finalize jobj = do
+    n <- getArrayLength env jobj
+    ptr <- mk jobj
+    ffinalize <- wrapFinalizer (finalize jobj)
+    fptr <- newForeignPtr ffinalize ptr
+    return (MVector.unsafeFromForeignPtr0 fptr (fromIntegral n))
+
+reflectMVector
+  :: Storable a
+  => (Int32 -> IO JArray)
+  -> (JArray -> Int32 -> Int32 -> Ptr a -> IO ())
+  -> IOVector a
+  -> IO JArray
+reflectMVector new fill mv = do
+    let (fptr, n) = MVector.unsafeToForeignPtr0 mv
+    jobj <- new (fromIntegral n)
+    withForeignPtr fptr $ fill jobj 0 (fromIntegral n)
+    return jobj
 
 clos2bs :: Typeable a => Closure a -> ByteString
 clos2bs = LBS.toStrict . encode
