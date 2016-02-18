@@ -22,6 +22,7 @@ module Foreign.Java
   , JDoubleArray
   , JThrowable
   , JValue(..)
+  , attach
   , findClass
   , newObject
   , getFieldID
@@ -86,6 +87,14 @@ throwIfException env m = do
     else do
       [CU.exp| void { (*$(JNIEnv *env))->ExceptionDescribe($(JNIEnv *env)) } |]
       throwIO $ JavaException (JObject_ excptr)
+
+attach :: JNIEnv -> IO ()
+attach (JNIEnv_ env) =
+    [C.block| void {
+       JavaVM *jvm;
+       JNIEnv *env = $(JNIEnv *env);
+       (*env)->GetJavaVM(env, &jvm);
+       (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL); } |]
 
 findClass :: JNIEnv -> ByteString -> IO JObject
 findClass (JNIEnv_ env) name =
