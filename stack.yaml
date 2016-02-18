@@ -1,14 +1,7 @@
-flags:
-  binary-serialise-cbor:
-    newtime15: true
 packages:
 - sparkle
 - examples/hello
 - examples/lda
-- location:
-    git: git@github.com:well-typed/binary-serialise-cbor
-    commit: 992e2c758f9b5795390208ecea162a6ad0166ce6
-  extra-dep: true
 - location:
     git: git@github.com:tweag/distributed-closure
     commit: a0055dc39fe6d9cf2829786808b7ef6ecf3ed107
