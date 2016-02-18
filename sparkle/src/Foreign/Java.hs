@@ -55,6 +55,8 @@ module Foreign.Java
   , releaseIntArrayElements
   , releaseByteArrayElements
   , releaseStringUTFChars
+  , getObjectArrayElement
+  , setObjectArrayElement
   ) where
 
 import Control.Exception (Exception, throwIO)
@@ -370,3 +372,18 @@ releaseStringUTFChars (JNIEnv_ env) jstr chars =
       (*$(JNIEnv *env))->ReleaseStringUTFChars($(JNIEnv *env),
                                                $(jstring jstr),
                                                $(char *chars)) } |]
+
+getObjectArrayElement :: JNIEnv -> JObjectArray -> Int32 -> IO JObject
+getObjectArrayElement (JNIEnv_ env) array i =
+    [C.exp| jobject {
+      (*$(JNIEnv *env))->GetObjectArrayElement($(JNIEnv *env),
+                                               $(jobjectArray array),
+                                               $(jsize i)) } |]
+
+setObjectArrayElement :: JNIEnv -> JObjectArray -> Int32 -> JObject -> IO ()
+setObjectArrayElement (JNIEnv_ env) array i x =
+    [C.exp| void {
+      (*$(JNIEnv *env))->SetObjectArrayElement($(JNIEnv *env),
+                                               $(jobjectArray array),
+                                               $(jsize i),
+                                               $(jobject x)); } |]
