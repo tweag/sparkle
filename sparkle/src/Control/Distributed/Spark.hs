@@ -39,83 +39,35 @@ newSparkContext env conf = do
 
 type RDD a = JObject
 
-parallelize :: JNIEnv -> SparkContext -> [CInt] -> IO (RDD CInt)
+parallelize
+  :: Reflect [a] a'
+  => JNIEnv
+  -> SparkContext
+  -> [a]
+  -> IO (RDD CInt)
 parallelize env sc xs = do
-  cls <- findClass env "Helper"
-  method <- findStaticMethod env cls "parallelize" "(Lorg/apache/spark/api/java/JavaSparkContext;[I)Lorg/apache/spark/api/java/JavaRDD;"
-  jxs <- newIntArray env (fromIntegral $ length xs) xs
-  callStaticObjectMethod env cls method [JObject sc, JObject jxs]
+    klass <- findClass env "org/apache/spark/api/java/JavaSparkContext"
+    method <- getMethodID env klass "parallelize" "(Ljava/util/List;)Lorg/apache/spark/api/java/JavaRDD;"
+    jxs <- arrayToList =<< reflect env xs
+    callObjectMethod env sc method [JObject jxs]
+  where
+    arrayToList jxs = do
+      klass <- findClass env "java/util/Arrays"
+      method <- getStaticMethodID env klass "asList" "([Ljava/lang/Object;)Ljava/util/List;"
+      callStaticObjectMethod env klass method [JObject jxs]
 
-{-
-rddmap :: (FromJObject a, ToJObject b)
-       => JNIEnv
-       -> Closure (a -> b)
-       -> RDD a
-       -> IO (RDD b)
-rddmap env clos rdd =
-  unsafeUseAsCStringLen closBS $ \(closBuf, closSize) -> do
-    closArr <- newByteArray' env (fromIntegral closSize) closBuf
-    cls <- findClass env "Helper"
-    method <- findStaticMethod env cls "map" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
-    callStaticObjectMethod env cls method [JObject rdd, JObject closArr]
-
-  where closBS = clos2bs clos'
-        clos'  = closure (static wrap) `cap` clos
--}
-
-{-
-map :: Closure (Dict (FromObject a, ToObject b)) -> Closure (a -> b) -> Rdd a -> IO (Rdd b)
-map cdict cf rdd =
-    let Dict = unclosure cdict
-    in closure (static wrap) `cap` cf `cap` cpure rdd
--}
-
-{-
-filter :: FromJObject a
-       => JNIEnv
-       -> Closure (a -> Bool)
-       -> RDD a
-       -> IO (RDD a)
+filter :: (Reify a a', Typeable a) => JNIEnv -> Closure (a -> Bool) -> RDD a -> IO (RDD a)
 filter env clos rdd = do
-  unsafeUseAsCStringLen closBS $ \(closBuf, closSize) -> do
-    closArr <- newByteArray' env (fromIntegral closSize) closBuf
-    cls <- findClass env "Helper"
-    method <- findStaticMethod env cls "filter" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
-    callStaticObjectMethod env cls method [JObject rdd, JObject closArr]
+    f <- reflect env clos
+    klass <- findClass env "org/apache/spark/api/java/JavaRDD"
+    method <- getMethodID env klass "filter" "(Lorg/apache/spark/api/java/function/Function;)Lorg/apache/spark/api/java/JavaRDD;"
+    callObjectMethod env rdd method [JObject f]
 
-  where closBS = clos2bs clos'
-        clos'  = closure (static wrap) `cap` clos
--}
-
-filter :: JNIEnv -> Closure (String -> Bool) -> RDD String -> IO (RDD String)
-filter env clos rdd = do
-  unsafeUseAsCStringLen closBS $ \(closBuf, closSize) -> do
-    closArr <- newByteArray' env (fromIntegral closSize) closBuf
-    cls <- findClass env "Helper"
-    method <- findStaticMethod env cls "filter" "(Lorg/apache/spark/api/java/JavaRDD;[B)Lorg/apache/spark/api/java/JavaRDD;"
-    callStaticObjectMethod env cls method [JObject rdd, JObject closArr]
-
-  where closBS = clos2bs clos
-
-count :: JNIEnv -> RDD a -> IO CLong
+count :: JNIEnv -> RDD a -> IO Int64
 count env rdd = do
   cls <- findClass env "org/apache/spark/api/java/JavaRDD"
-  mth <- findMethod env cls "count" "()J"
+  mth <- getMethodID env cls "count" "()J"
   callLongMethod env rdd mth []
-
-{-
--- TODO: rewrite this without using inline-c
-collect :: JNIEnv -> RDD CInt -> IO [CInt]
-collect env rdd = fmap (map fromIntegral) $
-  alloca $ \buf ->
-  alloca $ \size -> do
-    [C.block| void {
-      collect($(JNIEnv* env), $(jobject rdd), $(int** buf), $(size_t* size));
-    } |]
-    sz <- peek size
-    b  <- peek buf
-    peekArray (fromIntegral sz) b
--}
 
 type PairRDD a b = JObject
 
