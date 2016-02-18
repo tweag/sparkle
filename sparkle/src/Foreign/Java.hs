@@ -10,10 +10,17 @@ module Foreign.Java
   , JMethodID
   , JFieldID
   , JString
-  , JIntArray
-  , JByteArray
-  , JDoubleArray
+  , JArray
   , JObjectArray
+  , JBooleanArray
+  , JByteArray
+  , JCharArray
+  , JShortArray
+  , JIntArray
+  , JLongArray
+  , JFloatArray
+  , JDoubleArray
+  , JThrowable
   , JValue(..)
   , findClass
   , newObject
