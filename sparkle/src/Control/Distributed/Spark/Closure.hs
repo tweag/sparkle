@@ -127,7 +127,9 @@ instance Reify ByteString ('Base ByteString) where
       bytes <- getByteArrayElements env jobj
       -- TODO could use unsafePackCStringLen instead and avoid a copy if we knew
       -- that been handed an (immutable) copy via JNI isCopy ref.
-      BS.packCStringLen (bytes, fromIntegral n)
+      bs <- BS.packCStringLen (bytes, fromIntegral n)
+      releaseByteArrayElements env jobj bytes
+      return bs
 
 instance Reflect ByteString ('Base ByteString) where
   reflect env bs = BS.unsafeUseAsCStringLen bs $ \(content, n) -> do
