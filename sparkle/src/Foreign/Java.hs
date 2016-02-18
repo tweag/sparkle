@@ -52,6 +52,8 @@ module Foreign.Java
   , setIntArrayRegion
   , setByteArrayRegion
   , setDoubleArrayRegion
+  , releaseIntArrayElements
+  , releaseByteArrayElements
   , releaseStringUTFChars
   ) where
 
@@ -345,6 +347,22 @@ setDoubleArrayRegion (JNIEnv_ env) array start len buf =
                                             $(jsize start),
                                             $(jsize len),
                                             $(jdouble *buf)) } |]
+
+releaseIntArrayElements :: JNIEnv -> JIntArray -> Ptr Int32 -> IO ()
+releaseIntArrayElements (JNIEnv_ env) array xs =
+    [CU.exp| void {
+      (*$(JNIEnv *env))->ReleaseIntArrayElements($(JNIEnv *env),
+                                                 $(jintArray array),
+                                                 $(jint *xs),
+                                                 JNI_ABORT) } |]
+
+releaseByteArrayElements :: JNIEnv -> JIntArray -> Ptr CChar -> IO ()
+releaseByteArrayElements (JNIEnv_ env) array xs =
+    [CU.exp| void {
+      (*$(JNIEnv *env))->ReleaseByteArrayElements($(JNIEnv *env),
+                                                  $(jbyteArray array),
+                                                  $(jbyte *xs),
+                                                  JNI_ABORT) } |]
 
 releaseStringUTFChars :: JNIEnv -> JString -> Ptr CChar -> IO ()
 releaseStringUTFChars (JNIEnv_ env) jstr chars =
