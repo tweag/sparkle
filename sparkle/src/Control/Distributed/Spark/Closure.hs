@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -13,15 +14,18 @@ module Control.Distributed.Spark.Closure where
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
 import Control.Applicative ((<|>))
-import Control.Monad ((<=<))
+import Control.Monad ((<=<), forM, forM_)
 import Data.Binary (encode, decode)
+import Data.Int
 import Data.Maybe (fromJust)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
+import qualified Data.Text.Encoding as Text
+import qualified Data.Text.Foreign as Text
+import Data.Text (Text)
 import Data.Typeable (Typeable, (:~:)(..), eqT, typeOf)
-import Foreign.C.String
 import qualified Data.Vector.Storable as Vector
 import Data.Vector.Storable (Vector)
 import qualified Data.Vector.Storable.Mutable as MVector
@@ -58,6 +62,24 @@ class (Uncurry a ~ b, Typeable a, Typeable b) => Reify a b where
 class (Uncurry a ~ b, Typeable a, Typeable b) => Reflect a b where
   reflect :: JNIEnv -> a -> IO JObject
 
+apply
+  :: JNIEnv
+  -> JClass
+  -> JByteArray
+  -> JObjectArray
+  -> IO JObject
+apply env _ bytes args = do
+    bs <- reify env bytes
+    let f = unclosure (bs2clos bs) :: JNIEnv -> JObjectArray -> IO JObject
+    f env args
+
+foreign export ccall "Java_io_tweag_sparkle_Sparkle_apply" apply
+  :: JNIEnv
+  -> JClass
+  -> JByteArray
+  -> JObjectArray
+  -> IO JObject
+
 -- XXX GHC wouldn't be able to use the more natural
 --
 -- (Uncurry a ~ a', Uncurry b ~ b')
@@ -66,7 +88,7 @@ class (Uncurry a ~ b, Typeable a, Typeable b) => Reflect a b where
 instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reflect a a', Reify b b') =>
          Reify (Closure (a -> b)) ('Fun '[a'] b') where
   reify env jobj = do
-      klass <- findClass env "sparkle/function/Function"
+      klass <- findClass env "io/tweag/sparkle/function/HaskellFunction"
       field <- getFieldID env klass "clos" "[B"
       jpayload <- getObjectField env jobj field
       payload <- reify env jpayload
@@ -75,19 +97,19 @@ instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reflect a a', Reify b b') 
 instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reify a a', Reflect b b') =>
          Reflect (Closure (a -> b)) ('Fun '[a'] b') where
   reflect env f = do
-      klass <- findClass env "sparkle/function/Function"
+      klass <- findClass env "io/tweag/sparkle/function/HaskellFunction"
       jpayload <- reflect env (clos2bs (fromJust wrap))
       newObject env klass "([B)V" [JObject jpayload]
     where
       -- TODO this type dispatch is a gross temporary hack! For until we get the
       -- instance commented out below to work.
-      wrap :: Maybe (Closure (JNIEnv -> JObject -> IO JObject))
+      wrap :: Maybe (Closure (JNIEnv -> JObjectArray -> IO JObject))
       wrap =
         fmap (\Refl -> $(cstatic 'closFun1) `cap` $(cstatic 'dict1) `cap` f) (eqT :: Maybe ((a, b) :~: (Int, Int))) <|>
         fmap (\Refl -> $(cstatic 'closFun1) `cap` $(cstatic 'dict2) `cap` f) (eqT :: Maybe ((a, b) :~: (Bool, Bool))) <|>
         fmap (\Refl -> $(cstatic 'closFun1) `cap` $(cstatic 'dict3) `cap` f) (eqT :: Maybe ((a, b) :~: (ByteString, ByteString))) <|>
-        fmap (\Refl -> $(cstatic 'closFun1) `cap` $(cstatic 'dict4) `cap` f) (eqT :: Maybe ((a, b) :~: (String, String))) <|>
-        fmap (\Refl -> $(cstatic 'closFun1) `cap` $(cstatic 'dict5) `cap` f) (eqT :: Maybe ((a, b) :~: (String, Bool))) <|>
+        fmap (\Refl -> $(cstatic 'closFun1) `cap` $(cstatic 'dict4) `cap` f) (eqT :: Maybe ((a, b) :~: (Text, Text))) <|>
+        fmap (\Refl -> $(cstatic 'closFun1) `cap` $(cstatic 'dict5) `cap` f) (eqT :: Maybe ((a, b) :~: (Text, Bool))) <|>
         error ("No static function from " ++
                show (typeOf (undefined :: a)) ++
                " to " ++
@@ -100,22 +122,22 @@ instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reify a a', Reflect b b') 
 dict1 :: Dict (Reify Int ('Base Int), Reflect Int ('Base Int))
 dict2 :: Dict (Reify Bool ('Base Bool), Reflect Bool ('Base Bool))
 dict3 :: Dict (Reify ByteString ('Base ByteString), Reflect ByteString ('Base ByteString))
-dict4 :: Dict (Reify String ('Base String), Reflect String ('Base String))
-dict5 :: Dict (Reify String ('Base String), Reflect Bool ('Base Bool))
+dict4 :: Dict (Reify Text ('Base Text), Reflect Text ('Base Text))
+dict5 :: Dict (Reify Text ('Base Text), Reflect Bool ('Base Bool))
 dict1 = Dict
 dict2 = Dict
 dict3 = Dict
 dict4 = Dict
 dict5 = Dict
 
-closFun1 :: Dict (Reify a a', Reflect b b') -> (a -> b) -> JNIEnv -> JObject -> IO JObject
-closFun1 Dict f env =
-    reflect env <=< return . f <=< reify env
+closFun1 :: Dict (Reify a a', Reflect b b') -> (a -> b) -> JNIEnv -> JObjectArray -> IO JObject
+closFun1 Dict f env args =
+    reflect env =<< return . f =<< reify env =<< getObjectArrayElement env args 0
 
 -- instance (Uncurry (Closure (a -> b)) ~ Fun '[a'] b', Reflect a a', Reify b b') =>
 --          Reify (Closure (a -> b)) (Fun '[a'] b') where
 --   reify env jobj = do
---       klass <- findClass env "sparkle/function/Function"
+--       klass <- findClass env "io/tweag/sparkle/function/Function"
 --       field <- getFieldID env klass "clos" "[B"
 --       jpayload <- getObjectField env jobj field
 --       payload <- reify env jpayload
