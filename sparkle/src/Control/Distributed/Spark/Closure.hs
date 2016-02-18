@@ -170,11 +170,21 @@ instance Reflect Double ('Base Double) where
       klass <- findClass env "java/lang/Double"
       newObject env klass "(D)V" [JDouble x]
 
-instance Reify String ('Base String) where
+instance Reify Text ('Base Text) where
   reify env jobj = do
+      -- TODO go via getString instead of getStringUTF, since text also uses
+      -- UTF-16 internally.
       sz <- getStringUTFLength env jobj
       cs <- getStringUTFChars env jobj
-      peekCStringLen (cs, fromIntegral sz)
+      txt <- Text.decodeUtf8 <$> BS.unsafePackCStringLen (cs, fromIntegral sz)
+      releaseStringUTFChars env jobj cs
+      return txt
+
+instance Reflect Text ('Base Text) where
+  reflect env x =
+      Text.useAsPtr x $ \ptr len ->
+        newString env ptr (fromIntegral len)
+
 
 instance Reflect String ('Base String) where
   reflect env x = newStringUTF env x
