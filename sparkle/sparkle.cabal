@@ -22,7 +22,6 @@ library
   build-depends:
     base >=4.8 && <4.9,
     binary >=0.7,
-    binary-serialise-cbor,
     bytestring >=0.10,
     containers >=0.5,
     distributed-closure,
