@@ -3,12 +3,14 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Foreign.Java
-  ( JVM
-  , JNIEnv
-  , JObject
-  , JClass
+  ( -- TODO don't export constructors. Only necessary for foreign export, which
+    -- ideally we won't need.
+    JVM(..)
+  , JNIEnv(..)
+  , JObject(..)
   , JMethodID
   , JFieldID
+  , JClass
   , JString
   , JArray
   , JObjectArray
