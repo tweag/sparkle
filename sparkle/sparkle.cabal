@@ -8,10 +8,8 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  c-sources: src/Foreign/Java.c
+  c-sources: src/Foreign/Java.c cbits/rts.c
   cc-options: -Wall
-  include-dirs: cbits
-  install-includes: Java.h Closure_stub.h
   ghc-options: -fPIC -shared -dynamic -threaded -Wall
   exposed-modules:
     Control.Distributed.Spark
