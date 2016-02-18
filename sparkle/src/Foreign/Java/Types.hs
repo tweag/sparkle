@@ -98,7 +98,7 @@ jniCtx = mempty { ctxTypesTable = fromList tytab }
       , (TypeName "jdoubleArray", [t| JObject |])
       , (TypeName "jthrowable", [t| JObject |])
       -- Internal types
-      , (TypeName "JVM", [t| JVM |])
+      , (TypeName "JavaVM", [t| JVM |])
       , (TypeName "JNIEnv", [t| JNIEnv |])
       , (TypeName "jfieldID", [t| JFieldID |])
       , (TypeName "jmethodID", [t| JMethodID |])
