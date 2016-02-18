@@ -185,6 +185,23 @@ instance Reflect Text ('Base Text) where
       Text.useAsPtr x $ \ptr len ->
         newString env ptr (fromIntegral len)
 
+instance Reify a (Uncurry a) => Reify [a] ('Base [a]) where
+  reify env jobj = do
+      n <- getArrayLength env jobj
+      forM [0..n-1] $ \i -> do
+        x <- getObjectArrayElement env jobj i
+        reify env x
+
+instance Reflect a (Uncurry a) => Reflect [a] ('Base [a]) where
+  reflect env xs = do
+    let n = fromIntegral (length xs)
+    klass <- findClass env "java/lang/Object"
+    array <- newObjectArray env n klass
+    forM_ (zip [0..n-1] xs) $ \(i, x) -> do
+      setObjectArrayElement env array i =<< reflect env x
+    return array
+
+foreign import ccall "wrapper" wrapFinalizer
 
 instance Reflect String ('Base String) where
   reflect env x = newStringUTF env x
