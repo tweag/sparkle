@@ -81,6 +81,14 @@ data JavaException = JavaException JThrowable
 
 instance Exception JavaException
 
+-- | Thrown when @Get<PrimitiveType>ArrayElements@ returns a null pointer,
+-- because it wanted to copy the array contents but couldn't. In this case the
+-- JVM doesn't throw OutOfMemory according to the JNI spec.
+data ArrayCopyFailed = ArrayCopyFailed
+  deriving (Show, Typeable)
+
+instance Exception ArrayCopyFailed
+
 -- | Map Java exceptions to Haskell exceptions.
 throwIfException :: Ptr JNIEnv -> IO a -> IO a
 throwIfException env m = do
@@ -91,6 +99,14 @@ throwIfException env m = do
     else do
       [CU.exp| void { (*$(JNIEnv *env))->ExceptionDescribe($(JNIEnv *env)) } |]
       throwIO $ JavaException (JObject_ excptr)
+
+-- | Check whether a pointer is null.
+throwIfNull :: IO (Ptr a) -> IO (Ptr a)
+throwIfNull m = do
+    ptr <- m
+    if ptr == nullPtr
+    then throwIO ArrayCopyFailed
+    else return ptr
 
 attach :: JNIEnv -> IO ()
 attach (JNIEnv_ env) =
@@ -286,13 +302,13 @@ getArrayLength (JNIEnv_ env) array =
                                         $(jarray array)) } |]
 getStringUTFLength :: JNIEnv -> JString -> IO Int32
 getStringUTFLength (JNIEnv_ env) jstr =
-    throwIfException env $
     [CU.exp| jsize {
       (*$(JNIEnv *env))->GetStringUTFLength($(JNIEnv *env),
                                             $(jstring jstr)) } |]
 
 getIntArrayElements :: JNIEnv -> JIntArray -> IO (Ptr Int32)
 getIntArrayElements (JNIEnv_ env) array =
+    throwIfNull $
     [CU.exp| jint* {
       (*$(JNIEnv *env))->GetIntArrayElements($(JNIEnv *env),
                                              $(jintArray array),
@@ -300,6 +316,7 @@ getIntArrayElements (JNIEnv_ env) array =
 
 getByteArrayElements :: JNIEnv -> JByteArray -> IO (Ptr CChar)
 getByteArrayElements (JNIEnv_ env) array =
+    throwIfNull $
     [CU.exp| jbyte* {
       (*$(JNIEnv *env))->GetByteArrayElements($(JNIEnv *env),
                                               $(jbyteArray array),
@@ -307,6 +324,7 @@ getByteArrayElements (JNIEnv_ env) array =
 
 getDoubleArrayElements :: JNIEnv -> JDoubleArray -> IO (Ptr Double)
 getDoubleArrayElements (JNIEnv_ env) array =
+    throwIfNull $
     [CU.exp| jdouble* {
       (*$(JNIEnv *env))->GetDoubleArrayElements($(JNIEnv *env),
                                                 $(jdoubleArray array),
@@ -314,7 +332,7 @@ getDoubleArrayElements (JNIEnv_ env) array =
 
 getStringUTFChars :: JNIEnv -> JString -> IO (Ptr CChar)
 getStringUTFChars (JNIEnv_ env) jstr =
-    throwIfException env $
+    throwIfNull $
     [CU.exp| const char* {
       (*$(JNIEnv *env))->GetStringUTFChars($(JNIEnv *env),
                                            $(jstring jstr),
