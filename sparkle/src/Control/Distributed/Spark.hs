@@ -71,14 +71,11 @@ count env rdd = do
 
 type PairRDD a b = JObject
 
-zipWithIndex :: JNIEnv -> RDD a -> IO (PairRDD CLong a)
+zipWithIndex :: JNIEnv -> RDD a -> IO (PairRDD Int64 a)
 zipWithIndex env rdd = do
   cls <- findClass env "org/apache/spark/api/java/JavaRDD"
-  method <- findMethod env cls "zipWithIndex" "()Lorg/apache/spark/api/java/JavaPairRDD;"
-  prdd <- callObjectMethod env rdd method []
-  helper <- findClass env "Helper"
-  swap <- findStaticMethod env helper "swapPairs" "(Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
-  callStaticObjectMethod env helper swap [JObject prdd]
+  method <- getMethodID env cls "zipWithIndex" "()Lorg/apache/spark/api/java/JavaPairRDD;"
+  callObjectMethod env rdd method []
 
 textFile :: JNIEnv -> SparkContext -> FilePath -> IO (RDD Text)
 textFile env sc path = do
