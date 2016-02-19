@@ -111,11 +111,13 @@ throwIfNull m = do
 
 attach :: JNIEnv -> IO JNIEnv
 attach (JNIEnv_ env) = JNIEnv_ <$>
+    -- Attach as daemon to match GHC's usual semantics for threads, which are
+    -- daemonic.
     [C.block| JNIEnv* {
        JavaVM *jvm;
        JNIEnv *env = $(JNIEnv *env);
        (*env)->GetJavaVM(env, &jvm);
-       (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
+       (*jvm)->AttachCurrentThreadAsDaemon(jvm, (void**)&env, NULL);
        return env; } |]
 
 findClass :: JNIEnv -> ByteString -> IO JObject
