@@ -57,10 +57,10 @@ type family Uncurry a where
   Uncurry a = 'Base a
 
 class (Uncurry a ~ b, Typeable a, Typeable b) => Reify a b where
-  reify :: JNIEnv -> JObject -> IO a
+  reify :: JObject -> IO a
 
 class (Uncurry a ~ b, Typeable a, Typeable b) => Reflect a b where
-  reflect :: JNIEnv -> a -> IO JObject
+  reflect :: a -> IO JObject
 
 apply
   :: JNIEnv
@@ -68,10 +68,10 @@ apply
   -> JByteArray
   -> JObjectArray
   -> IO JObject
-apply env _ bytes args = do
-    bs <- reify env bytes
-    let f = unclosure (bs2clos bs) :: JNIEnv -> JObjectArray -> IO JObject
-    f env args
+apply _ _ bytes args = do
+    bs <- reify bytes
+    let f = unclosure (bs2clos bs) :: JObjectArray -> IO JObject
+    f args
 
 foreign export ccall "Java_io_tweag_sparkle_Sparkle_apply" apply
   :: JNIEnv
@@ -87,23 +87,23 @@ foreign export ccall "Java_io_tweag_sparkle_Sparkle_apply" apply
 -- constraint, because it doesn't know that Uncurry is injective.
 instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reflect a a', Reify b b') =>
          Reify (Closure (a -> b)) ('Fun '[a'] b') where
-  reify env jobj = do
-      klass <- findClass env "io/tweag/sparkle/function/HaskellFunction"
-      field <- getFieldID env klass "clos" "[B"
-      jpayload <- getObjectField env jobj field
-      payload <- reify env jpayload
+  reify jobj = do
+      klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
+      field <- getFieldID klass "clos" "[B"
+      jpayload <- getObjectField jobj field
+      payload <- reify jpayload
       return (bs2clos payload)
 
 instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reify a a', Reflect b b') =>
          Reflect (Closure (a -> b)) ('Fun '[a'] b') where
-  reflect env f = do
-      klass <- findClass env "io/tweag/sparkle/function/HaskellFunction"
-      jpayload <- reflect env (clos2bs (fromJust wrap))
-      newObject env klass "([B)V" [JObject jpayload]
+  reflect f = do
+      klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
+      jpayload <- reflect (clos2bs (fromJust wrap))
+      newObject klass "([B)V" [JObject jpayload]
     where
       -- TODO this type dispatch is a gross temporary hack! For until we get the
       -- instance commented out below to work.
-      wrap :: Maybe (Closure (JNIEnv -> JObjectArray -> IO JObject))
+      wrap :: Maybe (Closure (JObjectArray -> IO JObject))
       wrap =
         fmap (\Refl -> $(cstatic 'closFun1) `cap` $(cstatic 'dict1) `cap` f) (eqT :: Maybe ((a, b) :~: (Int, Int))) <|>
         fmap (\Refl -> $(cstatic 'closFun1) `cap` $(cstatic 'dict2) `cap` f) (eqT :: Maybe ((a, b) :~: (Bool, Bool))) <|>
@@ -130,17 +130,17 @@ dict3 = Dict
 dict4 = Dict
 dict5 = Dict
 
-closFun1 :: Dict (Reify a a', Reflect b b') -> (a -> b) -> JNIEnv -> JObjectArray -> IO JObject
-closFun1 Dict f env args =
-    reflect env =<< return . f =<< reify env =<< getObjectArrayElement env args 0
+closFun1 :: Dict (Reify a a', Reflect b b') -> (a -> b) -> JObjectArray -> IO JObject
+closFun1 Dict f args =
+    reflect =<< return . f =<< reify =<< getObjectArrayElement args 0
 
 -- instance (Uncurry (Closure (a -> b)) ~ Fun '[a'] b', Reflect a a', Reify b b') =>
 --          Reify (Closure (a -> b)) (Fun '[a'] b') where
---   reify env jobj = do
---       klass <- findClass env "io/tweag/sparkle/function/Function"
---       field <- getFieldID env klass "clos" "[B"
---       jpayload <- getObjectField env jobj field
---       payload <- reify env jpayload
+--   reify jobj = do
+--       klass <- findClass "io/tweag/sparkle/function/Function"
+--       field <- getFieldID klass "clos" "[B"
+--       jpayload <- getObjectField jobj field
+--       payload <- reify jpayload
 --       return (bs2clos payload)
 --   reifyDict =
 --       cmapDict `cap` reifyDictFun1 `cap` (cpairDict `cap` reflectDict `cap` reifyDict)
@@ -149,95 +149,95 @@ closFun1 Dict f env args =
 -- reifyDictFun1 = Sub
 
 instance Reify ByteString ('Base ByteString) where
-  reify env jobj = do
-      n <- getArrayLength env jobj
-      bytes <- getByteArrayElements env jobj
+  reify jobj = do
+      n <- getArrayLength jobj
+      bytes <- getByteArrayElements jobj
       -- TODO could use unsafePackCStringLen instead and avoid a copy if we knew
       -- that been handed an (immutable) copy via JNI isCopy ref.
       bs <- BS.packCStringLen (bytes, fromIntegral n)
-      releaseByteArrayElements env jobj bytes
+      releaseByteArrayElements jobj bytes
       return bs
 
 instance Reflect ByteString ('Base ByteString) where
-  reflect env bs = BS.unsafeUseAsCStringLen bs $ \(content, n) -> do
-      arr <- newByteArray env (fromIntegral n)
-      setByteArrayRegion env arr 0 (fromIntegral n) content
+  reflect bs = BS.unsafeUseAsCStringLen bs $ \(content, n) -> do
+      arr <- newByteArray (fromIntegral n)
+      setByteArrayRegion arr 0 (fromIntegral n) content
       return arr
 
 instance Reify Bool ('Base Bool) where
-  reify env jobj = do
-      klass <- findClass env "java/lang/Boolean"
-      method <- getMethodID env klass "booleanValue" "()Z"
-      toEnum . fromIntegral <$> callBooleanMethod env jobj method []
+  reify jobj = do
+      klass <- findClass "java/lang/Boolean"
+      method <- getMethodID klass "booleanValue" "()Z"
+      toEnum . fromIntegral <$> callBooleanMethod jobj method []
 
 instance Reflect Bool ('Base Bool) where
-  reflect env x = do
-      klass <- findClass env "java/lang/Boolean"
-      newObject env klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
+  reflect x = do
+      klass <- findClass "java/lang/Boolean"
+      newObject klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
 
 instance Reify Int ('Base Int) where
-  reify env jobj = do
-      klass <- findClass env "java/lang/Integer"
-      method <- getMethodID env klass "longValue" "()L"
-      fromIntegral <$> callLongMethod env jobj method []
+  reify jobj = do
+      klass <- findClass "java/lang/Integer"
+      method <- getMethodID klass "longValue" "()L"
+      fromIntegral <$> callLongMethod jobj method []
 
 instance Reflect Int ('Base Int) where
-  reflect env x = do
-      klass <- findClass env "java/lang/Integer"
-      newObject env klass "(L)V" [JInt (fromIntegral x)]
+  reflect x = do
+      klass <- findClass "java/lang/Integer"
+      newObject klass "(L)V" [JInt (fromIntegral x)]
 
 instance Reify Double ('Base Double) where
-  reify env jobj = do
-      klass <- findClass env "java/lang/Double"
-      method <- getMethodID env klass "doubleValue" "()D"
-      callDoubleMethod env jobj method []
+  reify jobj = do
+      klass <- findClass "java/lang/Double"
+      method <- getMethodID klass "doubleValue" "()D"
+      callDoubleMethod jobj method []
 
 instance Reflect Double ('Base Double) where
-  reflect env x = do
-      klass <- findClass env "java/lang/Double"
-      newObject env klass "(D)V" [JDouble x]
+  reflect x = do
+      klass <- findClass "java/lang/Double"
+      newObject klass "(D)V" [JDouble x]
 
 instance Reify Text ('Base Text) where
-  reify env jobj = do
+  reify jobj = do
       -- TODO go via getString instead of getStringUTF, since text also uses
       -- UTF-16 internally.
-      sz <- getStringUTFLength env jobj
-      cs <- getStringUTFChars env jobj
+      sz <- getStringUTFLength jobj
+      cs <- getStringUTFChars jobj
       txt <- Text.decodeUtf8 <$> BS.unsafePackCStringLen (cs, fromIntegral sz)
-      releaseStringUTFChars env jobj cs
+      releaseStringUTFChars jobj cs
       return txt
 
 instance Reflect Text ('Base Text) where
-  reflect env x =
+  reflect x =
       Text.useAsPtr x $ \ptr len ->
-        newString env ptr (fromIntegral len)
+        newString ptr (fromIntegral len)
 
 instance Reify (IOVector Int32) ('Base (IOVector Int32)) where
-  reify env = reifyMVector env (getIntArrayElements env) (releaseIntArrayElements env)
+  reify = reifyMVector (getIntArrayElements) (releaseIntArrayElements)
 
 instance Reflect (IOVector Int32) ('Base (IOVector Int32)) where
-  reflect env = reflectMVector (newIntArray env) (setIntArrayRegion env)
+  reflect = reflectMVector (newIntArray) (setIntArrayRegion)
 
 instance Reify (Vector Int32) ('Base (Vector Int32)) where
-  reify env = Vector.freeze <=< reify env
+  reify = Vector.freeze <=< reify
 
 instance Reflect (Vector Int32) ('Base (Vector Int32)) where
-  reflect env = reflect env <=< Vector.thaw
+  reflect = reflect <=< Vector.thaw
 
 instance Reify a (Uncurry a) => Reify [a] ('Base [a]) where
-  reify env jobj = do
-      n <- getArrayLength env jobj
+  reify jobj = do
+      n <- getArrayLength jobj
       forM [0..n-1] $ \i -> do
-        x <- getObjectArrayElement env jobj i
-        reify env x
+        x <- getObjectArrayElement jobj i
+        reify x
 
 instance Reflect a (Uncurry a) => Reflect [a] ('Base [a]) where
-  reflect env xs = do
+  reflect xs = do
     let n = fromIntegral (length xs)
-    klass <- findClass env "java/lang/Object"
-    array <- newObjectArray env n klass
+    klass <- findClass "java/lang/Object"
+    array <- newObjectArray n klass
     forM_ (zip [0..n-1] xs) $ \(i, x) -> do
-      setObjectArrayElement env array i =<< reflect env x
+      setObjectArrayElement array i =<< reflect x
     return array
 
 foreign import ccall "wrapper" wrapFinalizer
@@ -246,13 +246,12 @@ foreign import ccall "wrapper" wrapFinalizer
 
 reifyMVector
   :: Storable a
-  => JNIEnv
-  -> (JArray -> IO (Ptr a))
+  => (JArray -> IO (Ptr a))
   -> (JArray -> Ptr a -> IO ())
   -> JArray
   -> IO (IOVector a)
-reifyMVector env mk finalize jobj = do
-    n <- getArrayLength env jobj
+reifyMVector mk finalize jobj = do
+    n <- getArrayLength jobj
     ptr <- mk jobj
     ffinalize <- wrapFinalizer (finalize jobj)
     fptr <- newForeignPtr ffinalize ptr
