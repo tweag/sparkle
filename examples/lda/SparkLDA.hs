@@ -9,8 +9,8 @@ import Data.Text (Text)
 import Foreign.Java
 
 sparkMain :: JNIEnv -> JClass -> IO ()
-sparkMain env _ = do
-    attach env
+sparkMain envi _ = do
+    env <- attach envi
     stopwords <- getStopwords
     conf <- newSparkConf env "Spark Online Latent Dirichlet Allocation in Haskell!"
     sc   <- newSparkContext env conf

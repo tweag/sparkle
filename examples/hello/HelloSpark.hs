@@ -16,8 +16,8 @@ f2 :: Text -> Bool
 f2 s = "b" `Text.isInfixOf` s
 
 sparkMain :: JNIEnv -> JClass -> IO ()
-sparkMain env _ = do
-    attach env
+sparkMain envi _ = do
+    env <- attach envi
     conf <- newSparkConf env "Hello sparkle!"
     sc   <- newSparkContext env conf
     rdd  <- textFile env sc "stack.yaml"
