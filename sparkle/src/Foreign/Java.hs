@@ -109,13 +109,14 @@ throwIfNull m = do
     then throwIO ArrayCopyFailed
     else return ptr
 
-attach :: JNIEnv -> IO ()
-attach (JNIEnv_ env) =
-    [C.block| void {
+attach :: JNIEnv -> IO JNIEnv
+attach (JNIEnv_ env) = JNIEnv_ <$>
+    [C.block| JNIEnv* {
        JavaVM *jvm;
        JNIEnv *env = $(JNIEnv *env);
        (*env)->GetJavaVM(env, &jvm);
-       (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL); } |]
+       (*jvm)->AttachCurrentThread(jvm, (void**)&env, NULL);
+       return env; } |]
 
 findClass :: JNIEnv -> ByteString -> IO JObject
 findClass (JNIEnv_ env) name =
