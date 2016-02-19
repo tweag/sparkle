@@ -16,15 +16,14 @@ f2 :: Text -> Bool
 f2 s = "b" `Text.isInfixOf` s
 
 sparkMain :: JNIEnv -> JClass -> IO ()
-sparkMain envi _ = do
-    env <- attach envi
-    conf <- newSparkConf env "Hello sparkle!"
-    sc   <- newSparkContext env conf
-    rdd  <- textFile env sc "stack.yaml"
-    as   <- RDD.filter env (closure (static f1)) rdd
-    bs   <- RDD.filter env (closure (static f2)) rdd
-    numAs <- RDD.count env as
-    numBs <- RDD.count env bs
+sparkMain _ _ = do
+    conf <- newSparkConf "Hello sparkle!"
+    sc   <- newSparkContext conf
+    rdd  <- textFile sc "stack.yaml"
+    as   <- RDD.filter (closure (static f1)) rdd
+    bs   <- RDD.filter (closure (static f2)) rdd
+    numAs <- RDD.count as
+    numBs <- RDD.count bs
     putStrLn $ show numAs ++ " lines with a, "
             ++ show numBs ++ " lines with b."
 
