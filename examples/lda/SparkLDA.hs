@@ -1,15 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module SparkLDA where
+module Main where
 
 import Control.Distributed.Spark
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Text (Text)
-import Foreign.Java
 
-sparkMain :: JNIEnv -> JClass -> IO ()
-sparkMain _ _ = do
+main :: IO ()
+main = do
     stopwords <- getStopwords
     conf <- newSparkConf "Spark Online Latent Dirichlet Allocation in Haskell!"
     sc   <- newSparkContext conf
@@ -38,8 +37,3 @@ sparkMain _ _ = do
 
 getStopwords :: IO [Text]
 getStopwords = fmap Text.lines (Text.readFile "stopwords.txt")
-
-foreign export ccall "Java_io_tweag_sparkle_Sparkle_sparkMain" sparkMain
-  :: JNIEnv
-  -> JClass
-  -> IO ()

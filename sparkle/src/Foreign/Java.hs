@@ -88,6 +88,7 @@ import System.IO.Unsafe (unsafePerformIO)
 C.context (C.baseCtx <> C.bsCtx <> jniCtx)
 
 C.include "<jni.h>"
+C.include "sparkle.h"
 
 data JavaException = JavaException JThrowable
   deriving (Show, Typeable)
@@ -127,15 +128,7 @@ envTlsRef = unsafePerformIO $ do
     -- It doesn't matter if this computation ends up running twice, say because
     -- of lazy blackholing.
     !tls <- mkTLS $ [C.block| JNIEnv* {
-      JavaVM *jvm;
-      int size;
-      /* Current (2016) JNI spec says only one VM per process supported anyways. */
-      JNI_GetCreatedJavaVMs(&jvm, 1, &size);
-      if(size != 1)
-      {
-              fprintf(stderr, "Java VM not created yet.\n");
-              exit(1);
-      }
+      JavaVM *jvm = sparkle_jvm;
       JNIEnv *env;
 
       /* Attach as daemon to match GHC's usual semantics for threads, which are
