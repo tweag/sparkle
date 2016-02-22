@@ -60,9 +60,7 @@ haskell.buildStackProject {
     [ maven
       openjdk
       spark
-      # Needed to checkout binary-cbor-serialise
-      git
-      openssh
+      nixpkgs.zip
     ];
   extraArgs = ["--extra-lib-dirs=${jvmlibdir}"];
   LD_LIBRARY_PATH = jvmlibdir;

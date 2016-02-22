@@ -20,4 +20,30 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  <build>
+    <plugins>
+      <plugin>
+	<groupId>org.codehaus.mojo</groupId>
+	<artifactId>exec-maven-plugin</artifactId>
+	<version>1.4.0</version>
+	<executions>
+	  <execution>
+            <id>Include hsapp</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>copy-exe.sh</executable>
+	      <arguments>
+		<argument>${sparkle.app}</argument>
+		<!-- <argument>${project.build.outputDirectory}</argument> -->
+		<argument>src/main/resources</argument>
+	      </arguments>
+            </configuration>
+          </execution>
+	</executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
