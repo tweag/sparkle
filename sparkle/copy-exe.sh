@@ -8,5 +8,5 @@ do
 done
 cp $DIR/bin/$1 $TARGET_DIR/hsapp
 (cd $TARGET_DIR; zip app *)
-install -D $TARGET_DIR/app.zip $2
+install -D $TARGET_DIR/app.zip $2/app.zip
 rm -rf $TARGET_DIR
