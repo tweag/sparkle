@@ -425,10 +425,10 @@ Note: "signature" above refers to [the JVM's encoding of type signatures](http:/
 
 ## Complete code and examples
 
-All the code for _sparkle_, including the two demos from this blog post, is
-available [here](https://github.com/tweag/sparkle). The `examples/` folder
-contains the code for the demos while the `spark/` folder contains all the
-code that makes the demos work.
+All the code for _sparkle_, including the two demos from this blog
+post, is available [here](https://github.com/tweag/sparkle). The
+`apps/` folder contains the code for the demos while the `sparkle/`
+folder contains all the code that makes the demos work.
 
 ## Future work
 

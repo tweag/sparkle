@@ -1,7 +1,7 @@
 packages:
 - sparkle
-- examples/hello
-- examples/lda
+- apps/hello
+- apps/lda
 - location:
     git: git@github.com:tweag/distributed-closure
     commit: a0055dc39fe6d9cf2829786808b7ef6ecf3ed107
