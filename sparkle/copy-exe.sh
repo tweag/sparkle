@@ -6,7 +6,7 @@ for i in $(ldd $DIR/bin/$1 | awk '{print $3}')
 do
     cp $i $TARGET_DIR
 done
-install -D $DIR/bin/$1 $TARGET_DIR/hsapp
+cp $DIR/bin/$1 $TARGET_DIR/hsapp
 (cd $TARGET_DIR; zip app *)
-mv $TARGET_DIR/app.zip $2
+install -D $TARGET_DIR/app.zip $2
 rm -rf $TARGET_DIR
