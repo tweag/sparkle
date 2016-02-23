@@ -8,5 +8,7 @@ do
 done
 cp $DIR/bin/$1 $TARGET_DIR/hsapp
 (cd $TARGET_DIR; zip app *)
-mv $TARGET_DIR/app.zip $2
+
+[ -d $2 ] || mkdir $2 # ensures that the resources/ dir exists
+mv $TARGET_DIR/app.zip $2/
 rm -rf $TARGET_DIR
