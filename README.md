@@ -26,12 +26,12 @@ $ spark-submit --master 'local[1]' sparkle/target/sparkle-0.1.jar
 
 To run a Spark application the process is as follows:
 
-1. create an application in the `apps/` folder, in-repo or as
+1. **create** an application in the `apps/` folder, in-repo or as
    a submodule;
-1. add your app to `stack.yaml`;
-1. build the app;
-1. package your app into a deployable JAR container;
-1. submit it to a local or cluster deployment of Spark.
+1. **add** your app to `stack.yaml`;
+1. **build** the app;
+1. **package** your app into a deployable JAR container;
+1. **submit** it to a local or cluster deployment of Spark.
 
 To build:
 
