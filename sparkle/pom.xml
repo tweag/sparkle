@@ -45,7 +45,7 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <executable>copy-exe.sh</executable>
+              <executable>${project.basedir}/copy-exe.sh</executable>
 	      <arguments>
 		<argument>${sparkle.app}</argument>
 		<argument>${project.build.outputDirectory}</argument>
