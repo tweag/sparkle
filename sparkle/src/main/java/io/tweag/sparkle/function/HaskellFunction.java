@@ -7,7 +7,6 @@ public class HaskellFunction<T1, R> implements Function<T1, R> {
     public final byte[] clos;
 
     public HaskellFunction(final byte[] clos) {
-	System.out.println("yo from Java");
 	this.clos = clos;
     }
 
