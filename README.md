@@ -2,12 +2,11 @@
 
 [![Circle CI](https://circleci.com/gh/tweag/sparkle.svg?style=svg)](https://circleci.com/gh/tweag/sparkle)
 
-The HaskellR project provides an environment for efficiently
-processing data using Haskell or R code, interchangeably. HaskellR
-allows Haskell functions to seamlessly call R functions and *vice
-versa*. It provides the Haskell programmer with the full breadth of
-existing R libraries and extensions for numerical computation,
-statistical analysis and machine learning.
+Sparkle allows you to write resilient analytics applications in
+Haskell that scale to thousands of nodes, using [Spark][spark] and the
+rest of the Apache ecosystem under the hood.
+
+[spark]: http://spark.apache.org/
 
 ## Getting started
 
