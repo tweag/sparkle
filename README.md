@@ -67,6 +67,7 @@ a [whole cluster from scratch on EC2][spark-ec2].
 [stack]: https://github.com/commercialhaskell/stack
 [spark-submit]: http://spark.apache.org/docs/latest/submitting-applications.html
 [spark-ec2]: http://spark.apache.org/docs/latest/ec2-scripts.html
+[nix]: http://nixos.org/nix
 
 ## License
 
