@@ -2,9 +2,9 @@
 
 [![Circle CI](https://circleci.com/gh/tweag/sparkle.svg?style=svg)](https://circleci.com/gh/tweag/sparkle)
 
-Sparkle allows you to write resilient analytics applications in
-Haskell that scale to thousands of nodes, using [Spark][spark] and the
-rest of the Apache ecosystem under the hood.
+*Sparkle [spär′kəl]:* a library for writing resilient analytics
+applications in Haskell that scale to thousands of nodes, using
+[Spark][spark] and the rest of the Apache ecosystem under the hood.
 
 [spark]: http://spark.apache.org/
 
