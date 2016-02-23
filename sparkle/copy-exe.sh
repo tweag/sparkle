@@ -8,7 +8,5 @@ do
 done
 install -D $DIR/bin/$1 $TARGET_DIR/hsapp
 (cd $TARGET_DIR; zip app *)
-
-[ -d $2 ] || mkdir $2 # ensures that the resources/ dir exists
-mv $TARGET_DIR/app.zip $2/
+mv $TARGET_DIR/app.zip $2
 rm -rf $TARGET_DIR
