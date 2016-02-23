@@ -11,7 +11,7 @@ statistical analysis and machine learning.
 
 ## Getting started
 
-The tl;dr using the `hello` app as an example:
+The tl;dr using the `hello` app as an example on your local machine:
 
 ```
 $ stack build hello
@@ -19,12 +19,13 @@ $ mvn -f sparkle -Dsparkle.app=sparkle-example-hello package
 $ spark-submit --master 'local[1]' sparkle/target/sparkle-0.1.jar
 ```
 
-*Requirements:*
+**Requirements:**
 * the [Stack][stack] build tool;
 * either, the [Nix][nix] package manager,
 * or, OpenJDK, Maven and Spark >= 1.6 installed from your distro.
 
 To run a Spark application the process is as follows:
+
 1. create an application in the `apps/` folder, in-repo or as
    a submodule;
 1. add your app to `stack.yaml`;
