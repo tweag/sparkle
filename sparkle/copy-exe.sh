@@ -13,7 +13,7 @@ TARGET_DIR=$(mktemp -d)
 # Copy dynlibs into target dir, but avoid sensitive "system" ones, for
 # which we shouldn't override whatever version is already installed on
 # the remote system.
-for i in $(ldd $DIR/bin/$1 | egrep -v '(libc|libpthread)' | awk '{print $3}')
+for i in $(ldd $DIR/bin/$1 | egrep -v '(libc|libpthread)' | awk '{print $3}' | grep '\.so')
 do
     cp $i $TARGET_DIR
 done
