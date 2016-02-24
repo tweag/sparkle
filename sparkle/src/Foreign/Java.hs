@@ -87,8 +87,10 @@ import System.IO.Unsafe (unsafePerformIO)
 
 C.context (C.baseCtx <> C.bsCtx <> jniCtx)
 
-C.include "<jni.h>"
 C.include "sparkle.h"
+C.include "<jni.h>"
+C.include "<errno.h>"
+C.include "<stdlib.h>"
 
 data JavaException = JavaException JThrowable
   deriving (Show, Typeable)
@@ -130,6 +132,11 @@ envTlsRef = unsafePerformIO $ do
     !tls <- mkTLS $ [C.block| JNIEnv* {
       JavaVM *jvm = sparkle_jvm;
       JNIEnv *env;
+
+      if(!jvm) {
+              fprintf(stderr, "Sparkle JVM not set.\n");
+              exit(EFAULT);
+      }
 
       /* Attach as daemon to match GHC's usual semantics for threads, which are
        * daemonic.
