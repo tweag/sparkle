@@ -63,20 +63,16 @@ class (Uncurry a ~ b, Typeable a, Typeable b) => Reflect a b where
   reflect :: a -> IO JObject
 
 apply
-  :: JNIEnv
-  -> JClass
-  -> JByteArray
+  :: JByteArray
   -> JObjectArray
   -> IO JObject
-apply _ _ bytes args = do
+apply bytes args = do
     bs <- reify bytes
     let f = unclosure (bs2clos bs) :: JObjectArray -> IO JObject
     f args
 
-foreign export ccall "Java_io_tweag_sparkle_Sparkle_apply" apply
-  :: JNIEnv
-  -> JClass
-  -> JByteArray
+foreign export ccall "sparkle_apply" apply
+  :: JByteArray
   -> JObjectArray
   -> IO JObject
 
