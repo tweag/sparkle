@@ -3,6 +3,8 @@
 
 JavaVM *sparkle_jvm;
 
+extern int main(int argc, char *argv[]);
+
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_bootstrap
   (JNIEnv * env, jclass klass)
 {
