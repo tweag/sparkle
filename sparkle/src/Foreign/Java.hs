@@ -147,13 +147,9 @@ envTlsRef = unsafePerformIO $ do
 
 -- | Run an action against the appropriate 'JNIEnv'.
 --
---   Each GHC capability ends up storing a 'JNIEnv' and this
---   function lets the caller use it. Note however that if
---   the thread that evaluates a call to 'withJNIEnv' is
---   rescheduled on another capability (e.g because it spends
---   some time blocked waiting for some event), or if
---   the action to 'withJNIEnv' forks a new OS thread,
---   the call to 'withJNIEnv' can crash.
+-- Each OS thread has its own 'JNIEnv', which this function gives access to.
+--
+-- TODO check whether this call is only safe from a (bound) thread.
 withJNIEnv :: (Ptr JNIEnv -> IO a) -> IO a
 withJNIEnv f = f =<< getTLS =<< readIORef envTlsRef
 
