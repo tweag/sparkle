@@ -22,7 +22,6 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
-import qualified Data.Text.Encoding as Text
 import qualified Data.Text.Foreign as Text
 import Data.Text (Text)
 import Data.Typeable (Typeable, (:~:)(..), eqT, typeOf)
@@ -199,12 +198,10 @@ instance Reflect Double ('Base Double) where
 
 instance Reify Text ('Base Text) where
   reify jobj = do
-      -- TODO go via getString instead of getStringUTF, since text also uses
-      -- UTF-16 internally.
-      sz <- getStringUTFLength jobj
-      cs <- getStringUTFChars jobj
-      txt <- Text.decodeUtf8 <$> BS.unsafePackCStringLen (cs, fromIntegral sz)
-      releaseStringUTFChars jobj cs
+      sz <- getStringLength jobj
+      cs <- getStringChars jobj
+      txt <- Text.fromPtr cs (fromIntegral sz)
+      releaseStringChars jobj cs
       return txt
 
 instance Reflect Text ('Base Text) where
