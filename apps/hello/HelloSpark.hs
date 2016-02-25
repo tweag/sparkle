@@ -18,7 +18,7 @@ main :: IO ()
 main = do
     conf <- newSparkConf "Hello sparkle!"
     sc   <- newSparkContext conf
-    rdd  <- textFile sc "stack.yaml"
+    rdd  <- textFile sc "s3://tweag-sparkle/lorem-ipsum.txt"
     as   <- RDD.filter (closure (static f1)) rdd
     bs   <- RDD.filter (closure (static f2)) rdd
     numAs <- RDD.count as
