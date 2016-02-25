@@ -6,6 +6,8 @@
 applications in Haskell that scale to thousands of nodes, using
 [Spark][spark] and the rest of the Apache ecosystem under the hood.
 
+**This is an early tech preview, not production ready**
+
 [spark]: http://spark.apache.org/
 
 ## Getting started
