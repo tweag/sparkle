@@ -3,17 +3,14 @@
 module Main where
 
 import Control.Distributed.Spark
-import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
-import Data.Text (Text)
 
 main :: IO ()
 main = do
-    stopwords <- getStopwords
     conf <- newSparkConf "Spark Online Latent Dirichlet Allocation in Haskell!"
     sc   <- newSparkContext conf
     sqlc <- newSQLContext sc
-    docs <- wholeTextFiles sc "nyt/"
+    stopwords <- textFile sc "s3://tweag-sparkle/stopwords.txt" >>= collect
+    docs <- wholeTextFiles sc "s3://tweag-sparkle/nyt/"
         >>= justValues
         >>= zipWithIndex
     docsRows <- toRows docs
@@ -34,6 +31,3 @@ main = do
           vocabSize         = 600
           maxTermsPerTopic  = 10
           maxIterations     = 50
-
-getStopwords :: IO [Text]
-getStopwords = fmap Text.lines (Text.readFile "stopwords.txt")

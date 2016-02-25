@@ -39,7 +39,7 @@ parallelize
   :: Reflect [a] a'
   => SparkContext
   -> [a]
-  -> IO (RDD CInt)
+  -> IO (RDD a)
 parallelize sc xs = do
     klass <- findClass "org/apache/spark/api/java/JavaSparkContext"
     method <- getMethodID klass "parallelize" "(Ljava/util/List;)Lorg/apache/spark/api/java/JavaRDD;"
@@ -63,6 +63,16 @@ count rdd = do
   cls <- findClass "org/apache/spark/api/java/JavaRDD"
   mth <- getMethodID cls "count" "()J"
   callLongMethod rdd mth []
+
+collect :: Reify a a' => RDD a -> IO [a]
+collect rdd = do
+  klass  <- findClass "org/apache/spark/api/java/JavaRDD"
+  method <- getMethodID klass "collect" "()Ljava/util/List;"
+  alst   <- callObjectMethod rdd method []
+  aklass <- findClass "java/util/ArrayList"
+  atoarr <- getMethodID aklass "toArray" "()[Ljava/lang/Object;"
+  arr    <- callObjectMethod alst atoarr []
+  reify arr
 
 type PairRDD a b = JObject
 
