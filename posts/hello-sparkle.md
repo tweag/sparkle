@@ -86,9 +86,9 @@ main = do
     putStrLn $ show numAs ++ " lines with the letter 'a'."
 ```
 
-Nothing too fancy here: assuming we have some large vector
-*somewhere*, we'd like to compute a new vector with every element
-doubled. If the vector really is very large, Spark, the underlying
+Nothing too fancy here: assuming we have a file *somewhere*
+(on S3 in this case), we'd like to count the number of lines that contain
+at least one "a". If the file is very large, Spark, the underlying
 middleware that we're using to write this app, could choose to do this
 piecewise on multiple nodes in parallel.
 
@@ -109,16 +109,16 @@ distributed collections called "Resilient Distributed Dataset"
 What sparkle does is provide bindings for the API of this middleware,
 along with a framework to conveniently write Spark based apps in
 Haskell and package them for distribution cluster-wide. There's a lot
-more that we can do with this that counting lines - in just a moment
+more that we can do with this than counting lines - in just a moment
 we'll have a look at a full scale machine learning example. But first
 let's take a quick peek under the hood.
 
 ## Shipping functions across language boundaries and across machines
 
 The core computational content of our app above is captured in the
-function `f`. Note that once again, Spark may choose to perform the
-filtering by the `f` predicate over the dataset on one or more remote
-nodes in the cluster, in parallel. But if `f` is an arbitrary closure,
+lambda passed to `filter`. Note that once again, Spark may choose to perform
+the filtering by the predicate over the dataset on one or more remote
+nodes in the cluster, in parallel. But if it is an arbitrary closure,
 how does this one get shipped around the cluster? Does sparkle somehow
 know how to serialize closures into a sequence of bytes, hand it to
 Spark, and tell Spark how to deserialize this closure on the other end
@@ -154,59 +154,108 @@ sparkle for a real machine learning use case.
 
 We'll try
 [this Scala application](https://gist.github.com/feynmanliang/3b6555758a27adcb527d)
-in Haskell. The goal: classify Wikipedia articles according to the
+in Haskell. The goal: classify articles according to the
 overall topic they're likely to be covering (zoology? television?
 distributed computing?). The method we'll use for this is called
 Latent Dirichlet Allocation (LDA), as described in
 [the accompanying blog post](https://databricks.com/blog/2015/09/22/large-scale-topic-modeling-improvements-to-lda-on-spark.html),
 but here's a one-sentence summary: given a collection of text
 documents, the algorithm tries to infer the different topics discussed
-in the said documents. The "online" variation consists in learning an
+in the said documents by looking at the distribution of words used in those
+documents. The "online" variation consists in learning an
 LDA model incrementally, instead of having to go through the entire
 collection of documents before it can give us a model. For the
 curious, this variation is described in
 [this paper](https://www.cs.princeton.edu/~blei/papers/HoffmanBleiBach2010b.pdf).
 
+We will go through the equivalent Haskell code step by step. We start with a pragma,
+an import and the beginning of a definition for `main` that initializes a spark
+context (as in the first example) and an SQL context, necessary for using
+Spark's data frames.
+
 ```haskell
-module SparkLDA where
+{-# LANGUAGE OverloadedStrings #-}
+
+module Main where
 
 import Control.Distributed.Spark
-import Control.Distributed.Spark.JNI
-import Foreign.C.Types
 
-sparkMain :: JVM -> IO ()
-sparkMain jvm = do
-    env <- jniEnv jvm
-    stopwords <- getStopwords
-    conf <- newSparkConf env "Spark Online Latent Dirichlet Allocation in Haskell!"
-    sc   <- newSparkContext env conf
-    sqlc <- newSQLContext env sc
-    docs <- wholeTextFiles env sc "nyt/"
-        >>= justValues env
-        >>= zipWithIndex env
-    docsRows <- toRows env docs
-    docsDF <- toDF env sqlc docsRows "docId" "text"
-    tok  <- newTokenizer env "text" "words"
-    tokenizedDF <- tokenize env tok docsDF
-    swr  <- newStopWordsRemover env stopwords "words" "filtered"
-    filteredDF <- removeStopWords env swr tokenizedDF
-    cv   <- newCountVectorizer env vocabSize "filtered" "features"
-    cvModel <- fitCV env cv filteredDF
-    countVectors <- toTokenCounts env cvModel filteredDF "docId" "features"
-    lda  <- newLDA env miniBatchFraction numTopics maxIterations
-    ldamodel  <- runLDA env lda countVectors
-    describeResults env ldamodel cvModel maxTermsPerTopic
+main :: IO ()
+main = do
+    conf <- newSparkConf "Spark Online Latent Dirichlet Allocation in Haskell!"
+    sc   <- newSparkContext conf
+    sqlc <- newSQLContext sc
+```
+
+Next, we load a collection of "stop words" (from S3 here) as an RDD and then
+collect all of them into a good old Haskell list of `Text` values. These are
+the words we want the algorithm to ignore when analyzing the documents, usually
+a list of the most common words that do not inform the topic discussed in a
+document (such as "and", "the" and so on).
+
+```haskell
+    stopwords <- textFile sc "s3://some-bucket/stopwords.txt" >>= collect
+```
+
+It is now time to load our collection of documents. To do so, we invoke Spark's
+`wholeTextFiles` method, which takes a directory (local or distant) as its argument
+and yields an RDD of pairs, the first component being the filename and the second
+component being the content of the corresponding file. In our case, we don't care
+about the filename but just need some numeric identifier instead, required by the
+LDA methods we will be calling. `justValues` lets us drop the first component and
+`zipWithIndex` assigns numeric identifiers to our documents.
+
+```haskell
+    docs <- wholeTextFiles sc "s3://some-bucket/documents/"
+        >>= justValues
+        >>= zipWithIndex
+```
+
+Before we hand the documents to the LDA algorithm, we need to tokenize their
+contents, remove the stopwords and do some other preprocessing. This is all
+provided by Spark but needs to run on Data Frames, not on good old RDDs. The
+conversion from RDD to data frame is not particularly interesting but here it is:
+
+```haskell
+    docsRows <- toRows docs
+    docsDF <- toDF sqlc docsRows "docId" "text"
+```
+
+We end up with a dataframe where each row has 2 columns, the first named
+"docId" corresponding to the identifier, the second named "text"
+corresponding to the document's content.
+
+We then set up a pipeline consisting of a tokenizer, a stop words remover and
+a "count vectorizer", which despite its fancy name basically just counts the
+number of times each word is used in a given document. Each step of the pipeline
+takes as argument the name of the column it should consider as its input and the
+name of the column it will place the output in, in the resulting data frame.
+
+```haskell
+    tok <- newTokenizer "text" "words"
+    tokenizedDF <- tokenize tok docsDF
+    swr <- newStopWordsRemover stopwords "words" "filtered"
+    filteredDF <- removeStopWords swr tokenizedDF
+    cv <- newCountVectorizer vocabSize "filtered" "features"
+    cvModel <- fitCV cv filteredDF
+    countVectors <- toTokenCounts cvModel filteredDF "docId" "features"
+```
+
+At this stage, we have a distribution of "word usage" for each document. We
+can now initialize the algorithm and run it against the aforementionned
+distributions, with parameters that depend on the dataset you are running
+LDA against. Finally, we print a summary of the topic model inferred by LDA.
+
+```haskell
+    lda  <- newLDA miniBatchFraction numTopics maxIterations
+    ldamodel  <- runLDA lda countVectors
+    describeResults ldamodel cvModel maxTermsPerTopic
 
     where numTopics         = 10
           miniBatchFraction = 1
           vocabSize         = 600
           maxTermsPerTopic  = 10
           maxIterations     = 50
-
-getStopwords :: IO [String]
-getStopwords = fmap lines (readFile "stopwords.txt")
-
-foreign export ccall sparkMain :: JVM -> IO ()
 ```
 
 Here's a snippet of the output from running the above code on
@@ -255,7 +304,7 @@ We set out on a pragmatic mission: marry two different ecosystems that
 rarely cross over for a quick, painless but very robust solution to
 support common analytics workflows in Haskell. To do so we had to
 teach JVM to Haskell, and Haskell to the JVM. It turns out that doing
-so was no where near painless (more on that in the next post!), but
+so was nowhere near painless (more on that in the next post!), but
 quicker than scattering both communities' resources on reimplementing
 their own platforms for medium to large scale analytics. Do note that
 sparkle is still just a tech preview, but we can already realize these
@@ -285,7 +334,7 @@ here what we'd like to do is,
   diverse composite datatypes: we currently know how to efficiently
   swap strings, numeric types and arrays, but a number of composite
   datatypes such as tuples could gainfully be exchanged using
-  a standardized data model, such as JSON, or protobufs.
+  a standardized data model, such as JSON, CBOR, or protobufs.
 
 In short, plenty of new directions to contribute towards. :)
 
