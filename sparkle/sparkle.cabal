@@ -11,7 +11,7 @@ cabal-version:       >=1.10
 library
   include-dirs: cbits
   c-sources: cbits/bootstrap.c src/Foreign/Java.c
-  cc-options: -Wall
+  cc-options: -Wall -Werror
   exposed-modules:
     Control.Distributed.Spark
     Control.Distributed.Spark.Closure

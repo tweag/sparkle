@@ -13,5 +13,5 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_bootstrap
 	/* Store the current JVM in a global. The current JNI spec
 	 * (2016) supports only one JVM per address space anyways. */
 	(*env)->GetJavaVM(env, &sparkle_jvm);
-	main(argc, &pargv);
+	main(argc, pargv);
 }
