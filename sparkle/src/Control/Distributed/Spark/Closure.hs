@@ -22,7 +22,6 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
-import qualified Data.Text.Encoding as Text
 import qualified Data.Text.Foreign as Text
 import Data.Text (Text)
 import Data.Typeable (Typeable, (:~:)(..), eqT, typeOf)
