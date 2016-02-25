@@ -169,7 +169,7 @@ curious, this variation is described in
 [this paper](https://www.cs.princeton.edu/~blei/papers/HoffmanBleiBach2010b.pdf).
 
 We will go through this step by step. The first thing to do is to
-Spark to go ahead initialize a few internal datastructures,
+initialize a few (internal) Spark datastructures,
 collectively called a *context* (as in the first example). We'll be
 using Spark's recently introduced Data Frames, so we need the context
 to include that too:
@@ -258,8 +258,8 @@ the topic model inferred by LDA:
 
 By way of example, we applied the above on a
 [a dataset consisting of articles from the New York Times][nyt-dataset].
-The algorithm identified 10 topics, of which the first too look
-something like:
+The algorithm had to identify 10 topics, the first two summarized
+as follows:
 
 ``` bash
 >>> Topic #0
