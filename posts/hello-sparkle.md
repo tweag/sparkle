@@ -6,58 +6,81 @@ warmth of a single machine. Messages between any two processes may or
 may not make it to their final destination. If reading from a memory
 bank yields corrupted bytes about once a year, with 10,000 nodes this
 is likely to happen within the hour. In a million components system
-some hardware somewhere will be in a failed state, continuously. It
-takes cunning to maximize throughput when network latencies are vastly
-superior to processing units' crunch power. The key idea behind
-distributed computing middlewares such as Hadoop is to capture common
-application patterns, and solve coping with these effects once and for
-all for each such pattern, so that applications writers don't have to
-do so themselves from scratch every time. Today we're introducing an
-early release of Sparkle. The motto: implement a robust and scalable
-distributed computing middleware for Haskell, by reusing Spark.
+some hardware somewhere will be in a failed state, continuously. And
+it takes cunning to maximize throughput when network latencies are
+vastly superior to processing units' crunch power. The key idea behind
+distributed computing middlewares such as [Hadoop][hadoop] is to
+capture common application patterns, and solve coping with these
+effects once and for all for each such pattern, so that applications
+writers don't have to do so themselves from scratch every time. Today
+we're introducing a tech preview of [Sparkle][sparkle]. The motto:
+implement a robust and scalable distributed computing middleware for
+Haskell, by reusing [Apache Spark][spark] (itself built on top of
+parts of Hadoop).
 
 Why Spark? We could as well have built a complete platform starting
-from the likes of Cloud Haskell, which we maintain. And distributed
-computing engines is increasingly becoming a crowded space. We started
-by asking a simple question: if I'm a data scientist seeking to train
-a model with state-of-the-art machine learning techniques, what is my
-best option to get the job done? How can I do that without giving up
-Haskell's strong static guarantees and concise syntax?
+from the likes of [Cloud Haskell][cloud-haskell], which we maintain.
+And distributed computing engines is increasingly becoming a crowded
+space. But we started by asking a simple question: if I'm a data
+scientist seeking to train a model with state-of-the-art machine
+learning techniques, what is my best option to get the job done? How
+can I do that without giving up Haskell's strong static guarantees and
+concise syntax?
 
-Spark is a popular piece of the puzzle that leverages the huge Hadoop
-ecosystem for storage and cluster resource management to make it easy
-to write robust and scalable distributed applications as the
-composition of basic but familiar combinators to us FP aficionados:
-(distributed!) `map`, `filter`, `zip`, `reduce`, `concat` and many of
-their friends. These patterns generalize the suprisingly effective
-MapReduce framework of old. And on top of those, Sparks builds an
-impressively large set of general machine learning techniques as
-a library.
+Spark is a popular piece of the puzzle that leverages the huge
+[Hadoop ecosystem][hadoop-ecosystem] for storage and cluster resource
+management to make it easy to write robust and scalable distributed
+applications as the composition of basic but familiar combinators to
+us FP aficionados: (distributed!) `map`, `filter`, `zip`, `reduce`,
+`concat` and many of their friends. These patterns generalize the
+suprisingly effective MapReduce framework of old. And on top of those,
+Sparks builds an impressively large set of general machine learning
+techniques as a [library][spark-mllib].
 
 Today, Spark is already available to write scalable Scala, Java, R or
 Python applications. Haskell is a great language for writing clearly
 the kind of intricately complex algorithms common in analytics, **so
-we're throwing it into the mix**.
+we're throwing Haskell into the mix**. With Haskell, you get the
+benefit of a language and ecosystem ruthlessly focused on
+refactorability, backed by a state of the art optimizing native code
+compiler supporting SIMD intrinsics when you need them.
+
+[cloud-haskell]: http://haskell-distributed.github.io/
+[hadoop]: http://hadoop.apache.org/
+[hadoop-ecosystem]: https://hadoopecosystemtable.github.io/
+[spark]: http://spark.apache.org/
+[spark-mllib]: https://spark.apache.org/docs/1.1.0/mllib-guide.html
+[sparkle]: https://github.com/tweag/sparkle
 
 ## Spark basics
 
-Let's start with a trivial "Hello World" Spark application in Scala:
+So what's it like in practice? Sparkle's "Hello World" on a hosted
+Amazon EMR cluster:
 
-```scala
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
+```
+# Build it
+$ stack build hello
+# Package it
+$ mvn package -f sparkle -Dsparkle.app=sparkle-example-hello
+# Run it
+$ spark-submit --master 'spark://IP:PORT' sparkle/target/sparkle-0.1.jar
+```
 
-object SimpleApp {
-  def main(args: Array[String]) {
-    val conf = new SparkConf().setAppName("Hello World")
-    val sc = new SparkContext(conf)
-    val numbers = 1 to 1000 toArray
-    val rdd = sc.parallelize(numbers)
-    val doubled = rdd.map(n => 2 * n)
-    doubled.collect().foreach(println)
-  }
-}
+The code looks something like this:
+
+```
+import Control.Distributed.Spark as RDD
+import Data.Text (isInfixOf)
+
+
+main :: IO ()
+main = do
+    conf <- newSparkConf "Hello sparkle!"
+    sc <- newSparkContext conf
+    rdd <- textFile sc "s3://some-bucket/some-file"
+    as <- RDD.filter (static (\line -> "a" `isInfixOf` line)) rdd
+    numAs <- RDD.count as
+    putStrLn $ show numAs ++ " lines with the letter A."
 ```
 
 Nothing too fancy: assuming we have some large vector *somewhere*,
