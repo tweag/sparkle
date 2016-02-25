@@ -53,17 +53,17 @@ module Foreign.Java
   , newObjectArray
   , newString
   , getArrayLength
-  , getStringUTFLength
+  , getStringLength
   , getIntArrayElements
   , getByteArrayElements
   , getDoubleArrayElements
-  , getStringUTFChars
+  , getStringChars
   , setIntArrayRegion
   , setByteArrayRegion
   , setDoubleArrayRegion
   , releaseIntArrayElements
   , releaseByteArrayElements
-  , releaseStringUTFChars
+  , releaseStringChars
   , getObjectArrayElement
   , setObjectArrayElement
   ) where
@@ -333,11 +333,11 @@ getArrayLength array = withJNIEnv $ \env ->
       (*$(JNIEnv *env))->GetArrayLength($(JNIEnv *env),
                                         $(jarray array)) } |]
 
-getStringUTFLength :: JString -> IO Int32
-getStringUTFLength jstr = withJNIEnv $ \env ->
+getStringLength :: JString -> IO Int32
+getStringLength jstr = withJNIEnv $ \env ->
     [CU.exp| jsize {
-      (*$(JNIEnv *env))->GetStringUTFLength($(JNIEnv *env),
-                                            $(jstring jstr)) } |]
+      (*$(JNIEnv *env))->GetStringLength($(JNIEnv *env),
+                                         $(jstring jstr)) } |]
 
 getIntArrayElements :: JIntArray -> IO (Ptr Int32)
 getIntArrayElements array = withJNIEnv $ \env ->
@@ -363,13 +363,13 @@ getDoubleArrayElements array = withJNIEnv $ \env ->
                                                 $(jdoubleArray array),
                                                 NULL) } |]
 
-getStringUTFChars :: JString -> IO (Ptr CChar)
-getStringUTFChars jstr = withJNIEnv $ \env ->
+getStringChars :: JString -> IO (Ptr Word16)
+getStringChars jstr = withJNIEnv $ \env ->
     throwIfNull $
-    [CU.exp| const char* {
-      (*$(JNIEnv *env))->GetStringUTFChars($(JNIEnv *env),
-                                           $(jstring jstr),
-                                           NULL) } |]
+    [CU.exp| const jchar* {
+      (*$(JNIEnv *env))->GetStringChars($(JNIEnv *env),
+                                        $(jstring jstr),
+                                        NULL) } |]
 
 setIntArrayRegion :: JIntArray -> Int32 -> Int32 -> Ptr Int32 -> IO ()
 setIntArrayRegion array start len buf = withJNIEnv $ \env ->
@@ -417,12 +417,12 @@ releaseByteArrayElements array xs = withJNIEnv $ \env ->
                                                   $(jbyte *xs),
                                                   JNI_ABORT) } |]
 
-releaseStringUTFChars :: JString -> Ptr CChar -> IO ()
-releaseStringUTFChars jstr chars = withJNIEnv $ \env ->
+releaseStringChars :: JString -> Ptr Word16 -> IO ()
+releaseStringChars jstr chars = withJNIEnv $ \env ->
     [CU.exp| void {
-      (*$(JNIEnv *env))->ReleaseStringUTFChars($(JNIEnv *env),
-                                               $(jstring jstr),
-                                               $(char *chars)) } |]
+      (*$(JNIEnv *env))->ReleaseStringChars($(JNIEnv *env),
+                                            $(jstring jstr),
+                                            $(jchar *chars)) } |]
 
 getObjectArrayElement :: JObjectArray -> Int32 -> IO JObject
 getObjectArrayElement array i = withJNIEnv $ \env ->

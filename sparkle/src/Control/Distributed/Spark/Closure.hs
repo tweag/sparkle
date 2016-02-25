@@ -199,12 +199,10 @@ instance Reflect Double ('Base Double) where
 
 instance Reify Text ('Base Text) where
   reify jobj = do
-      -- TODO go via getString instead of getStringUTF, since text also uses
-      -- UTF-16 internally.
-      sz <- getStringUTFLength jobj
-      cs <- getStringUTFChars jobj
-      txt <- Text.decodeUtf8 <$> BS.unsafePackCStringLen (cs, fromIntegral sz)
-      releaseStringUTFChars jobj cs
+      sz <- getStringLength jobj
+      cs <- getStringChars jobj
+      txt <- Text.fromPtr cs (fromIntegral sz)
+      releaseStringChars jobj cs
       return txt
 
 instance Reflect Text ('Base Text) where
