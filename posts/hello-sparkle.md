@@ -270,11 +270,11 @@ benefits:
   time.
 
 Deep within sparkle lies a proto inline-java waiting to break free,
-much in the style of inline-r and inline-c. That is to say, in pursuit
-of running Haskell on Spark, we ended up with most of the basic
-elements to enable writing mixed syntax source files including both
-Java and Haskell for seamless interop. So from here what we'd like to
-do is,
+much in the style of [inline-r][inline-r] and [inline-c][inline-c].
+That is to say, in pursuit of running Haskell on Spark, we ended up
+with most of the basic elements to enable writing mixed syntax source
+files including both Java and Haskell for seamless interop. So from
+here what we'd like to do is,
 
 * build out a true inline-java to make writing bindings to the rest of
   the Spark API that we haven't yet covered far quicker and more
@@ -288,3 +288,6 @@ do is,
   a standardized data model, such as JSON, or protobufs.
 
 In short, plenty of new directions to contribute towards. :)
+
+[inline-c]: https://www.stackage.org/package/inline-c
+[inline-r]: http://tweag.github.io/HaskellR/
