@@ -61,6 +61,9 @@ haskell.buildStackProject {
       openjdk
       spark
       nixpkgs.zip
+      # to fetch distributed-closure
+      git
+      openssh
     ];
   extraArgs = ["--extra-lib-dirs=${jvmlibdir}"];
   LD_LIBRARY_PATH = jvmlibdir;
