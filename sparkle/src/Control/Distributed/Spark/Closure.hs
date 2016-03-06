@@ -110,9 +110,9 @@ instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reify a a', Reflect b b') 
                " to " ++
                show (typeOf (undefined :: b)))
 
--- Floating to top-level due to a limitation of -XStaticPointers.
+-- XXX Floating to top-level due to a limitation of -XStaticPointers.
 --
--- TODO file bug report.
+-- See https://ghc.haskell.org/trac/ghc/ticket/11656.
 
 dict1 :: Dict (Reify Int ('Base Int), Reflect Int ('Base Int))
 dict2 :: Dict (Reify Bool ('Base Bool), Reflect Bool ('Base Bool))
