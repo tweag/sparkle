@@ -23,5 +23,4 @@ haskell.lib.buildStackProject {
       openssh
     ];
   extraArgs = ["--extra-lib-dirs=${jvmlibdir}"];
-  LD_LIBRARY_PATH = jvmlibdir;
 }
