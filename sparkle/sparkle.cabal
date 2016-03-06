@@ -8,6 +8,11 @@ copyright:           2016 Tweag I/O Ltd
 build-type:          Simple
 cabal-version:       >=1.10
 
+source-repository head
+  type:     git
+  location: https://github.com/tweag/sparkle
+  subdir:   sparkle
+
 library
   include-dirs: cbits
   c-sources: cbits/bootstrap.c src/Foreign/Java.c
