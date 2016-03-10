@@ -26,6 +26,9 @@ DIR=$(${STACK_EXE:-stack} path --local-install-root)
 # The following does not work with OS X's 'mktemp'
 # TARGET_DIR=$(mktemp -d)
 # Both OS X and Linux versions seem to support the following though:
+if [ -z "$TMPDIR" ]; then
+	TMPDIR='/tmp'
+fi
 TARGET_DIR=$(mktemp -d $TMPDIR/dirXXX)
 
 
