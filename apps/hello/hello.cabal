@@ -13,4 +13,4 @@ executable sparkle-example-hello
   build-depends: base >=4.7 && <5, distributed-closure, sparkle, text, vector
   default-language: Haskell2010
   ghc-options: -dynamic -lpthread -threaded
-  ld-options: -pie -Wl,-z,origin -Wl,-rpath,$ORIGIN
+  ld-options: -pie
