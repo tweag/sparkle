@@ -26,6 +26,15 @@ newSparkConf appname = do
   _ <- callObjectMethod cnf setAppName [JObject jname]
   return cnf
 
+confSet :: SparkConf -> Text -> Text -> IO ()
+confSet conf key value = do
+  cls <- findClass "org/apache/spark/SparkConf"
+  set <- getMethodID cls "set" "(Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/SparkConf;"
+  jkey <- reflect key
+  jval <- reflect value
+  _    <- callObjectMethod conf set [JObject jkey, JObject jval]
+  return ()
+
 type SparkContext = JObject
 
 newSparkContext :: SparkConf -> IO SparkContext
