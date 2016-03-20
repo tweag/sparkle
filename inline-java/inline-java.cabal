@@ -19,6 +19,7 @@ source-repository head
 library
   hs-source-dirs:      src
   c-sources: src/Foreign/Java.c
+  extra-libraries: jvm
   exposed-modules:
     Foreign.Java
   other-modules:
