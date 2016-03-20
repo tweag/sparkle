@@ -46,24 +46,23 @@ $ stack [--nix] build
 You can optionally pass `--nix` to all Stack commands to ask Nix to
 provision a local Spark and Maven in a local sandbox for good build
 results reproducibility. Otherwise you'll need these installed through
-your OS distribution's package manager for the next steps.
+your OS distribution's package manager for the next steps (and you'll
+need to tell Stack how to find the JVM header files and shared
+libraries).
 
-To package your app:
-
-```
-$ mvn -f sparkle -Dsparkle.app=<app-executable-name> package
-```
-
-or with
+To package your app (omit the square bracket part entirely if you're
+not using `--nix`):
 
 ```
-$ stack --nix exec -- mvn -f sparkle -Dsparkle.app=<app-executable-name> package
+$ [stack --nix exec --] \
+  mvn -f sparkle -Dsparkle.app=<app-executable-name> package
 ```
 
-And finally, to run your application, say locally:
+Finally, to run your application, for example locally:
 
 ```
-$ spark-submit --master 'local[1]' target/sparkle-0.1.jar
+$ [stack --nix exec --] \
+  spark-submit --master 'local[1]' sparkle/target/sparkle-0.1.jar
 ```
 
 See [here][spark-submit] for other options, including lauching
