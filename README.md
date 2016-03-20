@@ -34,6 +34,9 @@ To run a Spark application the process is as follows:
 1. **package** your app into a deployable JAR container;
 1. **submit** it to a local or cluster deployment of Spark.
 
+**If you run into issues, read the Troubleshooting section below
+  first.**
+
 To build:
 
 ```
@@ -70,6 +73,22 @@ a [whole cluster from scratch on EC2][spark-ec2].
 [spark-submit]: http://spark.apache.org/docs/latest/submitting-applications.html
 [spark-ec2]: http://spark.apache.org/docs/latest/ec2-scripts.html
 [nix]: http://nixos.org/nix
+
+## Troubleshooting
+
+### `jvm` library or header files not found
+
+You'll need to tell Stack where to find your local JVM installation.
+Something like the following in your `~/.stack/config.yaml` should do
+the trick, but check that the paths match up what's on your system:
+
+```
+extra-include-dirs: [/usr/lib/jvm/java-7-openjdk-amd64/include]
+extra-lib-dirs: [/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server]
+```
+
+Or use `--nix`: since it won't use your globally installed JDK, it
+will have no trouble finding its own locally installed one.
 
 ## License
 
