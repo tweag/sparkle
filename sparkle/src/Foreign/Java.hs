@@ -153,7 +153,7 @@ envTlsRef = unsafePerformIO $ do
 withJNIEnv :: (Ptr JNIEnv -> IO a) -> IO a
 withJNIEnv f = f =<< getTLS =<< readIORef envTlsRef
 
-findClass :: ByteString -> IO JObject
+findClass :: ByteString -> IO JClass
 findClass name = withJNIEnv $ \env ->
     throwIfException env $
     [C.exp| jclass { (*$(JNIEnv *env))->FindClass($(JNIEnv *env), $bs-ptr:name) } |]
@@ -163,7 +163,7 @@ newObject cls sig args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs -> do
       constr <- getMethodID cls "<init>" sig
-      [CU.exp| jclass {
+      [CU.exp| jobject {
         (*$(JNIEnv *env))->NewObjectA($(JNIEnv *env),
                                       $(jclass cls),
                                       $(jmethodID constr),
@@ -280,7 +280,7 @@ callStaticObjectMethod cls method args = withJNIEnv $ \env ->
     withArray args $ \cargs ->
     [C.exp| jobject {
       (*$(JNIEnv *env))->CallStaticObjectMethodA($(JNIEnv *env),
-                                                 $(jobject cls),
+                                                 $(jclass cls),
                                                  $(jmethodID method),
                                                  $(jvalue *cargs)) } |]
 
@@ -290,7 +290,7 @@ callStaticVoidMethod cls method args = withJNIEnv $ \env ->
     withArray args $ \cargs ->
     [C.exp| void {
       (*$(JNIEnv *env))->CallStaticVoidMethodA($(JNIEnv *env),
-                                               $(jobject cls),
+                                               $(jclass cls),
                                                $(jmethodID method),
                                                $(jvalue *cargs)) } |]
 
@@ -414,7 +414,7 @@ releaseIntArrayElements array xs = withJNIEnv $ \env ->
                                                  $(jint *xs),
                                                  JNI_ABORT) } |]
 
-releaseByteArrayElements :: JIntArray -> Ptr CChar -> IO ()
+releaseByteArrayElements :: JByteArray -> Ptr CChar -> IO ()
 releaseByteArrayElements array xs = withJNIEnv $ \env ->
     [CU.exp| void {
       (*$(JNIEnv *env))->ReleaseByteArrayElements($(JNIEnv *env),
