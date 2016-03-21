@@ -9,15 +9,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Foreign.Java
   ( -- TODO don't export constructors. Only necessary for foreign export, which
     -- ideally we won't need.
     JVM(..)
   , JNIEnv(..)
-  , JObject(..)
+  , J
   , JMethodID
   , JFieldID
+  , JObject
   , JClass
   , JString
   , JArray
@@ -108,11 +110,11 @@ instance Exception ArrayCopyFailed
 -- | Map Java exceptions to Haskell exceptions.
 throwIfException :: Ptr JNIEnv -> IO a -> IO a
 throwIfException env m = m `finally` do
-    JObject_ excptr <- [CU.exp| jthrowable { (*$(JNIEnv *env))->ExceptionOccurred($(JNIEnv *env)) } |]
+    J excptr <- [CU.exp| jthrowable { (*$(JNIEnv *env))->ExceptionOccurred($(JNIEnv *env)) } |]
     unless (excptr == nullPtr) $ do
       [CU.exp| void { (*$(JNIEnv *env))->ExceptionDescribe($(JNIEnv *env)) } |]
       [CU.exp| void { (*$(JNIEnv *env))->ExceptionClear($(JNIEnv *env)) } |]
-      throwIO $ JavaException (JObject_ excptr)
+      throwIO $ JavaException (J excptr)
 
 -- | Check whether a pointer is null.
 throwIfNull :: IO (Ptr a) -> IO (Ptr a)
@@ -332,8 +334,8 @@ newString ptr len = withJNIEnv $ \env ->
                                    $(jchar *ptr),
                                    $(jsize len)) } |]
 
-getArrayLength :: JArray -> IO Int32
-getArrayLength array = withJNIEnv $ \env ->
+getArrayLength :: JArray a -> IO Int32
+getArrayLength (jobject -> array) = withJNIEnv $ \env ->
     [C.exp| jsize {
       (*$(JNIEnv *env))->GetArrayLength($(JNIEnv *env),
                                         $(jarray array)) } |]
