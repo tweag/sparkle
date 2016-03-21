@@ -87,7 +87,6 @@ import System.IO.Unsafe (unsafePerformIO)
 
 C.context (C.baseCtx <> C.bsCtx <> jniCtx)
 
-C.include "sparkle.h"
 C.include "<jni.h>"
 C.include "<errno.h>"
 C.include "<stdlib.h>"
@@ -130,11 +129,15 @@ envTlsRef = unsafePerformIO $ do
     -- It doesn't matter if this computation ends up running twice, say because
     -- of lazy blackholing.
     !tls <- mkTLS $ [C.block| JNIEnv* {
-      JavaVM *jvm = sparkle_jvm;
+      jsize num_jvms;
+      JavaVM *jvm;
+      /* Assume there's at most one JVM. The current JNI spec (2016) says only
+       * one JVM per process is supported anyways. */
+      JNI_GetCreatedJavaVMs(&jvm, 1, &num_jvms);
       JNIEnv *env;
 
-      if(!jvm) {
-              fprintf(stderr, "Sparkle JVM not set.\n");
+      if(!num_jvms) {
+              fprintf(stderr, "No JVM has been initialized yet.\n");
               exit(EFAULT);
       }
 
