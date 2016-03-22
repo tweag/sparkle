@@ -54,7 +54,7 @@ data JValue
   | JLong Int64
   | JFloat Float
   | JDouble Double
-  | JObject JObject
+  | forall a. JObject (J a)
 
 instance Storable JValue where
   sizeOf _ = 8

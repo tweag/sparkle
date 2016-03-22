@@ -94,7 +94,7 @@ instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reify a a', Reflect b b') 
   reflect f = do
       klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
       jpayload <- reflect (clos2bs (fromJust wrap))
-      fmap fromObject $ newObject klass "([B)V" [JObject $ toObject jpayload]
+      fmap fromObject $ newObject klass "([B)V" [JObject jpayload]
     where
       -- TODO this type dispatch is a gross temporary hack! For until we get the
       -- instance commented out below to work.
