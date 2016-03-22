@@ -56,10 +56,10 @@ type family Uncurry a where
   Uncurry a = 'Base a
 
 class (Uncurry a ~ b, Typeable a, Typeable b) => Reify a b where
-  reify :: JObject -> IO a
+  reify :: J a -> IO a
 
 class (Uncurry a ~ b, Typeable a, Typeable b) => Reflect a b where
-  reflect :: a -> IO JObject
+  reflect :: a -> IO (J a)
 
 apply
   :: JByteArray
@@ -85,7 +85,7 @@ instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reflect a a', Reify b b') 
   reify jobj = do
       klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
       field <- getFieldID klass "clos" "[B"
-      jpayload <- getObjectField jobj field
+      jpayload <- fmap unsafeCast $ getObjectField jobj field
       payload <- reify jpayload
       return (bs2clos payload)
 
@@ -94,7 +94,7 @@ instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reify a a', Reflect b b') 
   reflect f = do
       klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
       jpayload <- reflect (clos2bs (fromJust wrap))
-      newObject klass "([B)V" [JObject jpayload]
+      fmap unsafeCast $ newObject klass "([B)V" [JObject jpayload]
     where
       -- TODO this type dispatch is a gross temporary hack! For until we get the
       -- instance commented out below to work.
@@ -125,9 +125,13 @@ dict3 = Dict
 dict4 = Dict
 dict5 = Dict
 
-closFun1 :: Dict (Reify a a', Reflect b b') -> (a -> b) -> JObjectArray -> IO JObject
+closFun1
+  :: Dict (Reify a a', Reflect b b')
+  -> (a -> b)
+  -> JObjectArray
+  -> IO JObject
 closFun1 Dict f args =
-    reflect =<< return . f =<< reify =<< getObjectArrayElement args 0
+    fmap upcast . reflect =<< return . f =<< reify . unsafeCast =<< getObjectArrayElement args 0
 
 -- instance (Uncurry (Closure (a -> b)) ~ Fun '[a'] b', Reflect a a', Reify b b') =>
 --          Reify (Closure (a -> b)) (Fun '[a'] b') where
@@ -145,7 +149,7 @@ closFun1 Dict f args =
 
 instance Reify ByteString ('Base ByteString) where
   reify jobj = do
-      n <- getArrayLength jobj
+      n <- unsafeGetArrayLength jobj
       bytes <- getByteArrayElements jobj
       -- TODO could use unsafePackCStringLen instead and avoid a copy if we knew
       -- that been handed an (immutable) copy via JNI isCopy ref.
@@ -168,7 +172,8 @@ instance Reify Bool ('Base Bool) where
 instance Reflect Bool ('Base Bool) where
   reflect x = do
       klass <- findClass "java/lang/Boolean"
-      newObject klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
+      fmap unsafeCast $
+        newObject klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
 
 instance Reify Int ('Base Int) where
   reify jobj = do
@@ -179,7 +184,8 @@ instance Reify Int ('Base Int) where
 instance Reflect Int ('Base Int) where
   reflect x = do
       klass <- findClass "java/lang/Integer"
-      newObject klass "(L)V" [JInt (fromIntegral x)]
+      fmap unsafeCast $
+        newObject klass "(L)V" [JInt (fromIntegral x)]
 
 instance Reify Double ('Base Double) where
   reify jobj = do
@@ -190,7 +196,7 @@ instance Reify Double ('Base Double) where
 instance Reflect Double ('Base Double) where
   reflect x = do
       klass <- findClass "java/lang/Double"
-      newObject klass "(D)V" [JDouble x]
+      fmap unsafeCast $ newObject klass "(D)V" [JDouble x]
 
 instance Reify Text ('Base Text) where
   reify jobj = do
@@ -212,17 +218,19 @@ instance Reflect (IOVector Int32) ('Base (IOVector Int32)) where
   reflect = reflectMVector (newIntArray) (setIntArrayRegion)
 
 instance Reify (Vector Int32) ('Base (Vector Int32)) where
-  reify = Vector.freeze <=< reify
+  reify = Vector.freeze <=< reify . unsafeCast
 
 instance Reflect (Vector Int32) ('Base (Vector Int32)) where
-  reflect = reflect <=< Vector.thaw
+  reflect = fmap unsafeCast . reflect <=< Vector.thaw
 
 instance Reify a (Uncurry a) => Reify [a] ('Base [a]) where
   reify jobj = do
-      n <- getArrayLength jobj
+      n <- getArrayLength jobj'
       forM [0..n-1] $ \i -> do
-        x <- getObjectArrayElement jobj i
-        reify x
+        x <- getObjectArrayElement jobj' i
+        reify (unsafeCast x)
+    where
+      jobj' = unsafeCast jobj
 
 instance Reflect a (Uncurry a) => Reflect [a] ('Base [a]) where
   reflect xs = do
@@ -231,7 +239,7 @@ instance Reflect a (Uncurry a) => Reflect [a] ('Base [a]) where
     array <- newObjectArray n klass
     forM_ (zip [0..n-1] xs) $ \(i, x) -> do
       setObjectArrayElement array i =<< reflect x
-    return array
+    return (unsafeCast array)
 
 foreign import ccall "wrapper" wrapFinalizer
   :: (Ptr a -> IO ())
@@ -239,9 +247,9 @@ foreign import ccall "wrapper" wrapFinalizer
 
 reifyMVector
   :: Storable a
-  => (JArray -> IO (Ptr a))
-  -> (JArray -> Ptr a -> IO ())
-  -> JArray
+  => (JArray a -> IO (Ptr a))
+  -> (JArray a -> Ptr a -> IO ())
+  -> JArray a
   -> IO (IOVector a)
 reifyMVector mk finalize jobj = do
     n <- getArrayLength jobj
@@ -252,10 +260,10 @@ reifyMVector mk finalize jobj = do
 
 reflectMVector
   :: Storable a
-  => (Int32 -> IO JArray)
-  -> (JArray -> Int32 -> Int32 -> Ptr a -> IO ())
+  => (Int32 -> IO (JArray a))
+  -> (JArray a -> Int32 -> Int32 -> Ptr a -> IO ())
   -> IOVector a
-  -> IO JArray
+  -> IO (JArray a)
 reflectMVector new fill mv = do
     let (fptr, n) = MVector.unsafeToForeignPtr0 mv
     jobj <- new (fromIntegral n)

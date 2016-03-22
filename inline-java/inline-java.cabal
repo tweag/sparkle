@@ -29,5 +29,7 @@ library
     containers >=0.5,
     bytestring >=0.10,
     inline-c >=0.5,
-    thread-local-storage >=0.1
+    text >=1.2,
+    thread-local-storage >=0.1,
+    vector >=0.11
   default-language:    Haskell2010
