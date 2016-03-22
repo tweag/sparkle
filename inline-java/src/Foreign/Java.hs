@@ -72,7 +72,6 @@ module Foreign.Java
   , getObjectArrayElement
   , setObjectArrayElement
   , unsafeGetArrayLength
-  , unsafeCast
   ) where
 
 import Control.Exception (Exception, finally, throwIO)
