@@ -35,8 +35,8 @@ module Foreign.Java
   , JDoubleArray
   , JThrowable
   , JValue(..)
-  , fromObject
-  , toObject
+  , unsafeCast
+  , upcast
   , findClass
   , newObject
   , getFieldID
@@ -189,14 +189,12 @@ getFieldID cls fieldname sig = withJNIEnv $ \env ->
                                     $bs-ptr:sig) } |]
 
 getObjectField :: J a -> JFieldID -> IO (J Object)
-getObjectField obj field = withJNIEnv $ \env ->
+getObjectField (upcast -> obj) field = withJNIEnv $ \env ->
     throwIfException env $
     [CU.exp| jobject {
       (*$(JNIEnv *env))->GetObjectField($(JNIEnv *env),
-                                        $(jobject obj'),
+                                        $(jobject obj),
                                         $(jfieldID field)) } |]
-
-  where obj' = toObject obj
 
 getMethodID :: JClass -> ByteString -> ByteString -> IO JMethodID
 getMethodID cls methodname sig = withJNIEnv $ \env ->
@@ -217,88 +215,74 @@ getStaticMethodID cls methodname sig = withJNIEnv $ \env ->
                                            $bs-ptr:sig) } |]
 
 callObjectMethod :: J a -> JMethodID -> [JValue] -> IO (J Object)
-callObjectMethod obj method args = withJNIEnv $ \env ->
+callObjectMethod (upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jobject {
       (*$(JNIEnv *env))->CallObjectMethodA($(JNIEnv *env),
-                                           $(jobject obj'),
+                                           $(jobject obj),
                                            $(jmethodID method),
                                            $(jvalue *cargs)) } |]
 
-  where obj' = toObject obj
-
 callBooleanMethod :: J a -> JMethodID -> [JValue] -> IO Word8
-callBooleanMethod obj method args = withJNIEnv $ \env ->
+callBooleanMethod (upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jboolean {
       (*$(JNIEnv *env))->CallBooleanMethodA($(JNIEnv *env),
-                                         $(jobject obj'),
+                                         $(jobject obj),
                                          $(jmethodID method),
                                          $(jvalue *cargs)) } |]
 
-  where obj' = toObject obj
-
 callIntMethod :: J a -> JMethodID -> [JValue] -> IO Int32
-callIntMethod obj method args = withJNIEnv $ \env ->
+callIntMethod (upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jint {
       (*$(JNIEnv *env))->CallIntMethodA($(JNIEnv *env),
-                                        $(jobject obj'),
+                                        $(jobject obj),
                                         $(jmethodID method),
                                         $(jvalue *cargs)) } |]
 
-  where obj' = toObject obj
-
 callLongMethod :: J a -> JMethodID -> [JValue] -> IO Int64
-callLongMethod obj method args = withJNIEnv $ \env ->
+callLongMethod (upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jlong {
       (*$(JNIEnv *env))->CallLongMethodA($(JNIEnv *env),
-                                         $(jobject obj'),
+                                         $(jobject obj),
                                          $(jmethodID method),
                                          $(jvalue *cargs)) } |]
 
-  where obj' = toObject obj
-
 callByteMethod :: J a -> JMethodID -> [JValue] -> IO CChar
-callByteMethod obj method args = withJNIEnv $ \env ->
+callByteMethod (upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jbyte {
       (*$(JNIEnv *env))->CallByteMethodA($(JNIEnv *env),
-                                         $(jobject obj'),
+                                         $(jobject obj),
                                          $(jmethodID method),
                                          $(jvalue *cargs)) } |]
 
-  where obj' = toObject obj
-
 callDoubleMethod :: J a -> JMethodID -> [JValue] -> IO Double
-callDoubleMethod obj method args = withJNIEnv $ \env ->
+callDoubleMethod (upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jdouble {
       (*$(JNIEnv *env))->CallDoubleMethodA($(JNIEnv *env),
-                                           $(jobject obj'),
+                                           $(jobject obj),
                                            $(jmethodID method),
                                            $(jvalue *cargs)) } |]
 
-  where obj' = toObject obj
-
 callVoidMethod :: J a -> JMethodID -> [JValue] -> IO ()
-callVoidMethod obj method args = withJNIEnv $ \env ->
+callVoidMethod (upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| void {
       (*$(JNIEnv *env))->CallVoidMethodA($(JNIEnv *env),
-                                         $(jobject obj'),
+                                         $(jobject obj),
                                          $(jmethodID method),
                                          $(jvalue *cargs)) } |]
-
-  where obj' = toObject obj
 
 callStaticObjectMethod :: JClass -> JMethodID -> [JValue] -> IO (J Object)
 callStaticObjectMethod cls method args = withJNIEnv $ \env ->
@@ -359,13 +343,13 @@ newString ptr len = withJNIEnv $ \env ->
                                    $(jsize len)) } |]
 
 getArrayLength :: JArray a -> IO Int32
-getArrayLength (toObject -> array) = withJNIEnv $ \env ->
+getArrayLength (upcast -> array) = withJNIEnv $ \env ->
     [C.exp| jsize {
       (*$(JNIEnv *env))->GetArrayLength($(JNIEnv *env),
                                         $(jarray array)) } |]
 
 unsafeGetArrayLength :: J a -> IO Int32
-unsafeGetArrayLength (toObject -> array) = withJNIEnv $ \env ->
+unsafeGetArrayLength (upcast -> array) = withJNIEnv $ \env ->
     [C.exp| jsize {
       (*$(JNIEnv *env))->GetArrayLength($(JNIEnv *env),
                                         $(jarray array)) } |]

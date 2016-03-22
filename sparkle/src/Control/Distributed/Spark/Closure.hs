@@ -85,7 +85,7 @@ instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reflect a a', Reify b b') 
   reify jobj = do
       klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
       field <- getFieldID klass "clos" "[B"
-      jpayload <- fmap fromObject $ getObjectField jobj field
+      jpayload <- fmap unsafeCast $ getObjectField jobj field
       payload <- reify jpayload
       return (bs2clos payload)
 
@@ -94,7 +94,7 @@ instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reify a a', Reflect b b') 
   reflect f = do
       klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
       jpayload <- reflect (clos2bs (fromJust wrap))
-      fmap fromObject $ newObject klass "([B)V" [JObject jpayload]
+      fmap unsafeCast $ newObject klass "([B)V" [JObject jpayload]
     where
       -- TODO this type dispatch is a gross temporary hack! For until we get the
       -- instance commented out below to work.
@@ -125,9 +125,13 @@ dict3 = Dict
 dict4 = Dict
 dict5 = Dict
 
-closFun1 :: Dict (Reify a a', Reflect b b') -> (a -> b) -> JObjectArray -> IO (J Object)
+closFun1
+  :: Dict (Reify a a', Reflect b b')
+  -> (a -> b)
+  -> JObjectArray
+  -> IO JObject
 closFun1 Dict f args =
-    fmap toObject . reflect =<< return . f =<< reify . fromObject =<< getObjectArrayElement args 0
+    fmap upcast . reflect =<< return . f =<< reify . unsafeCast =<< getObjectArrayElement args 0
 
 -- instance (Uncurry (Closure (a -> b)) ~ Fun '[a'] b', Reflect a a', Reify b b') =>
 --          Reify (Closure (a -> b)) (Fun '[a'] b') where
@@ -168,7 +172,7 @@ instance Reify Bool ('Base Bool) where
 instance Reflect Bool ('Base Bool) where
   reflect x = do
       klass <- findClass "java/lang/Boolean"
-      fmap fromObject $
+      fmap unsafeCast $
         newObject klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
 
 instance Reify Int ('Base Int) where
@@ -180,7 +184,7 @@ instance Reify Int ('Base Int) where
 instance Reflect Int ('Base Int) where
   reflect x = do
       klass <- findClass "java/lang/Integer"
-      fmap fromObject $
+      fmap unsafeCast $
         newObject klass "(L)V" [JInt (fromIntegral x)]
 
 instance Reify Double ('Base Double) where
@@ -192,7 +196,7 @@ instance Reify Double ('Base Double) where
 instance Reflect Double ('Base Double) where
   reflect x = do
       klass <- findClass "java/lang/Double"
-      fmap fromObject $ newObject klass "(D)V" [JDouble x]
+      fmap unsafeCast $ newObject klass "(D)V" [JDouble x]
 
 instance Reify Text ('Base Text) where
   reify jobj = do
@@ -224,9 +228,9 @@ instance Reify a (Uncurry a) => Reify [a] ('Base [a]) where
       n <- getArrayLength jobj'
       forM [0..n-1] $ \i -> do
         x <- getObjectArrayElement jobj' i
-        reify (fromObject x)
-
-    where jobj' = unsafeCast jobj
+        reify (unsafeCast x)
+    where
+      jobj' = unsafeCast jobj
 
 instance Reflect a (Uncurry a) => Reflect [a] ('Base [a]) where
   reflect xs = do
@@ -234,7 +238,7 @@ instance Reflect a (Uncurry a) => Reflect [a] ('Base [a]) where
     klass <- findClass "java/lang/Object"
     array <- newObjectArray n klass
     forM_ (zip [0..n-1] xs) $ \(i, x) -> do
-      setObjectArrayElement array i . toObject =<< reflect x
+      setObjectArrayElement array i . upcast =<< reflect x
     return (unsafeCast array)
 
 foreign import ccall "wrapper" wrapFinalizer

@@ -18,7 +18,7 @@ newSparkConf :: Text -> IO (J SparkConf)
 newSparkConf appname = do
   cls <- findClass "org/apache/spark/SparkConf"
   setAppName <- getMethodID cls "setAppName" "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;"
-  cnf <- fmap fromObject $ newObject cls "()V" []
+  cnf <- fmap unsafeCast $ newObject cls "()V" []
   jname <- reflect appname
   _ <- callObjectMethod cnf setAppName [JObject jname]
   return cnf
@@ -37,7 +37,7 @@ data SparkContext
 newSparkContext :: J SparkConf -> IO (J SparkContext)
 newSparkContext conf = do
   cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
-  fmap fromObject $ newObject cls "(Lorg/apache/spark/SparkConf;)V" [JObject conf]
+  fmap unsafeCast $ newObject cls "(Lorg/apache/spark/SparkConf;)V" [JObject conf]
 
 data RDD a
 
@@ -64,7 +64,7 @@ filter clos rdd = do
     f <- reflect clos
     klass <- findClass "org/apache/spark/api/java/JavaRDD"
     method <- getMethodID klass "filter" "(Lorg/apache/spark/api/java/function/Function;)Lorg/apache/spark/api/java/JavaRDD;"
-    fmap fromObject $ callObjectMethod rdd method [JObject f]
+    fmap unsafeCast $ callObjectMethod rdd method [JObject f]
 
 count :: J (RDD a) -> IO Int64
 count rdd = do
@@ -80,7 +80,7 @@ collect rdd = do
   aklass <- findClass "java/util/ArrayList"
   atoarr <- getMethodID aklass "toArray" "()[Ljava/lang/Object;"
   arr    <- callObjectMethod alst atoarr []
-  reify (fromObject arr)
+  reify (unsafeCast arr)
 
 
 data PairRDD a b
@@ -89,7 +89,7 @@ zipWithIndex :: J (RDD a) -> IO (J (PairRDD Int64 a))
 zipWithIndex rdd = do
   cls <- findClass "org/apache/spark/api/java/JavaRDD"
   method <- getMethodID cls "zipWithIndex" "()Lorg/apache/spark/api/java/JavaPairRDD;"
-  fmap fromObject $ callObjectMethod rdd method []
+  fmap unsafeCast $ callObjectMethod rdd method []
 
 
 textFile :: J SparkContext -> FilePath -> IO (J (RDD Text))
@@ -97,7 +97,7 @@ textFile sc path = do
   jpath <- reflect (Text.pack path)
   cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
   method <- getMethodID cls "textFile" "(Ljava/lang/String;)Lorg/apache/spark/api/java/JavaRDD;"
-  fmap fromObject $ callObjectMethod sc method [JObject jpath]
+  fmap unsafeCast $ callObjectMethod sc method [JObject jpath]
 
 
 wholeTextFiles :: J SparkContext -> Text -> IO (J (PairRDD Text Text))
@@ -105,14 +105,14 @@ wholeTextFiles sc uri = do
   juri <- reflect uri
   cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
   method <- getMethodID cls "wholeTextFiles" "(Ljava/lang/String;)Lorg/apache/spark/api/java/JavaPairRDD;"
-  fmap fromObject $ callObjectMethod sc method [JObject $ toObject juri]
+  fmap unsafeCast $ callObjectMethod sc method [JObject juri]
 
 
 justValues :: J (PairRDD a b) -> IO (J (RDD b))
 justValues prdd = do
   cls <- findClass "org/apache/spark/api/java/JavaPairRDD"
   values <- getMethodID cls "values" "()Lorg/apache/spark/api/java/JavaRDD;"
-  fmap fromObject $ callObjectMethod prdd values []
+  fmap unsafeCast $ callObjectMethod prdd values []
 
 
 data SQLContext
@@ -121,7 +121,7 @@ data SQLContext
 newSQLContext :: J SparkContext -> IO (J SQLContext)
 newSQLContext sc = do
   cls <- findClass "org/apache/spark/sql/SQLContext"
-  fmap fromObject $
+  fmap unsafeCast $
     newObject cls "(Lorg/apache/spark/api/java/JavaSparkContext;)V" [JObject sc]
 
 
@@ -133,7 +133,7 @@ toRows :: J (PairRDD a b) -> IO (J (RDD Row))
 toRows prdd = do
   cls <- findClass "Helper"
   mth <- getStaticMethodID cls "toRows" "(Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/api/java/JavaRDD;"
-  fmap fromObject $ callStaticObjectMethod cls mth [JObject prdd]
+  fmap unsafeCast $ callStaticObjectMethod cls mth [JObject prdd]
 
 
 toDF :: J SQLContext -> J (RDD Row) -> Text -> Text -> IO (J DataFrame)
@@ -142,7 +142,7 @@ toDF sqlc rdd s1 s2 = do
   mth <- getStaticMethodID cls "toDF" "(Lorg/apache/spark/sql/SQLContext;Lorg/apache/spark/api/java/JavaRDD;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/sql/DataFrame;"
   col1 <- reflect s1
   col2 <- reflect s2
-  fmap fromObject $
+  fmap unsafeCast $
     callStaticObjectMethod cls mth [ JObject sqlc
                                    , JObject rdd
                                    , JObject col1
@@ -164,7 +164,7 @@ newTokenizer icol ocol = do
   jocol <- reflect ocol
   helper <- findClass "Helper"
   setuptok <- getStaticMethodID helper "setupTokenizer" "(Lorg/apache/spark/ml/feature/RegexTokenizer;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
-  fmap fromObject $
+  fmap unsafeCast $
     callStaticObjectMethod helper setuptok [ JObject tok0
                                            , JObject jicol
                                            , JObject jocol
@@ -176,7 +176,7 @@ tokenize :: J RegexTokenizer -> J DataFrame -> IO (J DataFrame)
 tokenize tok df = do
   cls <- findClass "org/apache/spark/ml/feature/RegexTokenizer"
   mth <- getMethodID cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
-  fmap fromObject $
+  fmap unsafeCast $
     callObjectMethod tok mth [JObject df]
 
 data StopWordsRemover
@@ -195,7 +195,7 @@ newStopWordsRemover stopwords icol ocol = do
   jicol <- reflect icol
   jocol <- reflect ocol
   swr3 <- callObjectMethod swr2 seticol [JObject jicol]
-  fmap fromObject $
+  fmap unsafeCast $
     callObjectMethod swr3 setocol [JObject jocol]
 
 
@@ -203,7 +203,7 @@ removeStopWords :: J StopWordsRemover -> J DataFrame -> IO (J DataFrame)
 removeStopWords sw df = do
   cls <- findClass "org/apache/spark/ml/feature/StopWordsRemover"
   mth <- getMethodID cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
-  fmap fromObject $ callObjectMethod sw mth [JObject df]
+  fmap unsafeCast $ callObjectMethod sw mth [JObject df]
 
 data CountVectorizer
 
@@ -218,7 +218,7 @@ newCountVectorizer vocSize icol ocol = do
   jfeatures <- reflect ocol
   cv'' <- callObjectMethod cv' setOutc [JObject jfeatures]
   setVocSize <- getMethodID cls "setVocabSize" "(I)Lorg/apache/spark/ml/feature/CountVectorizer;"
-  fmap fromObject $ callObjectMethod cv'' setVocSize [JInt vocSize]
+  fmap unsafeCast $ callObjectMethod cv'' setVocSize [JInt vocSize]
 
 
 data CountVectorizerModel
@@ -227,7 +227,7 @@ fitCV :: J CountVectorizer -> J DataFrame -> IO (J CountVectorizerModel)
 fitCV cv df = do
   cls <- findClass "org/apache/spark/ml/feature/CountVectorizer"
   mth <- getMethodID cls "fit" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/ml/feature/CountVectorizerModel;"
-  fmap fromObject $ callObjectMethod cv mth [JObject df]
+  fmap unsafeCast $ callObjectMethod cv mth [JObject df]
 
 data SparkVector
 
@@ -243,7 +243,7 @@ toTokenCounts cvModel df col1 col2 = do
   jcol1 <- reflect col1
   jcol2 <- reflect col2
   rdd <- callStaticObjectMethod helper fromDF [JObject df', JObject jcol1, JObject jcol2]
-  fmap fromObject $ callStaticObjectMethod helper fromRows [JObject rdd]
+  fmap unsafeCast $ callStaticObjectMethod helper fromRows [JObject rdd]
 
 
 data LDA
@@ -276,7 +276,7 @@ newLDA frac numTopics maxIterations = do
   setTopicConc <- getMethodID cls "setTopicConcentration" "(D)Lorg/apache/spark/mllib/clustering/LDA;"
   lda''''' <- callObjectMethod lda'''' setTopicConc [JDouble $ negate 1]
 
-  return (fromObject lda''''')
+  return (unsafeCast lda''''')
 
 
 
@@ -286,7 +286,7 @@ runLDA :: J LDA -> J (PairRDD CLong SparkVector) -> IO (J LDAModel)
 runLDA lda rdd = do
   cls <- findClass "Helper"
   run <- getStaticMethodID cls "runLDA" "(Lorg/apache/spark/mllib/clustering/LDA;Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/mllib/clustering/LDAModel;"
-  fmap fromObject $
+  fmap unsafeCast $
     callStaticObjectMethod cls run [JObject lda, JObject rdd]
 
 describeResults :: J LDAModel -> J CountVectorizerModel -> Int32 -> IO ()
@@ -303,7 +303,7 @@ selectDF df (col:cols) = do
   mth <- getMethodID cls "select" "(Ljava/lang/String;[Ljava/lang/String;)Lorg/apache/spark/sql/DataFrame;"
   jcol <- reflect col
   jcols <- reflect cols
-  fmap fromObject $
+  fmap unsafeCast $
     callObjectMethod df mth [JObject jcol, JObject jcols]
 
 debugDF :: J DataFrame -> IO ()

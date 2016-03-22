@@ -35,13 +35,10 @@ newtype J a = J (Ptr (J a))
   deriving (Eq, Show, Storable)
 
 -- | Any object can be cast to @Object@.
-toObject :: J a -> J Object
-toObject (J x) = J (castPtr x)
+upcast :: J a -> J Object
+upcast (J x) = J (castPtr x)
 
--- | (Unsafe) downcast from @Object@
-fromObject :: J Object -> J a
-fromObject (J x) = J (castPtr x)
-
+-- | Unsafe type cast. Should only be used to downcast.
 unsafeCast :: J a -> J b
 unsafeCast (J x) = J (castPtr x)
 
