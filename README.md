@@ -34,6 +34,9 @@ To run a Spark application the process is as follows:
 1. **package** your app into a deployable JAR container;
 1. **submit** it to a local or cluster deployment of Spark.
 
+**If you run into issues, read the Troubleshooting section below
+  first.**
+
 To build:
 
 ```
@@ -43,24 +46,23 @@ $ stack [--nix] build
 You can optionally pass `--nix` to all Stack commands to ask Nix to
 provision a local Spark and Maven in a local sandbox for good build
 results reproducibility. Otherwise you'll need these installed through
-your OS distribution's package manager for the next steps.
+your OS distribution's package manager for the next steps (and you'll
+need to tell Stack how to find the JVM header files and shared
+libraries).
 
-To package your app:
-
-```
-$ mvn -f sparkle -Dsparkle.app=<app-executable-name> package
-```
-
-or with
+To package your app (omit the square bracket part entirely if you're
+not using `--nix`):
 
 ```
-$ stack --nix exec -- mvn -f sparkle -Dsparkle.app=<app-executable-name> package
+$ [stack --nix exec --] \
+  mvn -f sparkle -Dsparkle.app=<app-executable-name> package
 ```
 
-And finally, to run your application, say locally:
+Finally, to run your application, for example locally:
 
 ```
-$ spark-submit --master 'local[1]' target/sparkle-0.1.jar
+$ [stack --nix exec --] \
+  spark-submit --master 'local[1]' sparkle/target/sparkle-0.1.jar
 ```
 
 See [here][spark-submit] for other options, including lauching
@@ -70,6 +72,22 @@ a [whole cluster from scratch on EC2][spark-ec2].
 [spark-submit]: http://spark.apache.org/docs/latest/submitting-applications.html
 [spark-ec2]: http://spark.apache.org/docs/latest/ec2-scripts.html
 [nix]: http://nixos.org/nix
+
+## Troubleshooting
+
+### `jvm` library or header files not found
+
+You'll need to tell Stack where to find your local JVM installation.
+Something like the following in your `~/.stack/config.yaml` should do
+the trick, but check that the paths match up what's on your system:
+
+```
+extra-include-dirs: [/usr/lib/jvm/java-7-openjdk-amd64/include]
+extra-lib-dirs: [/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server]
+```
+
+Or use `--nix`: since it won't use your globally installed JDK, it
+will have no trouble finding its own locally installed one.
 
 ## License
 

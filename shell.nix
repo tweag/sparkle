@@ -4,7 +4,7 @@ with nixpkgs;
 with stdenv.lib;
 
 let
-  spark = import ./spark-1.6.0.nix { inherit (nixpkgs) stdenv fetchurl makeWrapper jre pythonPackages mesos; mesosSupport = false; };
+  spark = nixpkgs.spark.override { mesosSupport = false; };
 
   jvmlibdir =
     if stdenv.isLinux

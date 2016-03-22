@@ -16,7 +16,8 @@ dependencies:
   - curl -L --retry 3 https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
   - stack --no-terminal setup
   # XXX Roundabout method due to CircleCI parser bug.
-  - echo 'extra-include-dirsCOLON [/usr/lib/jvm/java-7-openjdk-amd64/include]' > ~/.stack/config.yaml
+  - echo 'extra-include-dirsCOLON [/usr/lib/jvm/java-7-openjdk-amd64/include]' >> ~/.stack/config.yaml
+  - echo 'extra-lib-dirsCOLON [/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server]' >> ~/.stack/config.yaml
   - sed -i s/COLON/:/ ~/.stack/config.yaml
   - stack --no-terminal build --only-snapshot --prefetch
 
