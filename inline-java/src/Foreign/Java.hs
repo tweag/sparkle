@@ -452,8 +452,8 @@ getObjectArrayElement array i = withJNIEnv $ \env ->
                                                $(jobjectArray array),
                                                $(jsize i)) } |]
 
-setObjectArrayElement :: JObjectArray -> Int32 -> J Object -> IO ()
-setObjectArrayElement array i x = withJNIEnv $ \env ->
+setObjectArrayElement :: JObjectArray -> Int32 -> J a -> IO ()
+setObjectArrayElement array i (upcast -> x) = withJNIEnv $ \env ->
     [C.exp| void {
       (*$(JNIEnv *env))->SetObjectArrayElement($(JNIEnv *env),
                                                $(jobjectArray array),

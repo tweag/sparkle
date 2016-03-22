@@ -238,7 +238,7 @@ instance Reflect a (Uncurry a) => Reflect [a] ('Base [a]) where
     klass <- findClass "java/lang/Object"
     array <- newObjectArray n klass
     forM_ (zip [0..n-1] xs) $ \(i, x) -> do
-      setObjectArrayElement array i . upcast =<< reflect x
+      setObjectArrayElement array i =<< reflect x
     return (unsafeCast array)
 
 foreign import ccall "wrapper" wrapFinalizer
