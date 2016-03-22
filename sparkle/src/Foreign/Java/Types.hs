@@ -6,6 +6,7 @@
 
 module Foreign.Java.Types where
 
+import Data.ByteString (ByteString)
 import Data.Int
 import Data.Map (fromList)
 import Data.Text (Text)
@@ -34,8 +35,15 @@ newtype J a = J (Ptr (J a))
   deriving (Eq, Show, Storable)
 
 -- | Any object can be cast to @Object@.
-jobject :: J a -> J Object
-jobject (J x) = J (castPtr x)
+toObject :: J a -> J Object
+toObject (J x) = J (castPtr x)
+
+-- | (Unsafe) downcast from @Object@
+fromObject :: J Object -> J a
+fromObject (J x) = J (castPtr x)
+
+unsafeCast :: J a -> J b
+unsafeCast (J x) = J (castPtr x)
 
 data JValue
   = JBoolean Word8
@@ -72,9 +80,10 @@ type JObject = J Object
 type JClass = J Class
 type JString = J Text
 type JArray a = J (IOVector a)
-type JObjectArray = J (IOVector SomeJObject)
+type JObjectArray = J (IOVector JObject)
 type JBooleanArray = J (IOVector Bool)
-type JByteArray = J (IOVector CChar)
+-- type JByteArray = J (IOVector CChar)
+type JByteArray = J ByteString
 type JCharArray = J (IOVector Word16)
 type JShortArray = J (IOVector Int16)
 type JIntArray = J (IOVector Int32)
