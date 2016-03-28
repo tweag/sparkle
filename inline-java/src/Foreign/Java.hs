@@ -18,14 +18,16 @@
 {-# LANGUAGE ViewPatterns #-}
 
 module Foreign.Java
-  ( -- TODO don't export constructors. Only necessary for foreign export, which
-    -- ideally we won't need.
-    JVM(..)
+  ( -- * JNI types
+    J(..)
+  , upcast
+  , unsafeCast
+  , JVM(..)
   , JNIEnv(..)
-  , J(..)
-  , Object
-  , JMethodID
-  , JFieldID
+  , JMethodID(..)
+  , JFieldID(..)
+  , JValue(..)
+    -- * JNI defined object types
   , JObject
   , JClass
   , JString
@@ -40,15 +42,14 @@ module Foreign.Java
   , JFloatArray
   , JDoubleArray
   , JThrowable
-  , JValue(..)
-  , unsafeCast
-  , upcast
+    -- * JNI functions
+    -- ** Query functions
   , findClass
-  , newObject
   , getFieldID
   , getObjectField
   , getMethodID
   , getStaticMethodID
+    -- ** Method invocation
   , callObjectMethod
   , callBooleanMethod
   , callIntMethod
@@ -58,11 +59,14 @@ module Foreign.Java
   , callVoidMethod
   , callStaticObjectMethod
   , callStaticVoidMethod
+    -- ** Object construction
+  , newObject
   , newIntArray
   , newDoubleArray
   , newByteArray
   , newObjectArray
   , newString
+    -- ** Array manipulation
   , getArrayLength
   , getStringLength
   , getIntArrayElements
