@@ -5,7 +5,7 @@
 module Control.Distributed.Spark where
 
 import           Control.Distributed.Closure
-import           Control.Distributed.Spark.Closure
+import           Control.Distributed.Spark.Closure ()
 import           Data.Coerce
 import           Data.Int
 import qualified Data.Text as Text
@@ -13,6 +13,7 @@ import           Data.Text (Text)
 import           Data.Typeable
 import           Foreign.C.Types
 import           Foreign.JNI
+import           Language.Java
 
 newtype SparkConf = SparkConf (J ('Class "org.apache.spark.SparkConf"))
 
