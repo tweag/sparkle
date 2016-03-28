@@ -77,7 +77,6 @@ module Foreign.Java
   , releaseStringChars
   , getObjectArrayElement
   , setObjectArrayElement
-  , unsafeGetArrayLength
   ) where
 
 import Control.Exception (Exception, finally, throwIO)
@@ -349,12 +348,6 @@ newString ptr len = withJNIEnv $ \env ->
 
 getArrayLength :: JArray a -> IO Int32
 getArrayLength (upcast -> array) = withJNIEnv $ \env ->
-    [C.exp| jsize {
-      (*$(JNIEnv *env))->GetArrayLength($(JNIEnv *env),
-                                        $(jarray array)) } |]
-
-unsafeGetArrayLength :: J a -> IO Int32
-unsafeGetArrayLength (upcast -> array) = withJNIEnv $ \env ->
     [C.exp| jsize {
       (*$(JNIEnv *env))->GetArrayLength($(JNIEnv *env),
                                         $(jarray array)) } |]

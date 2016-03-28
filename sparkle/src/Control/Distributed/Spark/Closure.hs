@@ -149,7 +149,7 @@ closFun1 Dict f args =
 
 instance Reify ByteString ('Base ByteString) where
   reify jobj = do
-      n <- unsafeGetArrayLength jobj
+      n <- getArrayLength (unsafeCast jobj)
       bytes <- getByteArrayElements jobj
       -- TODO could use unsafePackCStringLen instead and avoid a copy if we knew
       -- that been handed an (immutable) copy via JNI isCopy ref.
