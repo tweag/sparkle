@@ -19,7 +19,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Foreign.Java
+module Foreign.JNI
   ( -- * Java types
     JType(..)
   , type (<>)
@@ -99,7 +99,7 @@ import Data.Monoid ((<>))
 import Data.Typeable (Typeable)
 import Data.TLS.PThread
 import Foreign.C (CChar)
-import Foreign.Java.Types
+import Foreign.JNI.Types
 import Foreign.Marshal.Array
 import Foreign.Ptr (Ptr, nullPtr)
 import qualified Language.C.Inline as C

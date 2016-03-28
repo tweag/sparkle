@@ -32,7 +32,7 @@ import Data.Vector.Storable (Vector)
 import qualified Data.Vector.Storable.Mutable as MVector
 import Data.Vector.Storable.Mutable (IOVector)
 import Foreign (FunPtr, Ptr, Storable, newForeignPtr, withForeignPtr)
-import Foreign.Java
+import Foreign.JNI
 
 data Type a
   = Fun [Type a] (Type a) -- ^ Pure function

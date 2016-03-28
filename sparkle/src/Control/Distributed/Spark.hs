@@ -12,7 +12,7 @@ import qualified Data.Text as Text
 import           Data.Text (Text)
 import           Data.Typeable
 import           Foreign.C.Types
-import           Foreign.Java
+import           Foreign.JNI
 
 newtype SparkConf = SparkConf (J ('Class "org.apache.spark.SparkConf"))
 

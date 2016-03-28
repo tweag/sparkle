@@ -18,12 +18,12 @@ source-repository head
 
 library
   hs-source-dirs:      src
-  c-sources: src/Foreign/Java.c
+  c-sources: src/Foreign/JNI.c
   extra-libraries: jvm
   exposed-modules:
-    Foreign.Java
+    Foreign.JNI
   other-modules:
-    Foreign.Java.Types
+    Foreign.JNI.Types
   build-depends:
     base >= 4.7 && < 5,
     containers >=0.5,

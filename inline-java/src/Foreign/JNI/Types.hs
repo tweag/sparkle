@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Foreign.Java.Types where
+module Foreign.JNI.Types where
 
 import Data.Coerce
 import Data.Int
