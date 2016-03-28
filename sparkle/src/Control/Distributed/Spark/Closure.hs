@@ -14,7 +14,7 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Control.Distributed.Spark.Closure (apply) where
+module Control.Distributed.Spark.Closure (JFun1, apply) where
 
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
@@ -44,8 +44,8 @@ foreign export ccall "sparkle_apply" apply
   -> JObjectArray
   -> IO JObject
 
-type instance Interp ('Fun '[a] b) =
-  'Class "io.tweag.sparkle.function.HaskellFunction" <> [Interp a, Interp b]
+type JFun1 a b = 'Class "io.tweag.sparkle.function.HaskellFunction" <> [Interp a, Interp b]
+type instance Interp ('Fun '[a] b) = JFun1 a b
 
 -- Needs UndecidableInstances
 instance ( ty ~ Interp (Uncurry (Closure (a -> b)))

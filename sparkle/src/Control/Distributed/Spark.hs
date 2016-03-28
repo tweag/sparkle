@@ -5,12 +5,11 @@
 module Control.Distributed.Spark where
 
 import           Control.Distributed.Closure
-import           Control.Distributed.Spark.Closure ()
+import           Control.Distributed.Spark.Closure
 import           Data.Coerce
 import           Data.Int
 import qualified Data.Text as Text
 import           Data.Text (Text)
-import           Data.Typeable
 import           Foreign.C.Types
 import           Foreign.JNI
 import           Language.Java
@@ -61,11 +60,26 @@ parallelize sc xs = do
       callStaticObjectMethod klass method [JObject jxs]
 
 
-filter :: (Reify a ty, Typeable a) => Closure (a -> Bool) -> RDD a -> IO (RDD a)
+filter
+  :: Reflect (Closure (a -> Bool)) (JFun1 a Bool)
+  => Closure (a -> Bool)
+  -> RDD a
+  -> IO (RDD a)
 filter clos rdd = do
     f <- reflect clos
     klass <- findClass "org/apache/spark/api/java/JavaRDD"
     method <- getMethodID klass "filter" "(Lorg/apache/spark/api/java/function/Function;)Lorg/apache/spark/api/java/JavaRDD;"
+    coerce . unsafeCast <$> callObjectMethod rdd method [JObject f]
+
+map
+  :: Reflect (Closure (a -> b)) (JFun1 a b)
+  => Closure (a -> b)
+  -> RDD a
+  -> IO (RDD b)
+map clos rdd = do
+    f <- reflect clos
+    klass <- findClass "org/apache/spark/api/java/JavaRDD"
+    method <- getMethodID klass "map" "(Lorg/apache/spark/api/java/function/Function;)Lorg/apache/spark/api/java/JavaRDD;"
     coerce . unsafeCast <$> callObjectMethod rdd method [JObject f]
 
 count :: RDD a -> IO Int64
