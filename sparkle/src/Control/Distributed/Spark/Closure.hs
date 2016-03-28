@@ -48,9 +48,7 @@ type instance Interp ('Fun '[a] b) =
   'Class "io.tweag.sparkle.function.HaskellFunction" <> [Interp a, Interp b]
 
 -- Needs UndecidableInstances
-instance ( ty1 ~ Interp (Uncurry a)
-         , ty2 ~ Interp (Uncurry b)
-         , ty ~ Interp (Uncurry (Closure (a -> b)))
+instance ( ty ~ Interp (Uncurry (Closure (a -> b)))
          , ty ~ ('Class "io.tweag.sparkle.function.HaskellFunction" <> [ty1, ty2])
          , Reflect a ty1
          , Reify b ty2
@@ -64,9 +62,7 @@ instance ( ty1 ~ Interp (Uncurry a)
       return (bs2clos payload)
 
 -- Needs UndecidableInstances
-instance ( ty1 ~ Interp (Uncurry a)
-         , ty2 ~ Interp (Uncurry b)
-         , ty ~ Interp (Uncurry (Closure (a -> b)))
+instance ( ty ~ Interp (Uncurry (Closure (a -> b)))
          , ty ~ ('Class "io.tweag.sparkle.function.HaskellFunction" <> [ty1, ty2])
          , Reify a ty1
          , Reflect b ty2
