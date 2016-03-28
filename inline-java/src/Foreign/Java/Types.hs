@@ -17,15 +17,19 @@ import Foreign.Storable (Storable(..))
 import Language.C.Types
 import Language.C.Inline.Context
 
+-- | A JVM instance.
 newtype JVM = JVM_ (Ptr JVM)
   deriving (Eq, Show, Storable)
 
+-- | The thread-local JNI context. Do not share this object between threads.
 newtype JNIEnv = JNIEnv_ (Ptr JNIEnv)
   deriving (Eq, Show, Storable)
 
+-- | A thread-local reference to a field of an object.
 newtype JFieldID = JFieldID_ (Ptr JFieldID)
   deriving (Eq, Show, Storable)
 
+-- | A thread-local reference to a method of an object.
 newtype JMethodID = JMethodID_ (Ptr JMethodID)
   deriving (Eq, Show, Storable)
 
@@ -41,6 +45,7 @@ upcast (J x) = J (castPtr x)
 unsafeCast :: J a -> J b
 unsafeCast (J x) = J (castPtr x)
 
+-- | A union type for uniformly passing arguments to methods.
 data JValue
   = JBoolean Word8
   | JByte CChar

@@ -1,5 +1,11 @@
 -- | Low-level bindings to the Java Native Interface (JNI).
 --
+-- Read the
+-- <https://docs.oracle.com/javase/8/docs/technotes/guides/jni/spec/jniTOC.html JNI spec>
+-- for authoritative documentation as to what each of the functions in
+-- this module does. The names of the bindings in this module were chosen to
+-- match the names of the functions in the JNI spec.
+--
 -- All bindings in this module access the JNI via a thread-local variable of
 -- type @JNIEnv *@. If the current OS thread has not yet been "attached" to the
 -- JVM, it is attached implicitly upon the first call to one of these bindings
