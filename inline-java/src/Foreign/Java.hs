@@ -12,14 +12,18 @@
 -- in the current thread.
 
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Foreign.Java
-  ( -- * JNI types
-    J(..)
+  ( -- * Java types
+    JType(..)
+  , type (<>)
+    -- * JNI types
+  , J(..)
   , upcast
   , unsafeCast
   , JVM(..)

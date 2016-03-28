@@ -1,22 +1,24 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds #-}        -- For J a
+{-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Foreign.Java.Types where
 
-import Data.ByteString (ByteString)
 import Data.Int
 import Data.Map (fromList)
-import Data.Text (Text)
-import Data.Vector.Storable.Mutable (IOVector)
 import Data.Word
 import Foreign.C (CChar)
 import Foreign.Ptr
 import Foreign.Storable (Storable(..))
-import Language.C.Types
-import Language.C.Inline.Context
+import GHC.TypeLits (Symbol)
+import Language.C.Types (TypeSpecifier(TypeName))
+import Language.C.Inline.Context (Context(..))
 
 -- | A JVM instance.
 newtype JVM = JVM_ (Ptr JVM)
@@ -34,17 +36,38 @@ newtype JFieldID = JFieldID_ (Ptr JFieldID)
 newtype JMethodID = JMethodID_ (Ptr JMethodID)
   deriving (Eq, Show, Storable)
 
+-- | Not part of JNI. Kind of Java object type indexes.
+data JType
+  = Class Symbol                               -- ^ Class name
+  | Iface Symbol                               -- ^ Interface name
+  | Prim Symbol                                -- ^ Primitive type
+  | Array JType                                -- ^ Array type
+  | Generic JType [JType]                      -- ^ Parameterized (generic) type
+
+-- | Shorthand for parametized Java types.
+type a <> g = 'Generic a g
+
 -- | Type indexed Java Objects.
-newtype J a = J (Ptr (J a))
+newtype J (a :: JType) = J (Ptr (J a))
   deriving (Eq, Show, Storable)
 
+type role J nominal
+
 -- | Any object can be cast to @Object@.
-upcast :: J a -> J Object
-upcast (J x) = J (castPtr x)
+upcast :: J a -> JObject
+upcast = unsafeCast
 
 -- | Unsafe type cast. Should only be used to downcast.
 unsafeCast :: J a -> J b
 unsafeCast (J x) = J (castPtr x)
+
+-- | Parameterize the type of an object, making its type a /generic type/.
+generic :: J a -> J (a <> g)
+generic = unsafeCast
+
+-- | Get the base type of a generic type.
+unsafeUngeneric :: J (a <> g) -> J a
+unsafeUngeneric = unsafeCast
 
 -- | A union type for uniformly passing arguments to methods.
 data JValue
@@ -89,25 +112,20 @@ instance Storable JValue where
 
   peek _ = error "Storable JValue: undefined peek"
 
-data Object
-data Class
-data Throwable
-
-type JObject = J Object
-type JClass = J Class
-type JString = J Text
-type JArray a = J (IOVector a)
-type JObjectArray = J (IOVector JObject)
-type JBooleanArray = J (IOVector Bool)
--- type JByteArray = J (IOVector CChar)
-type JByteArray = J ByteString
-type JCharArray = J (IOVector Word16)
-type JShortArray = J (IOVector Int16)
-type JIntArray = J (IOVector Int32)
-type JLongArray = J (IOVector Int64)
-type JFloatArray = J (IOVector Float)
-type JDoubleArray = J (IOVector Double)
-type JThrowable = J Throwable
+type JObject = J ('Class "java.lang.Object")
+type JClass = J ('Class "java.lang.Class")
+type JString = J ('Class "java.lang.String")
+type JThrowable = J ('Class "java.lang.Throwable")
+type JArray a = J ('Array a)
+type JObjectArray = JArray ('Class "java.lang.Object")
+type JBooleanArray = JArray ('Prim "boolean")
+type JByteArray = JArray ('Prim "byte")
+type JCharArray = JArray ('Prim "char")
+type JShortArray = JArray ('Prim "short")
+type JIntArray = JArray ('Prim "int")
+type JLongArray = JArray ('Prim "long")
+type JFloatArray = JArray ('Prim "float")
+type JDoubleArray = JArray ('Prim "double")
 
 jniCtx :: Context
 jniCtx = mempty { ctxTypesTable = fromList tytab }
