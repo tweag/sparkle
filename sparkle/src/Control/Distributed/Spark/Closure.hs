@@ -40,7 +40,7 @@ data Type a
   | Proc [Type a]         -- ^ Procedure (i.e void returning action)
   | Base a                -- ^ Any first-order type.
 
-type family Uncurry a where
+type family Uncurry (a :: *) :: Type * where
   Uncurry (Closure (a -> b -> c -> d -> IO ())) = 'Proc '[Uncurry a, Uncurry b, Uncurry c, Uncurry d]
   Uncurry (Closure (a -> b -> c -> IO ())) = 'Proc '[Uncurry a, Uncurry b, Uncurry c]
   Uncurry (Closure (a -> b -> IO ())) = 'Proc '[Uncurry a, Uncurry b]
