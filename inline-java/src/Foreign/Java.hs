@@ -13,6 +13,7 @@
 
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -89,6 +90,7 @@ module Foreign.Java
 
 import Control.Exception (Exception, finally, throwIO)
 import Control.Monad (unless)
+import Data.Coerce
 import Data.Int
 import Data.IORef (IORef, newIORef, readIORef)
 import Data.Word
@@ -200,8 +202,8 @@ getFieldID cls fieldname sig = withJNIEnv $ \env ->
                                     $bs-ptr:fieldname,
                                     $bs-ptr:sig) } |]
 
-getObjectField :: J a -> JFieldID -> IO JObject
-getObjectField (upcast -> obj) field = withJNIEnv $ \env ->
+getObjectField :: Coercible o (J a) => o -> JFieldID -> IO JObject
+getObjectField (coerce -> upcast -> obj) field = withJNIEnv $ \env ->
     throwIfException env $
     [CU.exp| jobject {
       (*$(JNIEnv *env))->GetObjectField($(JNIEnv *env),
@@ -226,8 +228,8 @@ getStaticMethodID cls methodname sig = withJNIEnv $ \env ->
                                            $bs-ptr:methodname,
                                            $bs-ptr:sig) } |]
 
-callObjectMethod :: J a -> JMethodID -> [JValue] -> IO JObject
-callObjectMethod (upcast -> obj) method args = withJNIEnv $ \env ->
+callObjectMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO JObject
+callObjectMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jobject {
@@ -236,8 +238,8 @@ callObjectMethod (upcast -> obj) method args = withJNIEnv $ \env ->
                                            $(jmethodID method),
                                            $(jvalue *cargs)) } |]
 
-callBooleanMethod :: J a -> JMethodID -> [JValue] -> IO Word8
-callBooleanMethod (upcast -> obj) method args = withJNIEnv $ \env ->
+callBooleanMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Word8
+callBooleanMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jboolean {
@@ -246,8 +248,8 @@ callBooleanMethod (upcast -> obj) method args = withJNIEnv $ \env ->
                                          $(jmethodID method),
                                          $(jvalue *cargs)) } |]
 
-callIntMethod :: J a -> JMethodID -> [JValue] -> IO Int32
-callIntMethod (upcast -> obj) method args = withJNIEnv $ \env ->
+callIntMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Int32
+callIntMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jint {
@@ -256,8 +258,8 @@ callIntMethod (upcast -> obj) method args = withJNIEnv $ \env ->
                                         $(jmethodID method),
                                         $(jvalue *cargs)) } |]
 
-callLongMethod :: J a -> JMethodID -> [JValue] -> IO Int64
-callLongMethod (upcast -> obj) method args = withJNIEnv $ \env ->
+callLongMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Int64
+callLongMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jlong {
@@ -266,8 +268,8 @@ callLongMethod (upcast -> obj) method args = withJNIEnv $ \env ->
                                          $(jmethodID method),
                                          $(jvalue *cargs)) } |]
 
-callByteMethod :: J a -> JMethodID -> [JValue] -> IO CChar
-callByteMethod (upcast -> obj) method args = withJNIEnv $ \env ->
+callByteMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO CChar
+callByteMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jbyte {
@@ -276,8 +278,8 @@ callByteMethod (upcast -> obj) method args = withJNIEnv $ \env ->
                                          $(jmethodID method),
                                          $(jvalue *cargs)) } |]
 
-callDoubleMethod :: J a -> JMethodID -> [JValue] -> IO Double
-callDoubleMethod (upcast -> obj) method args = withJNIEnv $ \env ->
+callDoubleMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Double
+callDoubleMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| jdouble {
@@ -286,8 +288,8 @@ callDoubleMethod (upcast -> obj) method args = withJNIEnv $ \env ->
                                            $(jmethodID method),
                                            $(jvalue *cargs)) } |]
 
-callVoidMethod :: J a -> JMethodID -> [JValue] -> IO ()
-callVoidMethod (upcast -> obj) method args = withJNIEnv $ \env ->
+callVoidMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO ()
+callVoidMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
     [C.exp| void {
@@ -354,8 +356,8 @@ newString ptr len = withJNIEnv $ \env ->
                                    $(jchar *ptr),
                                    $(jsize len)) } |]
 
-getArrayLength :: JArray a -> IO Int32
-getArrayLength (upcast -> array) = withJNIEnv $ \env ->
+getArrayLength :: Coercible o (JArray a) => o -> IO Int32
+getArrayLength (coerce -> upcast -> array) = withJNIEnv $ \env ->
     [C.exp| jsize {
       (*$(JNIEnv *env))->GetArrayLength($(JNIEnv *env),
                                         $(jarray array)) } |]
@@ -451,15 +453,15 @@ releaseStringChars jstr chars = withJNIEnv $ \env ->
                                             $(jstring jstr),
                                             $(jchar *chars)) } |]
 
-getObjectArrayElement :: JArray a -> Int32 -> IO (J a)
-getObjectArrayElement (upcast -> array) i = withJNIEnv $ \env -> unsafeCast <$>
+getObjectArrayElement :: Coercible o (JArray a) => o -> Int32 -> IO (J a)
+getObjectArrayElement (coerce -> upcast -> array) i = withJNIEnv $ \env -> unsafeCast <$>
     [C.exp| jobject {
       (*$(JNIEnv *env))->GetObjectArrayElement($(JNIEnv *env),
                                                $(jarray array),
                                                $(jsize i)) } |]
 
-setObjectArrayElement :: JObjectArray -> Int32 -> J a -> IO ()
-setObjectArrayElement array i (upcast -> x) = withJNIEnv $ \env ->
+setObjectArrayElement :: Coercible o (J a) => JObjectArray -> Int32 -> o -> IO ()
+setObjectArrayElement array i (coerce -> upcast -> x) = withJNIEnv $ \env ->
     [C.exp| void {
       (*$(JNIEnv *env))->SetObjectArrayElement($(JNIEnv *env),
                                                $(jobjectArray array),

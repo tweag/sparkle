@@ -1,15 +1,17 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PolyKinds #-}        -- For J a
 {-# LANGUAGE RoleAnnotations #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Foreign.Java.Types where
 
+import Data.Coerce
 import Data.Int
 import Data.Map (fromList)
 import Data.Word
@@ -79,10 +81,18 @@ data JValue
   | JLong Int64
   | JFloat Float
   | JDouble Double
-  | forall a. JObject (J a)
+  | forall a o. Coercible o (J a) => JObject o
 
--- Needs to be standalone due to existential.
-deriving instance Show JValue
+instance Show JValue where
+  show (JBoolean x) = "JBoolean " ++ show x
+  show (JByte x) = "JByte " ++ show x
+  show (JChar x) = "JChar " ++ show x
+  show (JShort x) = "JShort " ++ show x
+  show (JInt x) = "JInt " ++ show x
+  show (JLong x) = "JLong " ++ show x
+  show (JFloat x) = "JFloat " ++ show x
+  show (JDouble x) = "JDouble " ++ show x
+  show (JObject x) = "JObject " ++ show (coerce x :: J a)
 
 instance Eq JValue where
   (JBoolean x) == (JBoolean y) = x == y
@@ -93,7 +103,7 @@ instance Eq JValue where
   (JLong x) == (JLong y) = x == y
   (JFloat x) == (JFloat y) = x == y
   (JDouble x) == (JDouble y) = x == y
-  (JObject (J x)) == (JObject (J y)) = castPtr x == castPtr y
+  (JObject (coerce -> J x)) == (JObject (coerce -> J y)) = castPtr x == castPtr y
   _ == _ = False
 
 instance Storable JValue where
@@ -108,7 +118,7 @@ instance Storable JValue where
   poke p (JLong x) = poke (castPtr p) x
   poke p (JFloat x) = poke (castPtr p) x
   poke p (JDouble x) = poke (castPtr p) x
-  poke p (JObject x) = poke (castPtr p) x
+  poke p (JObject x) = poke (castPtr p :: Ptr (J a)) (coerce x)
 
   peek _ = error "Storable JValue: undefined peek"
 
