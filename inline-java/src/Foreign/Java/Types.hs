@@ -123,7 +123,7 @@ jniCtx = mempty { ctxTypesTable = fromList tytab }
       , (TypeName "jfloat", [t| Float |])
       , (TypeName "jdouble", [t| Double |])
       -- Reference types
-      , (TypeName "jobject", [t| J Object |])
+      , (TypeName "jobject", [t| JObject |])
       , (TypeName "jclass", [t| JClass |])
       , (TypeName "jstring", [t| JString |])
       , (TypeName "jarray", [t| JObject |])
@@ -136,7 +136,7 @@ jniCtx = mempty { ctxTypesTable = fromList tytab }
       , (TypeName "jlongArray", [t| JLongArray |])
       , (TypeName "jfloatArray", [t| JFloatArray |])
       , (TypeName "jdoubleArray", [t| JDoubleArray |])
-      , (TypeName "jthrowable", [t| J Throwable |])
+      , (TypeName "jthrowable", [t| JThrowable |])
       -- Internal types
       , (TypeName "JavaVM", [t| JVM |])
       , (TypeName "JNIEnv", [t| JNIEnv |])

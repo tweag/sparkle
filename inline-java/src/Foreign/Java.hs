@@ -176,7 +176,7 @@ findClass name = withJNIEnv $ \env ->
     throwIfException env $
     [C.exp| jclass { (*$(JNIEnv *env))->FindClass($(JNIEnv *env), $bs-ptr:name) } |]
 
-newObject :: JClass -> ByteString -> [JValue] -> IO (J Object)
+newObject :: JClass -> ByteString -> [JValue] -> IO JObject
 newObject cls sig args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs -> do
@@ -196,7 +196,7 @@ getFieldID cls fieldname sig = withJNIEnv $ \env ->
                                     $bs-ptr:fieldname,
                                     $bs-ptr:sig) } |]
 
-getObjectField :: J a -> JFieldID -> IO (J Object)
+getObjectField :: J a -> JFieldID -> IO JObject
 getObjectField (upcast -> obj) field = withJNIEnv $ \env ->
     throwIfException env $
     [CU.exp| jobject {
@@ -222,7 +222,7 @@ getStaticMethodID cls methodname sig = withJNIEnv $ \env ->
                                            $bs-ptr:methodname,
                                            $bs-ptr:sig) } |]
 
-callObjectMethod :: J a -> JMethodID -> [JValue] -> IO (J Object)
+callObjectMethod :: J a -> JMethodID -> [JValue] -> IO JObject
 callObjectMethod (upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
@@ -292,7 +292,7 @@ callVoidMethod (upcast -> obj) method args = withJNIEnv $ \env ->
                                          $(jmethodID method),
                                          $(jvalue *cargs)) } |]
 
-callStaticObjectMethod :: JClass -> JMethodID -> [JValue] -> IO (J Object)
+callStaticObjectMethod :: JClass -> JMethodID -> [JValue] -> IO JObject
 callStaticObjectMethod cls method args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs ->
