@@ -1,6 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Foreign.Java.Types where
@@ -56,6 +57,21 @@ data JValue
   | JFloat Float
   | JDouble Double
   | forall a. JObject (J a)
+
+-- Needs to be standalone due to existential.
+deriving instance Show JValue
+
+instance Eq JValue where
+  (JBoolean x) == (JBoolean y) = x == y
+  (JByte x) == (JByte y) = x == y
+  (JChar x) == (JChar y) = x == y
+  (JShort x) == (JShort y) = x == y
+  (JInt x) == (JInt y) = x == y
+  (JLong x) == (JLong y) = x == y
+  (JFloat x) == (JFloat y) = x == y
+  (JDouble x) == (JDouble y) = x == y
+  (JObject (J x)) == (JObject (J y)) = castPtr x == castPtr y
+  _ == _ = False
 
 instance Storable JValue where
   sizeOf _ = 8
