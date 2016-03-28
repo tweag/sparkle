@@ -1,4 +1,4 @@
-# Sparkle: program Apache Spark applications in Haskell
+# Sparkle: Apache Spark applications in Haskell
 
 [![Circle CI](https://circleci.com/gh/tweag/sparkle.svg?style=svg)](https://circleci.com/gh/tweag/sparkle)
 
@@ -6,7 +6,7 @@
 applications in Haskell that scale to thousands of nodes, using
 [Spark][spark] and the rest of the Apache ecosystem under the hood.
 
-**This is an early tech preview, not production ready**
+**This is an early tech preview, not production ready.**
 
 [spark]: http://spark.apache.org/
 
