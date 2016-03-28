@@ -23,4 +23,6 @@ haskell.lib.buildStackProject {
       openssh
     ];
   extraArgs = ["--extra-lib-dirs=${jvmlibdir}"];
+  # XXX Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
+  LD_LIBRARY_PATH = jvmlibdir;
 }
