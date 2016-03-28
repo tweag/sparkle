@@ -444,11 +444,11 @@ releaseStringChars jstr chars = withJNIEnv $ \env ->
                                             $(jstring jstr),
                                             $(jchar *chars)) } |]
 
-getObjectArrayElement :: JObjectArray -> Int32 -> IO (J Object)
-getObjectArrayElement array i = withJNIEnv $ \env ->
+getObjectArrayElement :: JArray a -> Int32 -> IO (J a)
+getObjectArrayElement (upcast -> array) i = withJNIEnv $ \env -> unsafeCast <$>
     [C.exp| jobject {
       (*$(JNIEnv *env))->GetObjectArrayElement($(JNIEnv *env),
-                                               $(jobjectArray array),
+                                               $(jarray array),
                                                $(jsize i)) } |]
 
 setObjectArrayElement :: JObjectArray -> Int32 -> J a -> IO ()
