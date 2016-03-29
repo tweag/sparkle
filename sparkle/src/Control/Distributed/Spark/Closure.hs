@@ -3,11 +3,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StaticPointers #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-} -- For Closure instances
 
 module Control.Distributed.Spark.Closure where
 
@@ -38,7 +40,7 @@ data Type a
   | Proc [Type a]         -- ^ Procedure (i.e void returning action)
   | Base a                -- ^ Any first-order type.
 
-type family Uncurry a where
+type family Uncurry (a :: *) :: Type * where
   Uncurry (Closure (a -> b -> c -> d -> IO ())) = 'Proc '[Uncurry a, Uncurry b, Uncurry c, Uncurry d]
   Uncurry (Closure (a -> b -> c -> IO ())) = 'Proc '[Uncurry a, Uncurry b, Uncurry c]
   Uncurry (Closure (a -> b -> IO ())) = 'Proc '[Uncurry a, Uncurry b]
@@ -55,11 +57,14 @@ type family Uncurry a where
   Uncurry (Closure (a -> b)) = 'Fun '[Uncurry a] (Uncurry b)
   Uncurry a = 'Base a
 
-class (Uncurry a ~ b, Typeable a, Typeable b) => Reify a b where
-  reify :: J a -> IO a
+type family Interp (a :: k) :: JType
+type instance Interp ('Base a) = Interp a
 
-class (Uncurry a ~ b, Typeable a, Typeable b) => Reflect a b where
-  reflect :: a -> IO (J a)
+class (Interp (Uncurry a) ~ ty, Typeable a) => Reify a ty where
+  reify :: J ty -> IO a
+
+class (Interp (Uncurry a) ~ ty, Typeable a) => Reflect a ty where
+  reflect :: a -> IO (J ty)
 
 apply
   :: JByteArray
@@ -75,22 +80,34 @@ foreign export ccall "sparkle_apply" apply
   -> JObjectArray
   -> IO JObject
 
--- XXX GHC wouldn't be able to use the more natural
---
--- (Uncurry a ~ a', Uncurry b ~ b')
---
--- constraint, because it doesn't know that Uncurry is injective.
-instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reflect a a', Reify b b') =>
-         Reify (Closure (a -> b)) ('Fun '[a'] b') where
+type instance Interp ('Fun '[a] b) =
+  'Class "io.tweag.sparkle.function.HaskellFunction" <> [Interp a, Interp b]
+
+-- Needs UndecidableInstances
+instance ( ty1 ~ Interp (Uncurry a)
+         , ty2 ~ Interp (Uncurry b)
+         , ty ~ Interp (Uncurry (Closure (a -> b)))
+         , ty ~ ('Class "io.tweag.sparkle.function.HaskellFunction" <> [ty1, ty2])
+         , Reflect a ty1
+         , Reify b ty2
+         ) =>
+         Reify (Closure (a -> b)) ty where
   reify jobj = do
       klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
       field <- getFieldID klass "clos" "[B"
-      jpayload <- fmap unsafeCast $ getObjectField jobj field
-      payload <- reify jpayload
+      jpayload <- getObjectField jobj field
+      payload <- reify (unsafeCast jpayload)
       return (bs2clos payload)
 
-instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reify a a', Reflect b b') =>
-         Reflect (Closure (a -> b)) ('Fun '[a'] b') where
+-- Needs UndecidableInstances
+instance ( ty1 ~ Interp (Uncurry a)
+         , ty2 ~ Interp (Uncurry b)
+         , ty ~ Interp (Uncurry (Closure (a -> b)))
+         , ty ~ ('Class "io.tweag.sparkle.function.HaskellFunction" <> [ty1, ty2])
+         , Reify a ty1
+         , Reflect b ty2
+         ) =>
+         Reflect (Closure (a -> b)) ty where
   reflect f = do
       klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
       jpayload <- reflect (clos2bs (fromJust wrap))
@@ -114,11 +131,11 @@ instance (Uncurry (Closure (a -> b)) ~ 'Fun '[a'] b', Reify a a', Reflect b b') 
 --
 -- See https://ghc.haskell.org/trac/ghc/ticket/11656.
 
-dict1 :: Dict (Reify Int ('Base Int), Reflect Int ('Base Int))
-dict2 :: Dict (Reify Bool ('Base Bool), Reflect Bool ('Base Bool))
-dict3 :: Dict (Reify ByteString ('Base ByteString), Reflect ByteString ('Base ByteString))
-dict4 :: Dict (Reify Text ('Base Text), Reflect Text ('Base Text))
-dict5 :: Dict (Reify Text ('Base Text), Reflect Bool ('Base Bool))
+dict1 :: Dict (Reify Int ('Class "java.lang.Integer"), Reflect Int ('Class "java.lang.Integer"))
+dict2 :: Dict (Reify Bool ('Class  "java.lang.Boolean"), Reflect Bool ('Class  "java.lang.Boolean"))
+dict3 :: Dict (Reify ByteString ('Array ('Prim "byte")), Reflect ByteString ('Array ('Prim "byte")))
+dict4 :: Dict (Reify Text ('Class  "java.lang.String"), Reflect Text ('Class  "java.lang.String"))
+dict5 :: Dict (Reify Text ('Class  "java.lang.String"), Reflect Bool ('Class  "java.lang.Boolean"))
 dict1 = Dict
 dict2 = Dict
 dict3 = Dict
@@ -126,12 +143,16 @@ dict4 = Dict
 dict5 = Dict
 
 closFun1
-  :: Dict (Reify a a', Reflect b b')
+  :: forall a b ty1 ty2.
+     Dict (Reify a ty1, Reflect b ty2)
   -> (a -> b)
   -> JObjectArray
   -> IO JObject
 closFun1 Dict f args =
-    fmap upcast . reflect =<< return . f =<< reify . unsafeCast =<< getObjectArrayElement args 0
+    fmap upcast . refl =<< return . f =<< reif . unsafeCast =<< getObjectArrayElement args 0
+  where
+    reif = reify :: J ty1 -> IO a
+    refl = reflect :: b -> IO (J ty2)
 
 -- instance (Uncurry (Closure (a -> b)) ~ Fun '[a'] b', Reflect a a', Reify b b') =>
 --          Reify (Closure (a -> b)) (Fun '[a'] b') where
@@ -147,7 +168,9 @@ closFun1 Dict f args =
 -- reifyDictFun1 :: (Reflect a a', Reify b b') :- Reify (Closure (a -> b)) (Fun '[a'] b')
 -- reifyDictFun1 = Sub
 
-instance Reify ByteString ('Base ByteString) where
+type instance Interp ByteString = 'Array ('Prim "byte")
+
+instance Reify ByteString ('Array ('Prim "byte")) where
   reify jobj = do
       n <- getArrayLength (unsafeCast jobj)
       bytes <- getByteArrayElements jobj
@@ -157,48 +180,56 @@ instance Reify ByteString ('Base ByteString) where
       releaseByteArrayElements jobj bytes
       return bs
 
-instance Reflect ByteString ('Base ByteString) where
+instance Reflect ByteString ('Array ('Prim "byte")) where
   reflect bs = BS.unsafeUseAsCStringLen bs $ \(content, n) -> do
       arr <- newByteArray (fromIntegral n)
       setByteArrayRegion arr 0 (fromIntegral n) content
       return arr
 
-instance Reify Bool ('Base Bool) where
+type instance Interp Bool = 'Class "java.lang.Boolean"
+
+instance Reify Bool ('Class "java.lang.Boolean") where
   reify jobj = do
       klass <- findClass "java/lang/Boolean"
       method <- getMethodID klass "booleanValue" "()Z"
       toEnum . fromIntegral <$> callBooleanMethod jobj method []
 
-instance Reflect Bool ('Base Bool) where
+instance Reflect Bool ('Class "java.lang.Boolean") where
   reflect x = do
       klass <- findClass "java/lang/Boolean"
       fmap unsafeCast $
         newObject klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
 
-instance Reify Int ('Base Int) where
+type instance Interp Int = 'Class "java.lang.Integer"
+
+instance Reify Int ('Class "java.lang.Integer") where
   reify jobj = do
       klass <- findClass "java/lang/Integer"
       method <- getMethodID klass "longValue" "()L"
       fromIntegral <$> callLongMethod jobj method []
 
-instance Reflect Int ('Base Int) where
+instance Reflect Int ('Class "java.lang.Integer") where
   reflect x = do
       klass <- findClass "java/lang/Integer"
       fmap unsafeCast $
         newObject klass "(L)V" [JInt (fromIntegral x)]
 
-instance Reify Double ('Base Double) where
+type instance Interp Double = 'Class "java.lang.Double"
+
+instance Reify Double ('Class "java.lang.Double") where
   reify jobj = do
       klass <- findClass "java/lang/Double"
       method <- getMethodID klass "doubleValue" "()D"
       callDoubleMethod jobj method []
 
-instance Reflect Double ('Base Double) where
+instance Reflect Double ('Class "java.lang.Double") where
   reflect x = do
       klass <- findClass "java/lang/Double"
       fmap unsafeCast $ newObject klass "(D)V" [JDouble x]
 
-instance Reify Text ('Base Text) where
+type instance Interp Text = 'Class "java.lang.String"
+
+instance Reify Text ('Class "java.lang.String") where
   reify jobj = do
       sz <- getStringLength jobj
       cs <- getStringChars jobj
@@ -206,33 +237,37 @@ instance Reify Text ('Base Text) where
       releaseStringChars jobj cs
       return txt
 
-instance Reflect Text ('Base Text) where
+instance Reflect Text ('Class "java.lang.String") where
   reflect x =
       Text.useAsPtr x $ \ptr len ->
         newString ptr (fromIntegral len)
 
-instance Reify (IOVector Int32) ('Base (IOVector Int32)) where
+type instance Interp (IOVector Int32) = 'Array ('Prim "int")
+
+instance Reify (IOVector Int32) ('Array ('Prim "int")) where
   reify = reifyMVector (getIntArrayElements) (releaseIntArrayElements)
 
-instance Reflect (IOVector Int32) ('Base (IOVector Int32)) where
+instance Reflect (IOVector Int32) ('Array ('Prim "int")) where
   reflect = reflectMVector (newIntArray) (setIntArrayRegion)
 
-instance Reify (Vector Int32) ('Base (Vector Int32)) where
-  reify = Vector.freeze <=< reify . unsafeCast
+type instance Interp (Vector Int32) = 'Array ('Prim "int")
 
-instance Reflect (Vector Int32) ('Base (Vector Int32)) where
-  reflect = fmap unsafeCast . reflect <=< Vector.thaw
+instance Reify (Vector Int32) ('Array ('Prim "int")) where
+  reify = Vector.freeze <=< reify
 
-instance Reify a (Uncurry a) => Reify [a] ('Base [a]) where
+instance Reflect (Vector Int32) ('Array ('Prim "int")) where
+  reflect = reflect <=< Vector.thaw
+
+type instance Interp [a] = 'Array (Interp (Uncurry a))
+
+instance (Reify a ty) => Reify [a] ('Array ty) where
   reify jobj = do
-      n <- getArrayLength jobj'
+      n <- getArrayLength jobj
       forM [0..n-1] $ \i -> do
-        x <- getObjectArrayElement jobj' i
-        reify (unsafeCast x)
-    where
-      jobj' = unsafeCast jobj
+        x <- getObjectArrayElement jobj i
+        reify x
 
-instance Reflect a (Uncurry a) => Reflect [a] ('Base [a]) where
+instance (Reflect a ty) => Reflect [a] ('Array ty) where
   reflect xs = do
     let n = fromIntegral (length xs)
     klass <- findClass "java/lang/Object"
@@ -247,9 +282,9 @@ foreign import ccall "wrapper" wrapFinalizer
 
 reifyMVector
   :: Storable a
-  => (JArray a -> IO (Ptr a))
-  -> (JArray a -> Ptr a -> IO ())
-  -> JArray a
+  => (JArray ty -> IO (Ptr a))
+  -> (JArray ty -> Ptr a -> IO ())
+  -> JArray ty
   -> IO (IOVector a)
 reifyMVector mk finalize jobj = do
     n <- getArrayLength jobj
@@ -260,10 +295,10 @@ reifyMVector mk finalize jobj = do
 
 reflectMVector
   :: Storable a
-  => (Int32 -> IO (JArray a))
-  -> (JArray a -> Int32 -> Int32 -> Ptr a -> IO ())
+  => (Int32 -> IO (JArray ty))
+  -> (JArray ty -> Int32 -> Int32 -> Ptr a -> IO ())
   -> IOVector a
-  -> IO (JArray a)
+  -> IO (JArray ty)
 reflectMVector new fill mv = do
     let (fptr, n) = MVector.unsafeToForeignPtr0 mv
     jobj <- new (fromIntegral n)
