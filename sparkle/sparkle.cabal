@@ -20,6 +20,16 @@ library
   exposed-modules:
     Control.Distributed.Spark
     Control.Distributed.Spark.Closure
+    Control.Distributed.Spark.Context
+    Control.Distributed.Spark.ML.Feature.CountVectorizer
+    Control.Distributed.Spark.ML.Feature.RegexTokenizer
+    Control.Distributed.Spark.ML.Feature.StopWordsRemover
+    Control.Distributed.Spark.ML.LDA
+    Control.Distributed.Spark.PairRDD
+    Control.Distributed.Spark.SQL.Context
+    Control.Distributed.Spark.SQL.DataFrame
+    Control.Distributed.Spark.SQL.Row
+    Control.Distributed.Spark.RDD
   build-depends:
     base >=4.8 && <4.9,
     binary >=0.7,
