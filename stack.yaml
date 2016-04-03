@@ -5,7 +5,7 @@ packages:
 - apps/lda
 - location:
     git: git@github.com:tweag/distributed-closure
-    commit: a0055dc39fe6d9cf2829786808b7ef6ecf3ed107
+    commit: 565c4da9b4706407b209aa7ebc896fd79ccd651d
   extra-dep: true
 resolver: lts-5.1
 extra-deps:
