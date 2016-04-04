@@ -55,6 +55,52 @@ map clos rdd = do
     method <- getMethodID klass "map" "(Lorg/apache/spark/api/java/function/Function;)Lorg/apache/spark/api/java/JavaRDD;"
     coerce . unsafeCast <$> callObjectMethod rdd method [JObject f]
 
+fold
+  :: (Reflect (Closure (a -> a -> a)) (JFun2 a a a), Reflect a ty, Reify a ty')
+  => Closure (a -> a -> a)
+  -> a
+  -> RDD a
+  -> IO a
+fold clos zero rdd = do
+  f <- reflect clos
+  jzero <- reflect zero
+  klass <- findClass "org/apache/spark/api/java/JavaRDD"
+  method <- getMethodID klass "fold" "(Ljava/lang/Object;Lorg/apache/spark/api/java/function/Function2;)Ljava/lang/Object;"
+  res <- unsafeCast <$> callObjectMethod rdd method [JObject jzero, JObject f]
+  reify res
+
+reduce
+  :: (Reflect (Closure (a -> a -> a)) (JFun2 a a a), Reify a ty)
+  => Closure (a -> a -> a)
+  -> RDD a
+  -> IO a
+reduce clos rdd = do
+  f <- reflect clos
+  klass <- findClass "org/apache/spark/api/java/JavaRDD"
+  method <- getMethodID klass "reduce" "(Lorg/apache/spark/api/java/function/Function2;)Ljava/lang/Object;"
+  res <- unsafeCast <$> callObjectMethod rdd method [JObject f]
+  reify res
+
+aggregate
+  :: ( Reflect (Closure (b -> a -> b)) (JFun2 b a b)
+     , Reflect (Closure (b -> b -> b)) (JFun2 b b b)
+     , Reflect b ty
+     , Reify b ty'
+     )
+  => Closure (b -> a -> b)
+  -> Closure (b -> b -> b)
+  -> b
+  -> RDD a
+  -> IO b
+aggregate seqOp combOp zero rdd = do
+  jseqOp <- reflect seqOp
+  jcombOp <- reflect combOp
+  jzero <- reflect zero
+  klass <- findClass "org/apache/spark/api/java/JavaRDD"
+  method <- getMethodID klass "aggregate" "(Ljava/lang/Object;Lorg/apache/spark/api/java/function/Function2;Lorg/apache/spark/api/java/function/Function2;)Ljava/lang/Object;"
+  res <- unsafeCast <$> callObjectMethod rdd method [JObject jzero, JObject jseqOp, JObject jcombOp]
+  reify res
+
 count :: RDD a -> IO Int64
 count rdd = do
   cls <- findClass "org/apache/spark/api/java/JavaRDD"
