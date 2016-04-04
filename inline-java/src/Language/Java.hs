@@ -1,14 +1,17 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Language.Java where
 
 import Control.Distributed.Closure
+import Control.Distributed.Closure.TH
 import Control.Monad ((<=<), forM, forM_)
 import Data.Int
 import Data.ByteString (ByteString)
@@ -16,7 +19,6 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 import qualified Data.Text.Foreign as Text
 import Data.Text (Text)
-import Data.Typeable (Typeable)
 import qualified Data.Vector.Storable as Vector
 import Data.Vector.Storable (Vector)
 import qualified Data.Vector.Storable.Mutable as MVector
@@ -50,119 +52,11 @@ type family Uncurry (a :: *) :: Type * where
 type family Interp (a :: k) :: JType
 type instance Interp ('Base a) = Interp a
 
-class (Interp (Uncurry a) ~ ty, Typeable a) => Reify a ty where
+class (Interp (Uncurry a) ~ ty) => Reify a ty where
   reify :: J ty -> IO a
 
-class (Interp (Uncurry a) ~ ty, Typeable a) => Reflect a ty where
+class (Interp (Uncurry a) ~ ty) => Reflect a ty where
   reflect :: a -> IO (J ty)
-
-type instance Interp ByteString = 'Array ('Prim "byte")
-
-instance Reify ByteString ('Array ('Prim "byte")) where
-  reify jobj = do
-      n <- getArrayLength (unsafeCast jobj)
-      bytes <- getByteArrayElements jobj
-      -- TODO could use unsafePackCStringLen instead and avoid a copy if we knew
-      -- that been handed an (immutable) copy via JNI isCopy ref.
-      bs <- BS.packCStringLen (bytes, fromIntegral n)
-      releaseByteArrayElements jobj bytes
-      return bs
-
-instance Reflect ByteString ('Array ('Prim "byte")) where
-  reflect bs = BS.unsafeUseAsCStringLen bs $ \(content, n) -> do
-      arr <- newByteArray (fromIntegral n)
-      setByteArrayRegion arr 0 (fromIntegral n) content
-      return arr
-
-type instance Interp Bool = 'Class "java.lang.Boolean"
-
-instance Reify Bool ('Class "java.lang.Boolean") where
-  reify jobj = do
-      klass <- findClass "java/lang/Boolean"
-      method <- getMethodID klass "booleanValue" "()Z"
-      toEnum . fromIntegral <$> callBooleanMethod jobj method []
-
-instance Reflect Bool ('Class "java.lang.Boolean") where
-  reflect x = do
-      klass <- findClass "java/lang/Boolean"
-      fmap unsafeCast $
-        newObject klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
-
-type instance Interp Int = 'Class "java.lang.Integer"
-
-instance Reify Int ('Class "java.lang.Integer") where
-  reify jobj = do
-      klass <- findClass "java/lang/Integer"
-      method <- getMethodID klass "longValue" "()L"
-      fromIntegral <$> callLongMethod jobj method []
-
-instance Reflect Int ('Class "java.lang.Integer") where
-  reflect x = do
-      klass <- findClass "java/lang/Integer"
-      fmap unsafeCast $
-        newObject klass "(L)V" [JInt (fromIntegral x)]
-
-type instance Interp Double = 'Class "java.lang.Double"
-
-instance Reify Double ('Class "java.lang.Double") where
-  reify jobj = do
-      klass <- findClass "java/lang/Double"
-      method <- getMethodID klass "doubleValue" "()D"
-      callDoubleMethod jobj method []
-
-instance Reflect Double ('Class "java.lang.Double") where
-  reflect x = do
-      klass <- findClass "java/lang/Double"
-      fmap unsafeCast $ newObject klass "(D)V" [JDouble x]
-
-type instance Interp Text = 'Class "java.lang.String"
-
-instance Reify Text ('Class "java.lang.String") where
-  reify jobj = do
-      sz <- getStringLength jobj
-      cs <- getStringChars jobj
-      txt <- Text.fromPtr cs (fromIntegral sz)
-      releaseStringChars jobj cs
-      return txt
-
-instance Reflect Text ('Class "java.lang.String") where
-  reflect x =
-      Text.useAsPtr x $ \ptr len ->
-        newString ptr (fromIntegral len)
-
-type instance Interp (IOVector Int32) = 'Array ('Prim "int")
-
-instance Reify (IOVector Int32) ('Array ('Prim "int")) where
-  reify = reifyMVector (getIntArrayElements) (releaseIntArrayElements)
-
-instance Reflect (IOVector Int32) ('Array ('Prim "int")) where
-  reflect = reflectMVector (newIntArray) (setIntArrayRegion)
-
-type instance Interp (Vector Int32) = 'Array ('Prim "int")
-
-instance Reify (Vector Int32) ('Array ('Prim "int")) where
-  reify = Vector.freeze <=< reify
-
-instance Reflect (Vector Int32) ('Array ('Prim "int")) where
-  reflect = reflect <=< Vector.thaw
-
-type instance Interp [a] = 'Array (Interp (Uncurry a))
-
-instance (Reify a ty) => Reify [a] ('Array ty) where
-  reify jobj = do
-      n <- getArrayLength jobj
-      forM [0..n-1] $ \i -> do
-        x <- getObjectArrayElement jobj i
-        reify x
-
-instance (Reflect a ty) => Reflect [a] ('Array ty) where
-  reflect xs = do
-    let n = fromIntegral (length xs)
-    klass <- findClass "java/lang/Object"
-    array <- newObjectArray n klass
-    forM_ (zip [0..n-1] xs) $ \(i, x) -> do
-      setObjectArrayElement array i =<< reflect x
-    return (unsafeCast array)
 
 foreign import ccall "wrapper" wrapFinalizer
   :: (Ptr a -> IO ())
@@ -192,3 +86,113 @@ reflectMVector new fill mv = do
     jobj <- new (fromIntegral n)
     withForeignPtr fptr $ fill jobj 0 (fromIntegral n)
     return jobj
+
+withStatic [d|
+  type instance Interp ByteString = 'Array ('Prim "byte")
+
+  instance Reify ByteString ('Array ('Prim "byte")) where
+    reify jobj = do
+        n <- getArrayLength (unsafeCast jobj)
+        bytes <- getByteArrayElements jobj
+        -- TODO could use unsafePackCStringLen instead and avoid a copy if we knew
+        -- that been handed an (immutable) copy via JNI isCopy ref.
+        bs <- BS.packCStringLen (bytes, fromIntegral n)
+        releaseByteArrayElements jobj bytes
+        return bs
+
+  instance Reflect ByteString ('Array ('Prim "byte")) where
+    reflect bs = BS.unsafeUseAsCStringLen bs $ \(content, n) -> do
+        arr <- newByteArray (fromIntegral n)
+        setByteArrayRegion arr 0 (fromIntegral n) content
+        return arr
+
+  type instance Interp Bool = 'Class "java.lang.Boolean"
+
+  instance Reify Bool ('Class "java.lang.Boolean") where
+    reify jobj = do
+        klass <- findClass "java/lang/Boolean"
+        method <- getMethodID klass "booleanValue" "()Z"
+        toEnum . fromIntegral <$> callBooleanMethod jobj method []
+
+  instance Reflect Bool ('Class "java.lang.Boolean") where
+    reflect x = do
+        klass <- findClass "java/lang/Boolean"
+        fmap unsafeCast $
+          newObject klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
+
+  type instance Interp Int = 'Class "java.lang.Integer"
+
+  instance Reify Int ('Class "java.lang.Integer") where
+    reify jobj = do
+        klass <- findClass "java/lang/Integer"
+        method <- getMethodID klass "longValue" "()L"
+        fromIntegral <$> callLongMethod jobj method []
+
+  instance Reflect Int ('Class "java.lang.Integer") where
+    reflect x = do
+        klass <- findClass "java/lang/Integer"
+        fmap unsafeCast $
+          newObject klass "(L)V" [JInt (fromIntegral x)]
+
+  type instance Interp Double = 'Class "java.lang.Double"
+
+  instance Reify Double ('Class "java.lang.Double") where
+    reify jobj = do
+        klass <- findClass "java/lang/Double"
+        method <- getMethodID klass "doubleValue" "()D"
+        callDoubleMethod jobj method []
+
+  instance Reflect Double ('Class "java.lang.Double") where
+    reflect x = do
+        klass <- findClass "java/lang/Double"
+        fmap unsafeCast $ newObject klass "(D)V" [JDouble x]
+
+  type instance Interp Text = 'Class "java.lang.String"
+
+  instance Reify Text ('Class "java.lang.String") where
+    reify jobj = do
+        sz <- getStringLength jobj
+        cs <- getStringChars jobj
+        txt <- Text.fromPtr cs (fromIntegral sz)
+        releaseStringChars jobj cs
+        return txt
+
+  instance Reflect Text ('Class "java.lang.String") where
+    reflect x =
+        Text.useAsPtr x $ \ptr len ->
+          newString ptr (fromIntegral len)
+
+  type instance Interp (IOVector Int32) = 'Array ('Prim "int")
+
+  instance Reify (IOVector Int32) ('Array ('Prim "int")) where
+    reify = reifyMVector (getIntArrayElements) (releaseIntArrayElements)
+
+  instance Reflect (IOVector Int32) ('Array ('Prim "int")) where
+    reflect = reflectMVector (newIntArray) (setIntArrayRegion)
+
+  type instance Interp (Vector Int32) = 'Array ('Prim "int")
+
+  instance Reify (Vector Int32) ('Array ('Prim "int")) where
+    reify = Vector.freeze <=< reify
+
+  instance Reflect (Vector Int32) ('Array ('Prim "int")) where
+    reflect = reflect <=< Vector.thaw
+
+  type instance Interp [a] = 'Array (Interp (Uncurry a))
+
+  instance Reify a ty => Reify [a] ('Array ty) where
+    reify jobj = do
+        n <- getArrayLength jobj
+        forM [0..n-1] $ \i -> do
+          x <- getObjectArrayElement jobj i
+          reify x
+
+  instance Reflect a ty => Reflect [a] ('Array ty) where
+    reflect xs = do
+      let n = fromIntegral (length xs)
+      klass <- findClass "java/lang/Object"
+      array <- newObjectArray n klass
+      forM_ (zip [0..n-1] xs) $ \(i, x) -> do
+        setObjectArrayElement array i =<< reflect x
+      return (unsafeCast array)
+  |]
