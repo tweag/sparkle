@@ -4,7 +4,7 @@
 module Control.Distributed.Spark.RDD where
 
 import Control.Distributed.Closure
-import Control.Distributed.Spark.Closure
+import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
 import Data.Coerce
 import Data.Int
@@ -34,7 +34,7 @@ parallelize sc xs = do
 
 
 filter
-  :: Reflect (Closure (a -> Bool)) (JFun1 a Bool)
+  :: Reflect (Closure (a -> Bool)) ty
   => Closure (a -> Bool)
   -> RDD a
   -> IO (RDD a)
@@ -45,7 +45,7 @@ filter clos rdd = do
     coerce . unsafeCast <$> callObjectMethod rdd method [JObject f]
 
 map
-  :: Reflect (Closure (a -> b)) (JFun1 a b)
+  :: Reflect (Closure (a -> b)) ty
   => Closure (a -> b)
   -> RDD a
   -> IO (RDD b)
@@ -56,7 +56,7 @@ map clos rdd = do
     coerce . unsafeCast <$> callObjectMethod rdd method [JObject f]
 
 fold
-  :: (Reflect (Closure (a -> a -> a)) (JFun2 a a a), Reflect a ty, Reify a ty')
+  :: (Reflect (Closure (a -> a -> a)) ty1, Reflect a ty2, Reify a ty2)
   => Closure (a -> a -> a)
   -> a
   -> RDD a
@@ -70,7 +70,7 @@ fold clos zero rdd = do
   reify res
 
 reduce
-  :: (Reflect (Closure (a -> a -> a)) (JFun2 a a a), Reify a ty)
+  :: (Reflect (Closure (a -> a -> a)) ty1, Reify a ty2, Reflect a ty2)
   => Closure (a -> a -> a)
   -> RDD a
   -> IO a
@@ -82,10 +82,10 @@ reduce clos rdd = do
   reify res
 
 aggregate
-  :: ( Reflect (Closure (b -> a -> b)) (JFun2 b a b)
-     , Reflect (Closure (b -> b -> b)) (JFun2 b b b)
-     , Reflect b ty
-     , Reify b ty'
+  :: ( Reflect (Closure (b -> a -> b)) ty1
+     , Reflect (Closure (b -> b -> b)) ty2
+     , Reify b ty3
+     , Reflect b ty3
      )
   => Closure (b -> a -> b)
   -> Closure (b -> b -> b)
