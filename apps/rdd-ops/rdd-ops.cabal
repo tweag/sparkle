@@ -1,0 +1,16 @@
+name:                rdd-ops
+version:             0.1
+license:             BSD3
+license-file:        LICENSE
+author:              Tweag I/O
+maintainer:          alp.mestanogullari@tweag.io
+copyright:           2016 Tweag I/O Ltd
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable sparkle-example-rddops
+  main-is: RDDOps.hs
+  build-depends: base >=4.7 && <5, distributed-closure, sparkle, text
+  default-language: Haskell2010
+  ghc-options: -dynamic -lpthread -threaded
+  ld-options: -pie -Wl,-z,origin -Wl,-rpath,$ORIGIN
