@@ -7,7 +7,6 @@ import Control.Distributed.Closure
 import Control.Distributed.Spark as RDD
 import Data.Monoid
 import qualified Data.Text as Text
-import Data.Text (Text)
 
 main :: IO ()
 main = do
