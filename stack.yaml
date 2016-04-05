@@ -3,6 +3,7 @@ packages:
 - sparkle
 - apps/hello
 - apps/lda
+- apps/rdd-ops
 - location:
     git: git@github.com:tweag/distributed-closure
     commit: 565c4da9b4706407b209aa7ebc896fd79ccd651d
