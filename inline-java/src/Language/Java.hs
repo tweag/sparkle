@@ -1,3 +1,8 @@
+-- | High-level helper functions for interacting with Java objects, mapping them
+-- to Haskell values and vice versa. The 'Reify' and 'Reflect' classes together
+-- are to Java what "Foreign.Storable" is to C: they provide a means to
+-- marshall/unmarshall Java objects from/into Haskell data types.
+
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -8,7 +13,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Language.Java where
+module Language.Java
+  ( Type(..)
+  , Uncurry
+  , Interp
+  , Reify(..)
+  , Reflect(..)
+  ) where
 
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
@@ -26,12 +37,17 @@ import Data.Vector.Storable.Mutable (IOVector)
 import Foreign (FunPtr, Ptr, Storable, newForeignPtr, withForeignPtr)
 import Foreign.JNI
 
+-- | Classifies Java types according to whether they are base types (data) or
+-- higher-order types (objects representing functions).
 data Type a
   = Fun [Type a] (Type a) -- ^ Pure function
   | Act [Type a] (Type a) -- ^ IO action
   | Proc [Type a]         -- ^ Procedure (i.e void returning action)
   | Base a                -- ^ Any first-order type.
 
+-- | Haskell functions are curried, but Java functions are not. This type family
+-- maps Haskell types to an uncurried (non-inductive) type representation,
+-- useful to select the right 'Reify' / 'Reflect' instance without overlap.
 type family Uncurry (a :: *) :: Type * where
   Uncurry (Closure (a -> b -> c -> d -> IO ())) = 'Proc '[Uncurry a, Uncurry b, Uncurry c, Uncurry d]
   Uncurry (Closure (a -> b -> c -> IO ())) = 'Proc '[Uncurry a, Uncurry b, Uncurry c]
@@ -49,13 +65,18 @@ type family Uncurry (a :: *) :: Type * where
   Uncurry (Closure (a -> b)) = 'Fun '[Uncurry a] (Uncurry b)
   Uncurry a = 'Base a
 
+-- | Map a Haskell type to the symbolic representation of a Java type.
 type family Interp (a :: k) :: JType
 type instance Interp ('Base a) = Interp a
 
-class (Interp (Uncurry a) ~ ty) => Reify a ty where
+-- | Extract a concrete Haskell value from the space of Java objects. That is to
+-- say, map a Java object to a Haskell value.
+class Interp (Uncurry a) ~ ty => Reify a ty where
   reify :: J ty -> IO a
 
-class (Interp (Uncurry a) ~ ty) => Reflect a ty where
+-- | Inject a concrete Haskell value into the space of Java objects. That is to
+-- say, map a Haskell value to a Java object.
+class Interp (Uncurry a) ~ ty => Reflect a ty where
   reflect :: a -> IO (J ty)
 
 foreign import ccall "wrapper" wrapFinalizer
