@@ -4,11 +4,14 @@
 -- marshall/unmarshall Java objects from/into Haskell data types.
 
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -19,15 +22,18 @@ module Language.Java
   , Interp
   , Reify(..)
   , Reflect(..)
+  , Coercible(..)
   ) where
 
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
 import Control.Monad ((<=<), forM, forM_)
+import qualified Data.Coerce as Coerce
 import Data.Int
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Unsafe as BS
+import Data.Singletons (Sing, SingI(..))
 import qualified Data.Text.Foreign as Text
 import Data.Text (Text)
 import qualified Data.Vector.Storable as Vector
@@ -71,13 +77,35 @@ type instance Interp ('Base a) = Interp a
 
 -- | Extract a concrete Haskell value from the space of Java objects. That is to
 -- say, map a Java object to a Haskell value.
-class Interp (Uncurry a) ~ ty => Reify a ty where
+class (Interp (Uncurry a) ~ ty, SingI ty) => Reify a ty where
   reify :: J ty -> IO a
 
 -- | Inject a concrete Haskell value into the space of Java objects. That is to
 -- say, map a Haskell value to a Java object.
-class Interp (Uncurry a) ~ ty => Reflect a ty where
+class (Interp (Uncurry a) ~ ty, SingI ty) => Reflect a ty where
   reflect :: a -> IO (J ty)
+
+-- | Tag data types that can be coerced in O(1) time without copy to a Java
+-- object or primitive type (i.e. have the same representation) by declaring an
+-- instance of this type class for that data type.
+class SingI ty => Coercible a (ty :: JType) | a -> ty where
+  coerce :: a -> JValue
+  unsafeUncoerce :: JValue -> a
+
+  default coerce
+    :: Coerce.Coercible a (J ty)
+    => a
+    -> JValue
+  coerce x = JObject (Coerce.coerce x :: J ty)
+
+  default unsafeUncoerce
+    :: Coerce.Coercible (J ty) a
+    => JValue
+    -> a
+  unsafeUncoerce (JObject obj) = Coerce.coerce (unsafeCast obj :: J ty)
+  unsafeUncoerce _ = error "Cannot unsafeUncoerce: object expected by primitive found."
+
+instance SingI ty => Coercible (J ty) ty
 
 foreign import ccall "wrapper" wrapFinalizer
   :: (Ptr a -> IO ())

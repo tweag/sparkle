@@ -1,19 +1,26 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PolyKinds #-}        -- For J a
 {-# LANGUAGE RoleAnnotations #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Foreign.JNI.Types where
 
+import qualified Data.ByteString.Char8 as BS
+import Data.ByteString (ByteString)
 import Data.Coerce
 import Data.Int
 import Data.Map (fromList)
+import Data.Singletons (Sing, SingI(..), SomeSing(..), KProxy(..))
+import Data.Singletons.TypeLits (KnownSymbol, symbolVal)
 import Data.Word
 import Foreign.C (CChar)
 import Foreign.Ptr
@@ -45,6 +52,26 @@ data JType
   | Prim Symbol                                -- ^ Primitive type
   | Array JType                                -- ^ Array type
   | Generic JType [JType]                      -- ^ Parameterized (generic) type
+
+data instance Sing (a :: JType) where
+  SClass :: ByteString -> Sing ('Class sym)
+  SIface :: ByteString -> Sing ('Iface sym)
+  SPrim :: ByteString -> Sing ('Prim sym)
+  -- XXX SingI constraint temporary hack because GHC 7.10 has trouble inferring
+  -- this constraint in 'signature'.
+  SArray :: Sing ty -> Sing ('Array ty)
+  SGeneric :: Sing ty -> Sing tys -> Sing ('Generic ty tys)
+
+instance (KnownSymbol sym, SingI sym) => SingI ('Class (sym :: Symbol)) where
+  sing = SClass (BS.pack $ symbolVal (undefined :: proxy sym))
+instance (KnownSymbol sym, SingI sym) => SingI ('Iface (sym :: Symbol)) where
+  sing = SIface (BS.pack $ symbolVal (undefined :: proxy sym))
+instance (KnownSymbol sym, SingI sym) => SingI ('Prim (sym :: Symbol)) where
+  sing = SPrim (BS.pack $ symbolVal (undefined :: proxy sym))
+instance SingI ty => SingI ('Array ty) where
+  sing = SArray sing
+instance (SingI ty, SingI tys) => SingI ('Generic ty tys) where
+  sing = SGeneric sing sing
 
 -- | Shorthand for parametized Java types.
 type a <> g = 'Generic a g
@@ -81,7 +108,7 @@ data JValue
   | JLong Int64
   | JFloat Float
   | JDouble Double
-  | forall a o. Coercible o (J a) => JObject o
+  | forall a. SingI a => JObject {-# UNPACK#-} !(J a)
 
 instance Show JValue where
   show (JBoolean x) = "JBoolean " ++ show x

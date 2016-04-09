@@ -124,7 +124,7 @@ instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
   reflect f = do
       klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
       jpayload <- reflect (clos2bs wrap)
-      fmap unsafeCast $ newObject klass "([B)V" [JObject jpayload]
+      unsafeCast <$> newObject klass "([B)V" [coerce jpayload]
     where
       wrap :: Closure (JObjectArray -> IO JObject)
       wrap = $(cstatic 'closFun1) `cap`
@@ -166,7 +166,7 @@ instance ( ty ~ Interp (Uncurry (Closure (a -> b -> c)))
   reflect f = do
       klass <- findClass "io/tweag/sparkle/function/HaskellFunction2"
       jpayload <- reflect (clos2bs wrap)
-      fmap unsafeCast $ newObject klass "([B)V" [JObject jpayload]
+      unsafeCast <$> newObject klass "([B)V" [coerce jpayload]
     where
       wrap :: Closure (JObjectArray -> IO JObject)
       wrap = $(cstatic 'closFun2) `cap`
