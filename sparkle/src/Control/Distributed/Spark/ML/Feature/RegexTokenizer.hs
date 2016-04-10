@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Control.Distributed.Spark.ML.Feature.RegexTokenizer where
 
@@ -15,8 +16,7 @@ instance Coercible RegexTokenizer ('Class "org.apache.spark.ml.feature.RegexToke
 
 newTokenizer :: Text -> Text -> IO RegexTokenizer
 newTokenizer icol ocol = do
-  cls <- findClass "org/apache/spark/ml/feature/RegexTokenizer"
-  tok0 <- newObject cls "()V" []
+  tok0 :: RegexTokenizer <- new []
   let patt = "\\p{L}+" :: Text
   let gaps = False
   let jgaps = if gaps then 1 else 0
@@ -34,8 +34,4 @@ newTokenizer icol ocol = do
                                            ]
 
 tokenize :: RegexTokenizer -> DataFrame -> IO DataFrame
-tokenize tok df = do
-  cls <- findClass "org/apache/spark/ml/feature/RegexTokenizer"
-  mth <- getMethodID cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
-  unsafeUncoerce . coerce <$>
-    callObjectMethod tok mth [coerce df]
+tokenize tok df = call tok "transform" [coerce df]

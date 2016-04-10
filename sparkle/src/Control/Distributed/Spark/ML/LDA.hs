@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Control.Distributed.Spark.ML.LDA where
 
@@ -15,35 +16,22 @@ import Language.Java
 newtype LDA = LDA (J ('Class "org.apache.spark.mllib.clustering.LDA"))
 instance Coercible LDA ('Class "org.apache.spark.mllib.clustering.LDA")
 
+newtype OnlineLDAOptimizer = OnlineLDAOptimizer (J ('Class "org.apache.spark.mllib.clustering.OnlineLDAOptimizer"))
+instance Coercible OnlineLDAOptimizer ('Class "org.apache.spark.mllib.clustering.OnlineLDAOptimizer")
+
 newLDA :: Double                               -- ^ fraction of documents
        -> Int32                                -- ^ number of topics
        -> Int32                                -- ^ maximum number of iterations
        -> IO LDA
 newLDA frac numTopics maxIterations = do
-  cls <- findClass "org/apache/spark/mllib/clustering/LDA"
-  lda <- newObject cls "()V" []
-
-  opti_cls <- findClass "org/apache/spark/mllib/clustering/OnlineLDAOptimizer"
-  opti <- newObject opti_cls "()V" []
-  setMiniBatch <- getMethodID opti_cls "setMiniBatchFraction" "(D)Lorg/apache/spark/mllib/clustering/OnlineLDAOptimizer;"
-  opti' <- callObjectMethod opti setMiniBatch [JDouble frac]
-
-  setOpti <- getMethodID cls "setOptimizer" "(Lorg/apache/spark/mllib/clustering/LDAOptimizer;)Lorg/apache/spark/mllib/clustering/LDA;"
-  lda' <- callObjectMethod lda setOpti [coerce opti']
-
-  setK <- getMethodID cls "setK" "(I)Lorg/apache/spark/mllib/clustering/LDA;"
-  lda'' <- callObjectMethod lda' setK [JInt numTopics]
-
-  setMaxIter <- getMethodID cls "setMaxIterations" "(I)Lorg/apache/spark/mllib/clustering/LDA;"
-  lda''' <- callObjectMethod lda'' setMaxIter [JInt maxIterations]
-
-  setDocConc <- getMethodID cls "setDocConcentration" "(D)Lorg/apache/spark/mllib/clustering/LDA;"
-  lda'''' <- callObjectMethod lda''' setDocConc [JDouble $ negate 1]
-
-  setTopicConc <- getMethodID cls "setTopicConcentration" "(D)Lorg/apache/spark/mllib/clustering/LDA;"
-  lda''''' <- unsafeUncoerce . coerce <$> callObjectMethod lda'''' setTopicConc [JDouble $ negate 1]
-
-  return lda'''''
+  lda :: LDA <- new []
+  opti :: OnlineLDAOptimizer <- new []
+  OnlineLDAOptimizer opti' <- call opti "setMiniBatchFraction" [JDouble frac]
+  lda' :: LDA <- call lda "setOptimizer" [coerce (unsafeCast opti' :: J ('Iface "org.apache.spark.mllib.clustering.LDAOptimizer"))]
+  lda'' :: LDA <- call lda' "setK" [JInt numTopics]
+  lda''' :: LDA <- call lda'' "setMaxIterations" [JInt maxIterations]
+  lda'''' :: LDA <- call lda''' "setDocConcentration" [JDouble $ negate 1]
+  call lda'''' "setTopicConcentration" [JDouble $ negate 1]
 
 newtype LDAModel = LDAModel (J ('Class "org.apache.spark.mllib.clustering.LDAModel"))
 instance Coercible LDAModel ('Class "org.apache.spark.mllib.clustering.LDAModel")

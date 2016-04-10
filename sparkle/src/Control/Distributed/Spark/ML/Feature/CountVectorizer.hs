@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Control.Distributed.Spark.ML.Feature.CountVectorizer where
 
@@ -18,34 +19,25 @@ instance Coercible CountVectorizer ('Class "org.apache.spark.ml.feature.CountVec
 
 newCountVectorizer :: Int32 -> Text -> Text -> IO CountVectorizer
 newCountVectorizer vocSize icol ocol = do
-  cls <- findClass "org/apache/spark/ml/feature/CountVectorizer"
-  cv  <- newObject cls "()V" []
-  setInpc <- getMethodID cls "setInputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/CountVectorizer;"
   jfiltered <- reflect icol
-  cv' <- callObjectMethod cv setInpc [coerce jfiltered]
-  setOutc <- getMethodID cls "setOutputCol" "(Ljava/lang/String;)Lorg/apache/spark/ml/feature/CountVectorizer;"
   jfeatures <- reflect ocol
-  cv'' <- callObjectMethod cv' setOutc [coerce jfeatures]
-  setVocSize <- getMethodID cls "setVocabSize" "(I)Lorg/apache/spark/ml/feature/CountVectorizer;"
-  unsafeUncoerce . coerce <$> callObjectMethod cv'' setVocSize [JInt vocSize]
+  cv :: CountVectorizer <- new []
+  cv' :: CountVectorizer <- call cv "setInputCol" [coerce jfiltered]
+  cv'' :: CountVectorizer <- call cv' "setOutputCol" [coerce jfeatures]
+  call cv'' "setVocabSize" [JInt vocSize]
 
 newtype CountVectorizerModel = CountVectorizerModel (J ('Class "org.apache.spark.ml.feature.CountVectorizerModel"))
 instance Coercible CountVectorizerModel ('Class "org.apache.spark.ml.feature.CountVectorizerModel")
 
 fitCV :: CountVectorizer -> DataFrame -> IO CountVectorizerModel
-fitCV cv df = do
-  cls <- findClass "org/apache/spark/ml/feature/CountVectorizer"
-  mth <- getMethodID cls "fit" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/ml/feature/CountVectorizerModel;"
-  unsafeUncoerce . coerce <$> callObjectMethod cv mth [coerce df]
+fitCV cv df = call cv "fit" [coerce df]
 
 newtype SparkVector = SparkVector (J ('Class "org.apache.spark.mllib.linalg.Vector"))
 instance Coercible SparkVector ('Class "org.apache.spark.mllib.linalg.Vector")
 
 toTokenCounts :: CountVectorizerModel -> DataFrame -> Text -> Text -> IO (PairRDD CLong SparkVector)
 toTokenCounts cvModel df col1 col2 = do
-  cls <- findClass "org/apache/spark/ml/feature/CountVectorizerModel"
-  mth <- getMethodID cls "transform" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
-  df' <- callObjectMethod cvModel mth [coerce df]
+  df' :: DataFrame <- call cvModel "transform" [coerce df]
 
   helper <- findClass "Helper"
   fromDF <- getStaticMethodID helper "fromDF" "(Lorg/apache/spark/sql/DataFrame;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/api/java/JavaRDD;"

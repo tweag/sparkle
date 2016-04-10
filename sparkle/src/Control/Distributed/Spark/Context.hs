@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Control.Distributed.Spark.Context where
 
@@ -14,29 +15,22 @@ instance Coercible SparkConf ('Class "org.apache.spark.SparkConf")
 
 newSparkConf :: Text -> IO SparkConf
 newSparkConf appname = do
-  cls <- findClass "org/apache/spark/SparkConf"
-  setAppName <- getMethodID cls "setAppName" "(Ljava/lang/String;)Lorg/apache/spark/SparkConf;"
-  cnf <- unsafeUncoerce . coerce <$> newObject cls "()V" []
   jname <- reflect appname
-  _ <- callObjectMethod cnf setAppName [coerce jname]
-  return cnf
+  cnf :: SparkConf <- new []
+  call cnf "setAppName" [coerce jname]
 
 confSet :: SparkConf -> Text -> Text -> IO ()
 confSet conf key value = do
-  cls <- findClass "org/apache/spark/SparkConf"
-  set <- getMethodID cls "set" "(Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/SparkConf;"
   jkey <- reflect key
   jval <- reflect value
-  _    <- callObjectMethod conf set [coerce jkey, coerce jval]
+  _ :: SparkConf <- call conf "set" [coerce jkey, coerce jval]
   return ()
 
 newtype SparkContext = SparkContext (J ('Class "org.apache.spark.api.java.JavaSparkContext"))
 instance Coercible SparkContext ('Class "org.apache.spark.api.java.JavaSparkContext")
 
 newSparkContext :: SparkConf -> IO SparkContext
-newSparkContext conf = do
-  cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
-  unsafeUncoerce . coerce <$> newObject cls "(Lorg/apache/spark/SparkConf;)V" [coerce conf]
+newSparkContext conf = new [coerce conf]
 
 -- | Adds the given file to the pool of files to be downloaded
 --   on every worker node. Use 'getFile' on those nodes to
@@ -60,7 +54,5 @@ getFile filename = do
 
 master :: SparkContext -> IO Text
 master sc = do
-  cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
-  method <- getMethodID cls "master" "()Ljava/lang/String;"
-  res <- fmap unsafeCast $ callObjectMethod sc method []
+  res <- call sc "master" []
   reify res

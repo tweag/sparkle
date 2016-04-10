@@ -31,12 +31,9 @@ toDF sqlc rdd s1 s2 = do
 selectDF :: DataFrame -> [Text] -> IO DataFrame
 selectDF _ [] = error "selectDF: not enough arguments."
 selectDF df (col:cols) = do
-  cls <- findClass "org/apache/spark/sql/DataFrame"
-  mth <- getMethodID cls "select" "(Ljava/lang/String;[Ljava/lang/String;)Lorg/apache/spark/sql/DataFrame;"
   jcol <- reflect col
   jcols <- reflect cols
-  unsafeUncoerce . coerce <$>
-    callObjectMethod df mth [coerce jcol, coerce jcols]
+  call df "select" [coerce jcol, coerce jcols]
 
 debugDF :: DataFrame -> IO ()
 debugDF df = do
@@ -45,7 +42,4 @@ debugDF df = do
   callVoidMethod df mth []
 
 join :: DataFrame -> DataFrame -> IO DataFrame
-join d1 d2 = do
-  cls <- findClass "org/apache/spark/sql/DataFrame"
-  mth <- getMethodID cls "join" "(Lorg/apache/spark/sql/DataFrame;)Lorg/apache/spark/sql/DataFrame;"
-  unsafeUncoerce . coerce <$> callObjectMethod d1 mth [coerce d2]
+join d1 d2 = call d1 "join" [coerce d2]

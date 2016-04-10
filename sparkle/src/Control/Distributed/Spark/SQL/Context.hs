@@ -13,7 +13,4 @@ newtype SQLContext = SQLContext (J ('Class "org.apache.spark.sql.SQLContext"))
 instance Coercible SQLContext ('Class "org.apache.spark.sql.SQLContext")
 
 newSQLContext :: SparkContext -> IO SQLContext
-newSQLContext sc = do
-  cls <- findClass "org/apache/spark/sql/SQLContext"
-  unsafeUncoerce . coerce <$>
-    newObject cls "(Lorg/apache/spark/api/java/JavaSparkContext;)V" [coerce sc]
+newSQLContext sc = new [coerce sc]

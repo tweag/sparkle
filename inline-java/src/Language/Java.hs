@@ -17,12 +17,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Language.Java
-  ( Type(..)
+  ( Coercible(..)
+  , new
+  , call
+  , Type(..)
   , Uncurry
   , Interp
   , Reify(..)
   , Reflect(..)
-  , Coercible(..)
   ) where
 
 import Control.Distributed.Closure
@@ -42,6 +44,68 @@ import qualified Data.Vector.Storable.Mutable as MVector
 import Data.Vector.Storable.Mutable (IOVector)
 import Foreign (FunPtr, Ptr, Storable, newForeignPtr, withForeignPtr)
 import Foreign.JNI
+import GHC.TypeLits (KnownSymbol)
+
+-- | Tag data types that can be coerced in O(1) time without copy to a Java
+-- object or primitive type (i.e. have the same representation) by declaring an
+-- instance of this type class for that data type.
+class SingI ty => Coercible a (ty :: JType) | a -> ty where
+  coerce :: a -> JValue
+  unsafeUncoerce :: JValue -> a
+
+  default coerce
+    :: Coerce.Coercible a (J ty)
+    => a
+    -> JValue
+  coerce x = JObject (Coerce.coerce x :: J ty)
+
+  default unsafeUncoerce
+    :: Coerce.Coercible (J ty) a
+    => JValue
+    -> a
+  unsafeUncoerce (JObject obj) = Coerce.coerce (unsafeCast obj :: J ty)
+  unsafeUncoerce _ =
+      error "Cannot unsafeUncoerce: object expected but value of primitive type found."
+
+instance SingI ty => Coercible (J ty) ty
+
+-- | NULL terminate byte strings, because those that were not created from
+-- statically allocated literals aren't guaranteed to be.
+nullTerminate :: ByteString -> ByteString
+nullTerminate = (`BS.snoc` '\0')
+
+-- | FindClass() special cases class names: in that case it doesn't want
+-- a full signature, just the class name.
+signatureStrip :: ByteString -> ByteString
+signatureStrip sig | Just ('L', cls) <- BS.uncons sig = BS.init cls
+signatureStrip sig = sig
+
+new
+  :: forall a sym.
+     ( Coerce.Coercible a (J ('Class sym))
+     , Coercible a ('Class sym)
+     , KnownSymbol sym
+     )
+  => [JValue]
+  -> IO a
+new args = do
+    let argsings = map jtypeOf args
+        voidsing = sing :: Sing 'Void
+    klass <- findClass (nullTerminate (signatureStrip (signature (sing :: Sing ('Class sym)))))
+    Coerce.coerce <$> newObject klass (nullTerminate (methodSignature argsings voidsing)) args
+
+call
+  :: forall a b ty1 ty2. (Coercible a ty1, Coercible b ty2, Coerce.Coercible a (J ty1))
+  => a
+  -> ByteString
+  -> [JValue]
+  -> IO b
+call obj mname args = do
+    let argsings = map jtypeOf args
+        retsing = sing :: Sing ty2
+    klass <- findClass (nullTerminate (signatureStrip (signature (sing :: Sing ty1))))
+    method <- getMethodID klass mname (nullTerminate (methodSignature argsings retsing))
+    unsafeUncoerce . coerce <$> callObjectMethod obj method args
 
 -- | Classifies Java types according to whether they are base types (data) or
 -- higher-order types (objects representing functions).
@@ -85,28 +149,6 @@ class (Interp (Uncurry a) ~ ty, SingI ty) => Reify a ty where
 class (Interp (Uncurry a) ~ ty, SingI ty) => Reflect a ty where
   reflect :: a -> IO (J ty)
 
--- | Tag data types that can be coerced in O(1) time without copy to a Java
--- object or primitive type (i.e. have the same representation) by declaring an
--- instance of this type class for that data type.
-class SingI ty => Coercible a (ty :: JType) | a -> ty where
-  coerce :: a -> JValue
-  unsafeUncoerce :: JValue -> a
-
-  default coerce
-    :: Coerce.Coercible a (J ty)
-    => a
-    -> JValue
-  coerce x = JObject (Coerce.coerce x :: J ty)
-
-  default unsafeUncoerce
-    :: Coerce.Coercible (J ty) a
-    => JValue
-    -> a
-  unsafeUncoerce (JObject obj) = Coerce.coerce (unsafeCast obj :: J ty)
-  unsafeUncoerce _ = error "Cannot unsafeUncoerce: object expected by primitive found."
-
-instance SingI ty => Coercible (J ty) ty
-
 foreign import ccall "wrapper" wrapFinalizer
   :: (Ptr a -> IO ())
   -> IO (FunPtr (Ptr a -> IO ()))
@@ -130,9 +172,9 @@ reflectMVector
   -> (JArray ty -> Int32 -> Int32 -> Ptr a -> IO ())
   -> IOVector a
   -> IO (JArray ty)
-reflectMVector new fill mv = do
+reflectMVector newfun fill mv = do
     let (fptr, n) = MVector.unsafeToForeignPtr0 mv
-    jobj <- new (fromIntegral n)
+    jobj <- newfun (fromIntegral n)
     withForeignPtr fptr $ fill jobj 0 (fromIntegral n)
     return jobj
 
@@ -164,10 +206,7 @@ withStatic [d|
         toEnum . fromIntegral <$> callBooleanMethod jobj method []
 
   instance Reflect Bool ('Class "java.lang.Boolean") where
-    reflect x = do
-        klass <- findClass "java/lang/Boolean"
-        fmap unsafeCast $
-          newObject klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
+    reflect x = new [JBoolean (fromIntegral (fromEnum x))]
 
   type instance Interp Int = 'Class "java.lang.Integer"
 
@@ -178,10 +217,7 @@ withStatic [d|
         fromIntegral <$> callLongMethod jobj method []
 
   instance Reflect Int ('Class "java.lang.Integer") where
-    reflect x = do
-        klass <- findClass "java/lang/Integer"
-        fmap unsafeCast $
-          newObject klass "(L)V" [JInt (fromIntegral x)]
+    reflect x = new [JInt (fromIntegral x)]
 
   type instance Interp Double = 'Class "java.lang.Double"
 
@@ -192,9 +228,7 @@ withStatic [d|
         callDoubleMethod jobj method []
 
   instance Reflect Double ('Class "java.lang.Double") where
-    reflect x = do
-        klass <- findClass "java/lang/Double"
-        fmap unsafeCast $ newObject klass "(D)V" [JDouble x]
+    reflect x = new [JDouble x]
 
   type instance Interp Text = 'Class "java.lang.String"
 
