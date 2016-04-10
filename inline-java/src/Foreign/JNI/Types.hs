@@ -52,6 +52,7 @@ data JType
   | Prim Symbol                                -- ^ Primitive type
   | Array JType                                -- ^ Array type
   | Generic JType [JType]                      -- ^ Parameterized (generic) type
+  | Void                                       -- ^ Void special type
 
 data instance Sing (a :: JType) where
   SClass :: ByteString -> Sing ('Class sym)
@@ -61,6 +62,7 @@ data instance Sing (a :: JType) where
   -- this constraint in 'signature'.
   SArray :: Sing ty -> Sing ('Array ty)
   SGeneric :: Sing ty -> Sing tys -> Sing ('Generic ty tys)
+  SVoid :: Sing 'Void
 
 instance (KnownSymbol sym, SingI sym) => SingI ('Class (sym :: Symbol)) where
   sing = SClass (BS.pack $ symbolVal (undefined :: proxy sym))
@@ -72,6 +74,8 @@ instance SingI ty => SingI ('Array ty) where
   sing = SArray sing
 instance (SingI ty, SingI tys) => SingI ('Generic ty tys) where
   sing = SGeneric sing sing
+instance SingI 'Void where
+  sing = SVoid
 
 -- | Shorthand for parametized Java types.
 type a <> g = 'Generic a g
