@@ -27,6 +27,8 @@ module Foreign.JNI
   , J(..)
   , upcast
   , unsafeCast
+  , generic
+  , unsafeUngeneric
   , JVM(..)
   , JNIEnv(..)
   , JMethodID(..)
