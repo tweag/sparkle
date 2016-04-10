@@ -153,6 +153,45 @@ instance Storable JValue where
 
   peek _ = error "Storable JValue: undefined peek"
 
+jtypeOf :: JValue -> SomeSing ('KProxy :: KProxy JType)
+jtypeOf (JBoolean _) = SomeSing (sing :: Sing ('Prim "boolean"))
+jtypeOf (JByte _) = SomeSing (sing :: Sing ('Prim "byte"))
+jtypeOf (JChar _) = SomeSing (sing :: Sing ('Prim "char"))
+jtypeOf (JShort _) = SomeSing (sing :: Sing ('Prim "short"))
+jtypeOf (JInt _) = SomeSing (sing :: Sing ('Prim "int"))
+jtypeOf (JLong _) = SomeSing (sing :: Sing ('Prim "long"))
+jtypeOf (JFloat _) = SomeSing (sing :: Sing ('Prim "float"))
+jtypeOf (JDouble _) = SomeSing (sing :: Sing ('Prim "double"))
+jtypeOf (JObject (_ :: J ty)) = SomeSing (sing :: Sing ty)
+
+signature :: Sing (ty :: JType) -> ByteString
+signature (SClass sym) = "L" `BS.append` BS.map subst sym `BS.append` ";"
+  where subst '.' = '/'; subst x = x
+signature (SIface sym) = "L" `BS.append` BS.map subst sym `BS.append` ";"
+  where subst '.' = '/'; subst x = x
+signature (SPrim "boolean") = "Z"
+signature (SPrim "byte") = "B"
+signature (SPrim "char") = "C"
+signature (SPrim "short") = "S"
+signature (SPrim "int") = "I"
+signature (SPrim "long") = "J"
+signature (SPrim "float") = "F"
+signature (SPrim "double") = "D"
+signature (SPrim sym) = error $ "Unknown primitive: " ++ BS.unpack sym
+signature (SArray ty) = "[" `BS.append` signature ty
+signature (SGeneric ty _) = signature ty
+signature SVoid = "V"
+
+methodSignature
+  :: [SomeSing ('KProxy :: KProxy JType)]
+  -> Sing (ty :: JType)
+  -> ByteString
+methodSignature args ret =
+    "(" `BS.append`
+    BS.concat (map (\(SomeSing s) -> signature s) args) `BS.append`
+    ")" `BS.append`
+    signature ret
+
 type JObject = J ('Class "java.lang.Object")
 type JClass = J ('Class "java.lang.Class")
 type JString = J ('Class "java.lang.String")

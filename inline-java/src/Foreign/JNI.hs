@@ -29,6 +29,9 @@ module Foreign.JNI
   , unsafeCast
   , generic
   , unsafeUngeneric
+  , jtypeOf
+  , signature
+  , methodSignature
   , JVM(..)
   , JNIEnv(..)
   , JMethodID(..)
