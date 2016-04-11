@@ -217,7 +217,7 @@ withStatic [d|
     reify jobj = do
         klass <- findClass "java/lang/Boolean"
         method <- getMethodID klass "booleanValue" "()Z"
-        toEnum . fromIntegral <$> callBooleanMethod jobj method []
+        callBooleanMethod jobj method []
 
   instance Reflect Bool ('Class "java.lang.Boolean") where
     reflect x = new [JBoolean (fromIntegral (fromEnum x))]
