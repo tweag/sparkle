@@ -122,6 +122,8 @@ signatureStrip :: ByteString -> ByteString
 signatureStrip sig | Just ('L', cls) <- BS.uncons sig = BS.init cls
 signatureStrip sig = sig
 
+-- | Creates a new instance of the class whose name is resolved from the return
+-- type.
 new
   :: forall a sym.
      ( Coerce.Coercible a (J ('Class sym))
@@ -136,6 +138,15 @@ new args = do
     klass <- findClass (nullTerminate (signatureStrip (signature (sing :: Sing ('Class sym)))))
     Coerce.coerce <$> newObject klass (nullTerminate (methodSignature argsings voidsing)) args
 
+-- | The Swiss Army knife for calling Java methods. Give it an object or
+-- any data type coercible to one, the name of a method, and a list of
+-- arguments. Based on the type indexes of each argument, and based on the
+-- return type, 'call' will invoke the named method using of the @call*Method@
+-- family of functions in the JNI API.
+--
+-- When the method name is overloaded, use 'upcast' or 'unsafeCast'
+-- appropriately on the class instance and/or on the arguments to invoke the
+-- right method.
 call
   :: forall a b ty1 ty2. (Coercible a ty1, Coercible b ty2, Coerce.Coercible a (J ty1))
   => a
@@ -162,6 +173,7 @@ call obj mname args = do
         return (unsafeUncoerce undefined)
       _ -> unsafeUncoerce . coerce <$> callObjectMethod obj method args
 
+-- | Same as 'call', but for static methods.
 callStatic :: forall a ty sym. Coercible a ty => Sing (sym :: Symbol) -> ByteString -> [JValue] -> IO a
 callStatic cname mname args = do
     let argsings = map jtypeOf args
