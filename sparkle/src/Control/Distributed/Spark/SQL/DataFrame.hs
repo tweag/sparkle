@@ -8,7 +8,6 @@ module Control.Distributed.Spark.SQL.DataFrame where
 import Control.Distributed.Spark.RDD
 import Control.Distributed.Spark.SQL.Context
 import Control.Distributed.Spark.SQL.Row
-import Data.Singletons (Sing, sing)
 import Data.Text (Text)
 import Foreign.JNI
 import Language.Java

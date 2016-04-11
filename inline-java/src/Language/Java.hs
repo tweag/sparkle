@@ -26,6 +26,8 @@ module Language.Java
   , Interp
   , Reify(..)
   , Reflect(..)
+  , Sing
+  , sing
   ) where
 
 import Control.Distributed.Closure
@@ -36,7 +38,7 @@ import Data.Int
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Unsafe as BS
-import Data.Singletons (Sing, SingI(..), fromSing)
+import Data.Singletons (SingI(..), fromSing)
 import qualified Data.Text.Foreign as Text
 import Data.Text (Text)
 import qualified Data.Vector.Storable as Vector

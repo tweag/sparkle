@@ -7,7 +7,6 @@
 module Control.Distributed.Spark.Context where
 
 import Data.Text (Text, pack, unpack)
-import Data.Singletons (Sing, sing)
 import Foreign.JNI
 import Language.Java
 

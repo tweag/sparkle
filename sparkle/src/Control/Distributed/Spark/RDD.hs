@@ -11,7 +11,6 @@ import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
 import Data.Int
-import Data.Singletons (Sing, sing)
 import Data.Text (Text)
 import Foreign.JNI
 import Language.Java

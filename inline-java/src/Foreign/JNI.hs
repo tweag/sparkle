@@ -20,38 +20,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 module Foreign.JNI
-  ( -- * Java types
-    JType(..)
-  , type (<>)
-    -- * JNI types
-  , J(..)
-  , upcast
-  , unsafeCast
-  , generic
-  , unsafeUngeneric
-  , jtypeOf
-  , signature
-  , methodSignature
-  , JVM(..)
-  , JNIEnv(..)
-  , JMethodID(..)
-  , JFieldID(..)
-  , JValue(..)
-    -- * JNI defined object types
-  , JObject
-  , JClass
-  , JString
-  , JArray
-  , JObjectArray
-  , JBooleanArray
-  , JByteArray
-  , JCharArray
-  , JShortArray
-  , JIntArray
-  , JLongArray
-  , JFloatArray
-  , JDoubleArray
-  , JThrowable
+  ( module Foreign.JNI.Types
     -- * JNI functions
     -- ** Query functions
   , findClass

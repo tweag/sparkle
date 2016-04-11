@@ -6,7 +6,6 @@ module Control.Distributed.Spark.SQL.Row where
 
 import Control.Distributed.Spark.PairRDD
 import Control.Distributed.Spark.RDD
-import Data.Singletons (Sing, sing)
 import Foreign.JNI
 import Language.Java
 

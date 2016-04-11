@@ -9,7 +9,6 @@ module Control.Distributed.Spark.ML.LDA where
 import Control.Distributed.Spark.ML.Feature.CountVectorizer
 import Control.Distributed.Spark.PairRDD
 import Data.Int
-import Data.Singletons (Sing, sing)
 import Foreign.C.Types
 import Foreign.JNI
 import Language.Java

@@ -10,7 +10,6 @@ import Control.Distributed.Spark.RDD (RDD)
 import Control.Distributed.Spark.PairRDD
 import Control.Distributed.Spark.SQL.DataFrame
 import Data.Int
-import Data.Singletons (Sing, sing)
 import Data.Text (Text)
 import Foreign.C.Types
 import Foreign.JNI

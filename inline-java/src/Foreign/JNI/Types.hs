@@ -12,7 +12,42 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Foreign.JNI.Types where
+module Foreign.JNI.Types
+  ( JType(..)
+  , Sing(..)
+  , type (<>)
+    -- * JNI types
+  , J(..)
+  , upcast
+  , unsafeCast
+  , generic
+  , unsafeUngeneric
+  , jtypeOf
+  , signature
+  , methodSignature
+  , JVM(..)
+  , JNIEnv(..)
+  , JMethodID(..)
+  , JFieldID(..)
+  , JValue(..)
+    -- * JNI defined object types
+  , JObject
+  , JClass
+  , JString
+  , JArray
+  , JObjectArray
+  , JBooleanArray
+  , JByteArray
+  , JCharArray
+  , JShortArray
+  , JIntArray
+  , JLongArray
+  , JFloatArray
+  , JDoubleArray
+  , JThrowable
+  -- * inline-c contexts
+  , jniCtx
+  ) where
 
 import qualified Data.ByteString.Char8 as BS
 import Data.ByteString (ByteString)

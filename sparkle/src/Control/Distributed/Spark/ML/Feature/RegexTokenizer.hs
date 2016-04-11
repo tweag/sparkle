@@ -7,7 +7,6 @@
 module Control.Distributed.Spark.ML.Feature.RegexTokenizer where
 
 import Control.Distributed.Spark.SQL.DataFrame
-import Data.Singletons (Sing, sing)
 import Data.Text (Text)
 import Foreign.JNI
 import Language.Java
