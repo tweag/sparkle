@@ -45,7 +45,7 @@ foreign export ccall "sparkle_apply" apply
   -> JObjectArray
   -> IO JObject
 
-type JFun1 a b = 'Class "io.tweag.sparkle.function.HaskellFunction" <> [a, b]
+type JFun1 a b = 'Iface "org.apache.spark.api.java.function.Function" <> [a, b]
 type instance Interp ('Fun '[a] b) = JFun1 (Interp a) (Interp b)
 
 pairDict :: Dict c1 -> Dict c2 -> Dict (c1, c2)
@@ -63,7 +63,7 @@ closFun1 Dict f args =
     reif = reify :: J ty1 -> IO a
     refl = reflect :: b -> IO (J ty2)
 
-type JFun2 a b c = 'Class "io.tweag.sparkle.function.HaskellFunction2" <> [a, b, c]
+type JFun2 a b c = 'Iface "org.apache.spark.api.java.function.Function2" <> [a, b, c]
 type instance Interp ('Fun '[a, b] c) = JFun2 (Interp a) (Interp b) (Interp c)
 
 tripleDict :: Dict c1 -> Dict c2 -> Dict c3 -> Dict (c1, c2, c3)
@@ -123,7 +123,8 @@ instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
          Reflect (Closure (a -> b)) (JFun1 ty1 ty2) where
   reflect f = do
       jpayload <- reflect (clos2bs wrap)
-      generic <$> new [coerce jpayload]
+      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new [coerce jpayload]
+      return (generic (unsafeCast obj))
     where
       wrap :: Closure (JObjectArray -> IO JObject)
       wrap = $(cstatic 'closFun1) `cap`
@@ -149,8 +150,7 @@ instance ( JFun2 ty1 ty2 ty3 ~ Interp (Uncurry (Closure (a -> b -> c)))
       payload <- reify (unsafeCast jpayload)
       return (bs2clos payload)
 
-instance ( ty ~ Interp (Uncurry (Closure (a -> b -> c)))
-         , ty ~ ('Class "io.tweag.sparkle.function.HaskellFunction2" <> [ty1, ty2, ty3])
+instance ( JFun2 ty1 ty2 ty3 ~ Interp (Uncurry (Closure (a -> b -> c)))
          , Static (Reify a ty1)
          , Static (Reify b ty2)
          , Static (Reflect c ty3)
@@ -161,10 +161,11 @@ instance ( ty ~ Interp (Uncurry (Closure (a -> b -> c)))
          , Typeable ty2
          , Typeable ty3
          ) =>
-         Reflect (Closure (a -> b -> c)) ty where
+         Reflect (Closure (a -> b -> c)) (JFun2 ty1 ty2 ty3) where
   reflect f = do
       jpayload <- reflect (clos2bs wrap)
-      generic <$> new [coerce jpayload]
+      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new [coerce jpayload]
+      return (generic (unsafeCast obj))
     where
       wrap :: Closure (JObjectArray -> IO JObject)
       wrap = $(cstatic 'closFun2) `cap`
