@@ -9,6 +9,7 @@ module Control.Distributed.Spark.ML.LDA where
 import Control.Distributed.Spark.ML.Feature.CountVectorizer
 import Control.Distributed.Spark.PairRDD
 import Data.Int
+import Data.Singletons (Sing, sing)
 import Foreign.C.Types
 import Foreign.JNI
 import Language.Java
@@ -37,11 +38,7 @@ newtype LDAModel = LDAModel (J ('Class "org.apache.spark.mllib.clustering.LDAMod
 instance Coercible LDAModel ('Class "org.apache.spark.mllib.clustering.LDAModel")
 
 runLDA :: LDA -> PairRDD CLong SparkVector -> IO LDAModel
-runLDA lda rdd = do
-  cls <- findClass "Helper"
-  run <- getStaticMethodID cls "runLDA" "(Lorg/apache/spark/mllib/clustering/LDA;Lorg/apache/spark/api/java/JavaPairRDD;)Lorg/apache/spark/mllib/clustering/LDAModel;"
-  unsafeUncoerce . coerce <$>
-    callStaticObjectMethod cls run [coerce lda, coerce rdd]
+runLDA lda rdd = callStatic (sing :: Sing "Helper") "runLDA" [coerce lda, coerce rdd]
 
 describeResults :: LDAModel -> CountVectorizerModel -> Int32 -> IO ()
 describeResults lm cvm maxTerms = do

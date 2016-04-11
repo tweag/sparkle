@@ -11,6 +11,7 @@ import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
 import Data.Int
+import Data.Singletons (Sing, sing)
 import Data.Text (Text)
 import Foreign.JNI
 import Language.Java
@@ -29,10 +30,11 @@ parallelize sc xs = do
     jxs :: J ('Iface "java.util.List") <- arrayToList =<< reflect xs
     call sc "parallelize" [coerce jxs]
   where
-    arrayToList jxs = do
-      klass <- findClass "java/util/Arrays"
-      method <- getStaticMethodID klass "asList" "([Ljava/lang/Object;)Ljava/util/List;"
-      unsafeUncoerce . coerce <$> callStaticObjectMethod klass method [coerce jxs]
+    arrayToList jxs =
+        callStatic
+          (sing :: Sing "java.util.Arrays")
+          "asList"
+          [coerce (unsafeCast jxs :: JObjectArray)]
 
 filter
   :: Reflect (Closure (a -> Bool)) ty

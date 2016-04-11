@@ -20,6 +20,7 @@ module Language.Java
   ( Coercible(..)
   , new
   , call
+  , callStatic
   , Type(..)
   , Uncurry
   , Interp
@@ -35,7 +36,7 @@ import Data.Int
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Unsafe as BS
-import Data.Singletons (Sing, SingI(..))
+import Data.Singletons (Sing, SingI(..), fromSing)
 import qualified Data.Text.Foreign as Text
 import Data.Text (Text)
 import qualified Data.Vector.Storable as Vector
@@ -44,7 +45,7 @@ import qualified Data.Vector.Storable.Mutable as MVector
 import Data.Vector.Storable.Mutable (IOVector)
 import Foreign (FunPtr, Ptr, Storable, newForeignPtr, withForeignPtr)
 import Foreign.JNI
-import GHC.TypeLits (KnownSymbol)
+import GHC.TypeLits (KnownSymbol, Symbol)
 
 -- | Tag data types that can be coerced in O(1) time without copy to a Java
 -- object or primitive type (i.e. have the same representation) by declaring an
@@ -106,6 +107,17 @@ call obj mname args = do
     klass <- findClass (nullTerminate (signatureStrip (signature (sing :: Sing ty1))))
     method <- getMethodID klass mname (nullTerminate (methodSignature argsings retsing))
     unsafeUncoerce . coerce <$> callObjectMethod obj method args
+
+callStatic :: forall a ty sym. Coercible a ty => Sing (sym :: Symbol) -> ByteString -> [JValue] -> IO a
+callStatic cname mname args = do
+    let argsings = map jtypeOf args
+        retsing = sing :: Sing ty
+    klass <- findClass (nullTerminate (BS.pack (map subst (fromSing cname))))
+    method <- getStaticMethodID klass mname (nullTerminate (methodSignature argsings retsing))
+    unsafeUncoerce . coerce <$> callStaticObjectMethod klass method args
+  where
+    subst '.' = '/'
+    subst x = x
 
 -- | Classifies Java types according to whether they are base types (data) or
 -- higher-order types (objects representing functions).

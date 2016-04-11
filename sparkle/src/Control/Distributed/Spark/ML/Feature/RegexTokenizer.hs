@@ -7,6 +7,7 @@
 module Control.Distributed.Spark.ML.Feature.RegexTokenizer where
 
 import Control.Distributed.Spark.SQL.DataFrame
+import Data.Singletons (Sing, sing)
 import Data.Text (Text)
 import Foreign.JNI
 import Language.Java
@@ -23,15 +24,15 @@ newTokenizer icol ocol = do
   jpatt <- reflect patt
   jicol <- reflect icol
   jocol <- reflect ocol
-  helper <- findClass "Helper"
-  setuptok <- getStaticMethodID helper "setupTokenizer" "(Lorg/apache/spark/ml/feature/RegexTokenizer;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;)Lorg/apache/spark/ml/feature/RegexTokenizer;"
-  unsafeUncoerce . coerce <$>
-    callStaticObjectMethod helper setuptok [ coerce tok0
-                                           , coerce jicol
-                                           , coerce jocol
-                                           , JBoolean jgaps
-                                           , coerce jpatt
-                                           ]
+  callStatic
+    (sing :: Sing "Helper")
+    "setupTokenizer"
+    [ coerce tok0
+    , coerce jicol
+    , coerce jocol
+    , JBoolean jgaps
+    , coerce jpatt
+    ]
 
 tokenize :: RegexTokenizer -> DataFrame -> IO DataFrame
 tokenize tok df = call tok "transform" [coerce df]

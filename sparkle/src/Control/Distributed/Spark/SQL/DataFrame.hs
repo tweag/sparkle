@@ -8,6 +8,7 @@ module Control.Distributed.Spark.SQL.DataFrame where
 import Control.Distributed.Spark.RDD
 import Control.Distributed.Spark.SQL.Context
 import Control.Distributed.Spark.SQL.Row
+import Data.Singletons (Sing, sing)
 import Data.Text (Text)
 import Foreign.JNI
 import Language.Java
@@ -17,16 +18,9 @@ instance Coercible DataFrame ('Class "org.apache.spark.sql.DataFrame")
 
 toDF :: SQLContext -> RDD Row -> Text -> Text -> IO DataFrame
 toDF sqlc rdd s1 s2 = do
-  cls <- findClass "Helper"
-  mth <- getStaticMethodID cls "toDF" "(Lorg/apache/spark/sql/SQLContext;Lorg/apache/spark/api/java/JavaRDD;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/sql/DataFrame;"
   col1 <- reflect s1
   col2 <- reflect s2
-  unsafeUncoerce . coerce <$>
-    callStaticObjectMethod cls mth [ coerce sqlc
-                                   , coerce rdd
-                                   , coerce col1
-                                   , coerce col2
-                                   ]
+  callStatic (sing :: Sing "Helper") "toDF" [coerce sqlc, coerce rdd, coerce col1, coerce col2]
 
 selectDF :: DataFrame -> [Text] -> IO DataFrame
 selectDF _ [] = error "selectDF: not enough arguments."

@@ -7,6 +7,7 @@
 module Control.Distributed.Spark.Context where
 
 import Data.Text (Text, pack, unpack)
+import Data.Singletons (Sing, sing)
 import Foreign.JNI
 import Language.Java
 
@@ -47,10 +48,7 @@ addFile sc fp = do
 getFile :: FilePath -> IO FilePath
 getFile filename = do
   jfilename <- reflect (pack filename)
-  cls <- findClass "org/apache/spark/SparkFiles"
-  method <- getStaticMethodID cls "get" "(Ljava/lang/String;)Ljava/lang/String;"
-  res <- callStaticObjectMethod cls method [coerce jfilename]
-  fmap unpack $ reify (unsafeCast res)
+  fmap unpack . reify =<< callStatic (sing :: Sing "org.apache.spark.SparkFiles") "get" [coerce jfilename]
 
 master :: SparkContext -> IO Text
 master sc = do

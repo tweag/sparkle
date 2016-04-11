@@ -6,9 +6,11 @@
 
 module Control.Distributed.Spark.ML.Feature.CountVectorizer where
 
+import Control.Distributed.Spark.RDD (RDD)
 import Control.Distributed.Spark.PairRDD
 import Control.Distributed.Spark.SQL.DataFrame
 import Data.Int
+import Data.Singletons (Sing, sing)
 import Data.Text (Text)
 import Foreign.C.Types
 import Foreign.JNI
@@ -37,12 +39,8 @@ instance Coercible SparkVector ('Class "org.apache.spark.mllib.linalg.Vector")
 
 toTokenCounts :: CountVectorizerModel -> DataFrame -> Text -> Text -> IO (PairRDD CLong SparkVector)
 toTokenCounts cvModel df col1 col2 = do
-  df' :: DataFrame <- call cvModel "transform" [coerce df]
-
-  helper <- findClass "Helper"
-  fromDF <- getStaticMethodID helper "fromDF" "(Lorg/apache/spark/sql/DataFrame;Ljava/lang/String;Ljava/lang/String;)Lorg/apache/spark/api/java/JavaRDD;"
-  fromRows <- getStaticMethodID helper "fromRows" "(Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/api/java/JavaPairRDD;"
   jcol1 <- reflect col1
   jcol2 <- reflect col2
-  rdd <- callStaticObjectMethod helper fromDF [coerce df', coerce jcol1, coerce jcol2]
-  unsafeUncoerce . coerce <$> callStaticObjectMethod helper fromRows [coerce rdd]
+  df' :: DataFrame <- call cvModel "transform" [coerce df]
+  rdd :: RDD a <- callStatic (sing :: Sing "Helper") "fromDF" [coerce df', coerce jcol1, coerce jcol2]
+  callStatic (sing :: Sing "Helper") "fromRows" [coerce rdd]
