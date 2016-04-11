@@ -84,7 +84,7 @@ type a <> g = 'Generic a g
 newtype J (a :: JType) = J (Ptr (J a))
   deriving (Eq, Show, Storable)
 
-type role J nominal
+type role J representational
 
 -- | Any object can be cast to @Object@.
 upcast :: J a -> JObject
