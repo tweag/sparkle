@@ -33,6 +33,7 @@ module Language.Java
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
 import Control.Monad ((<=<), forM, forM_)
+import Data.Char (chr, ord)
 import qualified Data.Coerce as Coerce
 import Data.Int
 import Data.ByteString (ByteString)
@@ -46,6 +47,7 @@ import Data.Vector.Storable (Vector)
 import qualified Data.Vector.Storable.Mutable as MVector
 import Data.Vector.Storable.Mutable (IOVector)
 import Foreign (FunPtr, Ptr, Storable, newForeignPtr, withForeignPtr)
+import Foreign.C (CChar)
 import Foreign.JNI
 import GHC.TypeLits (KnownSymbol, Symbol)
 
@@ -70,7 +72,44 @@ class SingI ty => Coercible a (ty :: JType) | a -> ty where
   unsafeUncoerce _ =
       error "Cannot unsafeUncoerce: object expected but value of primitive type found."
 
+-- | The identity instance.
 instance SingI ty => Coercible (J ty) ty
+
+instance Coercible Bool ('Prim "boolean") where
+  coerce x = JBoolean (fromIntegral (fromEnum x))
+  unsafeUncoerce (JBoolean x) = toEnum (fromIntegral x)
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible CChar ('Prim "byte") where
+  coerce = JByte
+  unsafeUncoerce (JByte x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Char ('Prim "char") where
+  coerce x = JChar (fromIntegral (ord x))
+  unsafeUncoerce (JChar x) = chr (fromIntegral x)
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Int8 ('Prim "short") where
+  coerce = JShort
+  unsafeUncoerce (JShort x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Int32 ('Prim "int") where
+  coerce = JInt
+  unsafeUncoerce (JInt x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Int64 ('Prim "long") where
+  coerce = JLong
+  unsafeUncoerce (JLong x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Float ('Prim "float") where
+  coerce = JFloat
+  unsafeUncoerce (JFloat x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Double ('Prim "double") where
+  coerce = JDouble
+  unsafeUncoerce (JDouble x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible () 'Void where
+  coerce = error "Void value undefined."
+  unsafeUncoerce _ = ()
 
 -- | NULL terminate byte strings, because those that were not created from
 -- statically allocated literals aren't guaranteed to be.
@@ -108,7 +147,20 @@ call obj mname args = do
         retsing = sing :: Sing ty2
     klass <- findClass (nullTerminate (signatureStrip (signature (sing :: Sing ty1))))
     method <- getMethodID klass mname (nullTerminate (methodSignature argsings retsing))
-    unsafeUncoerce . coerce <$> callObjectMethod obj method args
+    case retsing of
+      SPrim "boolean" -> unsafeUncoerce . coerce <$> callBooleanMethod obj method args
+      SPrim "byte" -> unsafeUncoerce . coerce <$> callByteMethod obj method args
+      SPrim "char" -> error "call: unimplemented"
+      SPrim "short" -> error "call: unimplemented"
+      SPrim "int" -> unsafeUncoerce . coerce <$> callIntMethod obj method args
+      SPrim "long" -> unsafeUncoerce . coerce <$> callLongMethod obj method args
+      SPrim "float" -> error "call: unimplemented"
+      SPrim "double" -> unsafeUncoerce . coerce <$> callDoubleMethod obj method args
+      SVoid -> do
+        callVoidMethod obj method args
+        -- Anything uncoerces to the void type.
+        return (unsafeUncoerce undefined)
+      _ -> unsafeUncoerce . coerce <$> callObjectMethod obj method args
 
 callStatic :: forall a ty sym. Coercible a ty => Sing (sym :: Symbol) -> ByteString -> [JValue] -> IO a
 callStatic cname mname args = do
@@ -116,7 +168,20 @@ callStatic cname mname args = do
         retsing = sing :: Sing ty
     klass <- findClass (nullTerminate (BS.pack (map subst (fromSing cname))))
     method <- getStaticMethodID klass mname (nullTerminate (methodSignature argsings retsing))
-    unsafeUncoerce . coerce <$> callStaticObjectMethod klass method args
+    case retsing of
+      SPrim "boolean" -> error "callStatic: unimplemented"
+      SPrim "byte" -> error "callStatic: unimplemented"
+      SPrim "char" -> error "callStatic: unimplemented"
+      SPrim "short" -> error "callStatic: unimplemented"
+      SPrim "int" -> error "callStatic: unimplemented"
+      SPrim "long" -> error "callStatic: unimplemented"
+      SPrim "float" -> error "callStatic: unimplemented"
+      SPrim "double" -> error "callStatic: unimplemented"
+      SVoid -> do
+        callStaticVoidMethod klass method args
+        -- Anything uncoerces to the void type.
+        return (unsafeUncoerce undefined)
+      _ -> unsafeUncoerce . coerce <$> callStaticObjectMethod klass method args
   where
     subst '.' = '/'
     subst x = x

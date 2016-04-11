@@ -94,10 +94,7 @@ aggregate seqOp combOp zero rdd = do
   reify (unsafeCast res)
 
 count :: RDD a -> IO Int64
-count rdd = do
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  mth <- getMethodID cls "count" "()J"
-  callLongMethod rdd mth []
+count rdd = call rdd "count" []
 
 collect :: Reify a ty => RDD a -> IO [a]
 collect rdd = do
@@ -140,14 +137,9 @@ first rdd = do
   reify (unsafeCast res)
 
 getNumPartitions :: RDD a -> IO Int32
-getNumPartitions rdd = do
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "getNumPartitions" "()I"
-  callIntMethod rdd method []
+getNumPartitions rdd = call rdd "getNumPartitions" []
 
 saveAsTextFile :: RDD a -> FilePath -> IO ()
 saveAsTextFile rdd fp = do
   jfp <- reflect (Text.pack fp)
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "saveAsTextFile" "(Ljava/lang/String;)V"
-  callVoidMethod rdd method [coerce jfp]
+  call rdd "saveAsTextFile" [coerce jfp]

@@ -38,9 +38,7 @@ newSparkContext conf = new [coerce conf]
 addFile :: SparkContext -> FilePath -> IO ()
 addFile sc fp = do
   jfp <- reflect (pack fp)
-  cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
-  method <- getMethodID cls "addFile" "(Ljava/lang/String;)V"
-  callVoidMethod sc method [coerce jfp]
+  call sc "addFile" [coerce jfp]
 
 -- | Returns the local filepath of the given filename that
 --   was "registered" using 'addFile'.

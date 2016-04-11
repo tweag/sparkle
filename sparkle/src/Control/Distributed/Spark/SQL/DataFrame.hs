@@ -29,10 +29,7 @@ selectDF df (col:cols) = do
   call df "select" [coerce jcol, coerce jcols]
 
 debugDF :: DataFrame -> IO ()
-debugDF df = do
-  cls <- findClass "org/apache/spark/sql/DataFrame"
-  mth <- getMethodID cls "show" "()V"
-  callVoidMethod df mth []
+debugDF df = call df "show" []
 
 join :: DataFrame -> DataFrame -> IO DataFrame
 join d1 d2 = call d1 "join" [coerce d2]
