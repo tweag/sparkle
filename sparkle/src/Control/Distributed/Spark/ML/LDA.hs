@@ -40,7 +40,8 @@ runLDA :: LDA -> PairRDD CLong SparkVector -> IO LDAModel
 runLDA lda rdd = callStatic (sing :: Sing "Helper") "runLDA" [coerce lda, coerce rdd]
 
 describeResults :: LDAModel -> CountVectorizerModel -> Int32 -> IO ()
-describeResults lm cvm maxTerms = do
-  cls <- findClass "Helper"
-  mth <- getStaticMethodID cls "describeResults" "(Lorg/apache/spark/mllib/clustering/LDAModel;Lorg/apache/spark/ml/feature/CountVectorizerModel;I)V"
-  callStaticVoidMethod cls mth [coerce lm, coerce cvm, JInt maxTerms]
+describeResults lm cvm maxTerms =
+    callStatic
+      (sing :: Sing "Helper")
+      "describeResults"
+      [coerce lm, coerce cvm, JInt maxTerms]
