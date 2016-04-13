@@ -1,19 +1,61 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PolyKinds #-}        -- For J a
 {-# LANGUAGE RoleAnnotations #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Foreign.JNI.Types where
+module Foreign.JNI.Types
+  ( JType(..)
+  , Sing(..)
+  , type (<>)
+    -- * JNI types
+  , J(..)
+  , upcast
+  , unsafeCast
+  , generic
+  , unsafeUngeneric
+  , jtypeOf
+  , signature
+  , methodSignature
+  , JVM(..)
+  , JNIEnv(..)
+  , JMethodID(..)
+  , JFieldID(..)
+  , JValue(..)
+    -- * JNI defined object types
+  , JObject
+  , JClass
+  , JString
+  , JArray
+  , JObjectArray
+  , JBooleanArray
+  , JByteArray
+  , JCharArray
+  , JShortArray
+  , JIntArray
+  , JLongArray
+  , JFloatArray
+  , JDoubleArray
+  , JThrowable
+  -- * inline-c contexts
+  , jniCtx
+  ) where
 
+import qualified Data.ByteString.Char8 as BS
+import Data.ByteString (ByteString)
 import Data.Coerce
 import Data.Int
 import Data.Map (fromList)
+import Data.Singletons (Sing, SingI(..), SomeSing(..), KProxy(..))
+import Data.Singletons.TypeLits (KnownSymbol, symbolVal)
 import Data.Word
 import Foreign.C (CChar)
 import Foreign.Ptr
@@ -45,6 +87,30 @@ data JType
   | Prim Symbol                                -- ^ Primitive type
   | Array JType                                -- ^ Array type
   | Generic JType [JType]                      -- ^ Parameterized (generic) type
+  | Void                                       -- ^ Void special type
+
+data instance Sing (a :: JType) where
+  SClass :: ByteString -> Sing ('Class sym)
+  SIface :: ByteString -> Sing ('Iface sym)
+  SPrim :: ByteString -> Sing ('Prim sym)
+  -- XXX SingI constraint temporary hack because GHC 7.10 has trouble inferring
+  -- this constraint in 'signature'.
+  SArray :: Sing ty -> Sing ('Array ty)
+  SGeneric :: Sing ty -> Sing tys -> Sing ('Generic ty tys)
+  SVoid :: Sing 'Void
+
+instance (KnownSymbol sym, SingI sym) => SingI ('Class (sym :: Symbol)) where
+  sing = SClass (BS.pack $ symbolVal (undefined :: proxy sym))
+instance (KnownSymbol sym, SingI sym) => SingI ('Iface (sym :: Symbol)) where
+  sing = SIface (BS.pack $ symbolVal (undefined :: proxy sym))
+instance (KnownSymbol sym, SingI sym) => SingI ('Prim (sym :: Symbol)) where
+  sing = SPrim (BS.pack $ symbolVal (undefined :: proxy sym))
+instance SingI ty => SingI ('Array ty) where
+  sing = SArray sing
+instance (SingI ty, SingI tys) => SingI ('Generic ty tys) where
+  sing = SGeneric sing sing
+instance SingI 'Void where
+  sing = SVoid
 
 -- | Shorthand for parametized Java types.
 type a <> g = 'Generic a g
@@ -53,7 +119,7 @@ type a <> g = 'Generic a g
 newtype J (a :: JType) = J (Ptr (J a))
   deriving (Eq, Show, Storable)
 
-type role J nominal
+type role J representational
 
 -- | Any object can be cast to @Object@.
 upcast :: J a -> JObject
@@ -81,7 +147,7 @@ data JValue
   | JLong Int64
   | JFloat Float
   | JDouble Double
-  | forall a o. Coercible o (J a) => JObject o
+  | forall a. SingI a => JObject {-# UNPACK#-} !(J a)
 
 instance Show JValue where
   show (JBoolean x) = "JBoolean " ++ show x
@@ -121,6 +187,45 @@ instance Storable JValue where
   poke p (JObject x) = poke (castPtr p :: Ptr (J a)) (coerce x)
 
   peek _ = error "Storable JValue: undefined peek"
+
+jtypeOf :: JValue -> SomeSing ('KProxy :: KProxy JType)
+jtypeOf (JBoolean _) = SomeSing (sing :: Sing ('Prim "boolean"))
+jtypeOf (JByte _) = SomeSing (sing :: Sing ('Prim "byte"))
+jtypeOf (JChar _) = SomeSing (sing :: Sing ('Prim "char"))
+jtypeOf (JShort _) = SomeSing (sing :: Sing ('Prim "short"))
+jtypeOf (JInt _) = SomeSing (sing :: Sing ('Prim "int"))
+jtypeOf (JLong _) = SomeSing (sing :: Sing ('Prim "long"))
+jtypeOf (JFloat _) = SomeSing (sing :: Sing ('Prim "float"))
+jtypeOf (JDouble _) = SomeSing (sing :: Sing ('Prim "double"))
+jtypeOf (JObject (_ :: J ty)) = SomeSing (sing :: Sing ty)
+
+signature :: Sing (ty :: JType) -> ByteString
+signature (SClass sym) = "L" `BS.append` BS.map subst sym `BS.append` ";"
+  where subst '.' = '/'; subst x = x
+signature (SIface sym) = "L" `BS.append` BS.map subst sym `BS.append` ";"
+  where subst '.' = '/'; subst x = x
+signature (SPrim "boolean") = "Z"
+signature (SPrim "byte") = "B"
+signature (SPrim "char") = "C"
+signature (SPrim "short") = "S"
+signature (SPrim "int") = "I"
+signature (SPrim "long") = "J"
+signature (SPrim "float") = "F"
+signature (SPrim "double") = "D"
+signature (SPrim sym) = error $ "Unknown primitive: " ++ BS.unpack sym
+signature (SArray ty) = "[" `BS.append` signature ty
+signature (SGeneric ty _) = signature ty
+signature SVoid = "V"
+
+methodSignature
+  :: [SomeSing ('KProxy :: KProxy JType)]
+  -> Sing (ty :: JType)
+  -> ByteString
+methodSignature args ret =
+    "(" `BS.append`
+    BS.concat (map (\(SomeSing s) -> signature s) args) `BS.append`
+    ")" `BS.append`
+    signature ret
 
 type JObject = J ('Class "java.lang.Object")
 type JClass = J ('Class "java.lang.Class")

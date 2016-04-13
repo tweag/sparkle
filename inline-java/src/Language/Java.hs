@@ -4,30 +4,42 @@
 -- marshall/unmarshall Java objects from/into Haskell data types.
 
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Language.Java
-  ( Type(..)
+  ( Coercible(..)
+  , new
+  , call
+  , callStatic
+  , Type(..)
   , Uncurry
   , Interp
   , Reify(..)
   , Reflect(..)
+  , Sing
+  , sing
   ) where
 
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
 import Control.Monad ((<=<), forM, forM_)
+import Data.Char (chr, ord)
+import qualified Data.Coerce as Coerce
 import Data.Int
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Unsafe as BS
+import Data.Singletons (SingI(..), fromSing)
 import qualified Data.Text.Foreign as Text
 import Data.Text (Text)
 import qualified Data.Vector.Storable as Vector
@@ -35,7 +47,156 @@ import Data.Vector.Storable (Vector)
 import qualified Data.Vector.Storable.Mutable as MVector
 import Data.Vector.Storable.Mutable (IOVector)
 import Foreign (FunPtr, Ptr, Storable, newForeignPtr, withForeignPtr)
+import Foreign.C (CChar)
 import Foreign.JNI
+import GHC.TypeLits (KnownSymbol, Symbol)
+
+-- | Tag data types that can be coerced in O(1) time without copy to a Java
+-- object or primitive type (i.e. have the same representation) by declaring an
+-- instance of this type class for that data type.
+class SingI ty => Coercible a (ty :: JType) | a -> ty where
+  coerce :: a -> JValue
+  unsafeUncoerce :: JValue -> a
+
+  default coerce
+    :: Coerce.Coercible a (J ty)
+    => a
+    -> JValue
+  coerce x = JObject (Coerce.coerce x :: J ty)
+
+  default unsafeUncoerce
+    :: Coerce.Coercible (J ty) a
+    => JValue
+    -> a
+  unsafeUncoerce (JObject obj) = Coerce.coerce (unsafeCast obj :: J ty)
+  unsafeUncoerce _ =
+      error "Cannot unsafeUncoerce: object expected but value of primitive type found."
+
+-- | The identity instance.
+instance SingI ty => Coercible (J ty) ty
+
+instance Coercible Bool ('Prim "boolean") where
+  coerce x = JBoolean (fromIntegral (fromEnum x))
+  unsafeUncoerce (JBoolean x) = toEnum (fromIntegral x)
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible CChar ('Prim "byte") where
+  coerce = JByte
+  unsafeUncoerce (JByte x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Char ('Prim "char") where
+  coerce x = JChar (fromIntegral (ord x))
+  unsafeUncoerce (JChar x) = chr (fromIntegral x)
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Int8 ('Prim "short") where
+  coerce = JShort
+  unsafeUncoerce (JShort x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Int32 ('Prim "int") where
+  coerce = JInt
+  unsafeUncoerce (JInt x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Int64 ('Prim "long") where
+  coerce = JLong
+  unsafeUncoerce (JLong x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Float ('Prim "float") where
+  coerce = JFloat
+  unsafeUncoerce (JFloat x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Double ('Prim "double") where
+  coerce = JDouble
+  unsafeUncoerce (JDouble x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible () 'Void where
+  coerce = error "Void value undefined."
+  unsafeUncoerce _ = ()
+
+-- | NULL terminate byte strings, because those that were not created from
+-- statically allocated literals aren't guaranteed to be.
+nullTerminate :: ByteString -> ByteString
+nullTerminate = (`BS.snoc` '\0')
+
+-- | FindClass() special cases class names: in that case it doesn't want
+-- a full signature, just the class name.
+signatureStrip :: ByteString -> ByteString
+signatureStrip sig | Just ('L', cls) <- BS.uncons sig = BS.init cls
+signatureStrip sig = sig
+
+-- | Creates a new instance of the class whose name is resolved from the return
+-- type.
+new
+  :: forall a sym.
+     ( Coerce.Coercible a (J ('Class sym))
+     , Coercible a ('Class sym)
+     , KnownSymbol sym
+     )
+  => [JValue]
+  -> IO a
+new args = do
+    let argsings = map jtypeOf args
+        voidsing = sing :: Sing 'Void
+    klass <- findClass (nullTerminate (signatureStrip (signature (sing :: Sing ('Class sym)))))
+    Coerce.coerce <$> newObject klass (nullTerminate (methodSignature argsings voidsing)) args
+
+-- | The Swiss Army knife for calling Java methods. Give it an object or
+-- any data type coercible to one, the name of a method, and a list of
+-- arguments. Based on the type indexes of each argument, and based on the
+-- return type, 'call' will invoke the named method using of the @call*Method@
+-- family of functions in the JNI API.
+--
+-- When the method name is overloaded, use 'upcast' or 'unsafeCast'
+-- appropriately on the class instance and/or on the arguments to invoke the
+-- right method.
+call
+  :: forall a b ty1 ty2. (Coercible a ty1, Coercible b ty2, Coerce.Coercible a (J ty1))
+  => a
+  -> ByteString
+  -> [JValue]
+  -> IO b
+call obj mname args = do
+    let argsings = map jtypeOf args
+        retsing = sing :: Sing ty2
+    klass <- findClass (nullTerminate (signatureStrip (signature (sing :: Sing ty1))))
+    method <- getMethodID klass mname (nullTerminate (methodSignature argsings retsing))
+    case retsing of
+      SPrim "boolean" -> unsafeUncoerce . coerce <$> callBooleanMethod obj method args
+      SPrim "byte" -> unsafeUncoerce . coerce <$> callByteMethod obj method args
+      SPrim "char" -> error "call: unimplemented"
+      SPrim "short" -> error "call: unimplemented"
+      SPrim "int" -> unsafeUncoerce . coerce <$> callIntMethod obj method args
+      SPrim "long" -> unsafeUncoerce . coerce <$> callLongMethod obj method args
+      SPrim "float" -> error "call: unimplemented"
+      SPrim "double" -> unsafeUncoerce . coerce <$> callDoubleMethod obj method args
+      SVoid -> do
+        callVoidMethod obj method args
+        -- Anything uncoerces to the void type.
+        return (unsafeUncoerce undefined)
+      _ -> unsafeUncoerce . coerce <$> callObjectMethod obj method args
+
+-- | Same as 'call', but for static methods.
+callStatic :: forall a ty sym. Coercible a ty => Sing (sym :: Symbol) -> ByteString -> [JValue] -> IO a
+callStatic cname mname args = do
+    let argsings = map jtypeOf args
+        retsing = sing :: Sing ty
+    klass <- findClass (nullTerminate (BS.pack (map subst (fromSing cname))))
+    method <- getStaticMethodID klass mname (nullTerminate (methodSignature argsings retsing))
+    case retsing of
+      SPrim "boolean" -> error "callStatic: unimplemented"
+      SPrim "byte" -> error "callStatic: unimplemented"
+      SPrim "char" -> error "callStatic: unimplemented"
+      SPrim "short" -> error "callStatic: unimplemented"
+      SPrim "int" -> error "callStatic: unimplemented"
+      SPrim "long" -> error "callStatic: unimplemented"
+      SPrim "float" -> error "callStatic: unimplemented"
+      SPrim "double" -> error "callStatic: unimplemented"
+      SVoid -> do
+        callStaticVoidMethod klass method args
+        -- Anything uncoerces to the void type.
+        return (unsafeUncoerce undefined)
+      _ -> unsafeUncoerce . coerce <$> callStaticObjectMethod klass method args
+  where
+    subst '.' = '/'
+    subst x = x
 
 -- | Classifies Java types according to whether they are base types (data) or
 -- higher-order types (objects representing functions).
@@ -71,12 +232,12 @@ type instance Interp ('Base a) = Interp a
 
 -- | Extract a concrete Haskell value from the space of Java objects. That is to
 -- say, map a Java object to a Haskell value.
-class Interp (Uncurry a) ~ ty => Reify a ty where
+class (Interp (Uncurry a) ~ ty, SingI ty) => Reify a ty where
   reify :: J ty -> IO a
 
 -- | Inject a concrete Haskell value into the space of Java objects. That is to
 -- say, map a Haskell value to a Java object.
-class Interp (Uncurry a) ~ ty => Reflect a ty where
+class (Interp (Uncurry a) ~ ty, SingI ty) => Reflect a ty where
   reflect :: a -> IO (J ty)
 
 foreign import ccall "wrapper" wrapFinalizer
@@ -102,9 +263,9 @@ reflectMVector
   -> (JArray ty -> Int32 -> Int32 -> Ptr a -> IO ())
   -> IOVector a
   -> IO (JArray ty)
-reflectMVector new fill mv = do
+reflectMVector newfun fill mv = do
     let (fptr, n) = MVector.unsafeToForeignPtr0 mv
-    jobj <- new (fromIntegral n)
+    jobj <- newfun (fromIntegral n)
     withForeignPtr fptr $ fill jobj 0 (fromIntegral n)
     return jobj
 
@@ -133,13 +294,10 @@ withStatic [d|
     reify jobj = do
         klass <- findClass "java/lang/Boolean"
         method <- getMethodID klass "booleanValue" "()Z"
-        toEnum . fromIntegral <$> callBooleanMethod jobj method []
+        callBooleanMethod jobj method []
 
   instance Reflect Bool ('Class "java.lang.Boolean") where
-    reflect x = do
-        klass <- findClass "java/lang/Boolean"
-        fmap unsafeCast $
-          newObject klass "(Z)V" [JBoolean (fromIntegral (fromEnum x))]
+    reflect x = new [JBoolean (fromIntegral (fromEnum x))]
 
   type instance Interp Int = 'Class "java.lang.Integer"
 
@@ -150,10 +308,7 @@ withStatic [d|
         fromIntegral <$> callLongMethod jobj method []
 
   instance Reflect Int ('Class "java.lang.Integer") where
-    reflect x = do
-        klass <- findClass "java/lang/Integer"
-        fmap unsafeCast $
-          newObject klass "(L)V" [JInt (fromIntegral x)]
+    reflect x = new [JInt (fromIntegral x)]
 
   type instance Interp Double = 'Class "java.lang.Double"
 
@@ -164,9 +319,7 @@ withStatic [d|
         callDoubleMethod jobj method []
 
   instance Reflect Double ('Class "java.lang.Double") where
-    reflect x = do
-        klass <- findClass "java/lang/Double"
-        fmap unsafeCast $ newObject klass "(D)V" [JDouble x]
+    reflect x = new [JDouble x]
 
   type instance Interp Text = 'Class "java.lang.String"
 

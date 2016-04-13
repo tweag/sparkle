@@ -1,12 +1,15 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Control.Distributed.Spark.RDD where
 
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
-import Data.Coerce
 import Data.Int
 import Data.Text (Text)
 import Foreign.JNI
@@ -15,6 +18,7 @@ import Language.Java
 import qualified Data.Text as Text
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
+instance Coercible (RDD a) ('Class "org.apache.spark.api.java.JavaRDD")
 
 parallelize
   :: Reflect a ty
@@ -22,16 +26,14 @@ parallelize
   -> [a]
   -> IO (RDD a)
 parallelize sc xs = do
-    klass <- findClass "org/apache/spark/api/java/JavaSparkContext"
-    method <- getMethodID klass "parallelize" "(Ljava/util/List;)Lorg/apache/spark/api/java/JavaRDD;"
-    jxs <- arrayToList =<< reflect xs
-    coerce . unsafeCast <$> callObjectMethod sc method [JObject jxs]
+    jxs :: J ('Iface "java.util.List") <- arrayToList =<< reflect xs
+    call sc "parallelize" [coerce jxs]
   where
-    arrayToList jxs = do
-      klass <- findClass "java/util/Arrays"
-      method <- getStaticMethodID klass "asList" "([Ljava/lang/Object;)Ljava/util/List;"
-      callStaticObjectMethod klass method [JObject jxs]
-
+    arrayToList jxs =
+        callStatic
+          (sing :: Sing "java.util.Arrays")
+          "asList"
+          [coerce (unsafeCast jxs :: JObjectArray)]
 
 filter
   :: Reflect (Closure (a -> Bool)) ty
@@ -40,9 +42,7 @@ filter
   -> IO (RDD a)
 filter clos rdd = do
     f <- reflect clos
-    klass <- findClass "org/apache/spark/api/java/JavaRDD"
-    method <- getMethodID klass "filter" "(Lorg/apache/spark/api/java/function/Function;)Lorg/apache/spark/api/java/JavaRDD;"
-    coerce . unsafeCast <$> callObjectMethod rdd method [JObject f]
+    call rdd "filter" [coerce f]
 
 map
   :: Reflect (Closure (a -> b)) ty
@@ -51,9 +51,7 @@ map
   -> IO (RDD b)
 map clos rdd = do
     f <- reflect clos
-    klass <- findClass "org/apache/spark/api/java/JavaRDD"
-    method <- getMethodID klass "map" "(Lorg/apache/spark/api/java/function/Function;)Lorg/apache/spark/api/java/JavaRDD;"
-    coerce . unsafeCast <$> callObjectMethod rdd method [JObject f]
+    call rdd "map" [coerce f]
 
 fold
   :: (Reflect (Closure (a -> a -> a)) ty1, Reflect a ty2, Reify a ty2)
@@ -63,11 +61,9 @@ fold
   -> IO a
 fold clos zero rdd = do
   f <- reflect clos
-  jzero <- reflect zero
-  klass <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID klass "fold" "(Ljava/lang/Object;Lorg/apache/spark/api/java/function/Function2;)Ljava/lang/Object;"
-  res <- unsafeCast <$> callObjectMethod rdd method [JObject jzero, JObject f]
-  reify res
+  jzero <- upcast <$> reflect zero
+  res :: JObject <- call rdd "fold" [coerce jzero, coerce f]
+  reify (unsafeCast res)
 
 reduce
   :: (Reflect (Closure (a -> a -> a)) ty1, Reify a ty2, Reflect a ty2)
@@ -76,10 +72,8 @@ reduce
   -> IO a
 reduce clos rdd = do
   f <- reflect clos
-  klass <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID klass "reduce" "(Lorg/apache/spark/api/java/function/Function2;)Ljava/lang/Object;"
-  res <- unsafeCast <$> callObjectMethod rdd method [JObject f]
-  reify res
+  res :: JObject <- call rdd "reduce" [coerce f]
+  reify (unsafeCast res)
 
 aggregate
   :: ( Reflect (Closure (b -> a -> b)) ty1
@@ -95,62 +89,38 @@ aggregate
 aggregate seqOp combOp zero rdd = do
   jseqOp <- reflect seqOp
   jcombOp <- reflect combOp
-  jzero <- reflect zero
-  klass <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID klass "aggregate" "(Ljava/lang/Object;Lorg/apache/spark/api/java/function/Function2;Lorg/apache/spark/api/java/function/Function2;)Ljava/lang/Object;"
-  res <- unsafeCast <$> callObjectMethod rdd method [JObject jzero, JObject jseqOp, JObject jcombOp]
-  reify res
+  jzero <- upcast <$> reflect zero
+  res :: JObject <- call rdd "aggregate" [coerce jzero, coerce jseqOp, coerce jcombOp]
+  reify (unsafeCast res)
 
 count :: RDD a -> IO Int64
-count rdd = do
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  mth <- getMethodID cls "count" "()J"
-  callLongMethod rdd mth []
+count rdd = call rdd "count" []
 
 collect :: Reify a ty => RDD a -> IO [a]
 collect rdd = do
-  klass  <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID klass "collect" "()Ljava/util/List;"
-  alst   <- callObjectMethod rdd method []
-  aklass <- findClass "java/util/ArrayList"
-  atoarr <- getMethodID aklass "toArray" "()[Ljava/lang/Object;"
-  arr    <- callObjectMethod alst atoarr []
+  alst :: J ('Iface "java.util.List") <- call rdd "collect" []
+  arr :: JObjectArray <- call alst "toArray" []
   reify (unsafeCast arr)
 
 take :: Reify a ty => RDD a -> Int32 -> IO [a]
 take rdd n = do
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "take" "(I)Ljava/util/List;"
-  res <- callObjectMethod rdd method [JInt n]
-  aklass <- findClass "java/util/ArrayList"
-  atoarr <- getMethodID aklass "toArray" "()[Ljava/lang/Object;"
-  arr    <- callObjectMethod res atoarr []
+  res :: J ('Class "java.util.List") <- call rdd "take" [JInt n]
+  arr :: JObjectArray <- call res "toArray" []
   reify (unsafeCast arr)
 
 textFile :: SparkContext -> FilePath -> IO (RDD Text)
 textFile sc path = do
   jpath <- reflect (Text.pack path)
-  cls <- findClass "org/apache/spark/api/java/JavaSparkContext"
-  method <- getMethodID cls "textFile" "(Ljava/lang/String;)Lorg/apache/spark/api/java/JavaRDD;"
-  coerce . unsafeCast <$> callObjectMethod sc method [JObject jpath]
+  call sc "textFile" [coerce jpath]
 
 distinct :: RDD a -> IO (RDD a)
-distinct r = do
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "distinct" "()Lorg/apache/spark/api/java/JavaRDD;"
-  coerce . unsafeCast <$> callObjectMethod r method []
+distinct r = call r "distinct" []
 
 intersection :: RDD a -> RDD a -> IO (RDD a)
-intersection r r' = do
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "intersection" "(Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/api/java/JavaRDD;"
-  coerce . unsafeCast <$> callObjectMethod r method [JObject r']
+intersection r r' = call r "intersection" [coerce r']
 
 union :: RDD a -> RDD a -> IO (RDD a)
-union r r' = do
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "union" "(Lorg/apache/spark/api/java/JavaRDD;)Lorg/apache/spark/api/java/JavaRDD;"
-  coerce . unsafeCast <$> callObjectMethod r method [JObject r']
+union r r' = call r "union" [coerce r']
 
 sample :: RDD a
        -> Bool   -- ^ sample with replacement (can elements be sampled
@@ -159,26 +129,17 @@ sample :: RDD a
        -> IO (RDD a)
 sample r withReplacement frac = do
   let rep = if withReplacement then 255 else 0
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "sample" "(ZD)Lorg/apache/spark/api/java/JavaRDD;"
-  coerce . unsafeCast <$> callObjectMethod r method [JBoolean rep, JDouble frac]
+  call r "sample" [JBoolean rep, JDouble frac]
 
 first :: Reify a ty => RDD a -> IO a
 first rdd = do
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "first" "()Ljava/lang/Object;"
-  res <- fmap (coerce . unsafeCast) $ callObjectMethod rdd method []
-  reify res
+  res :: JObject <- call rdd "first" []
+  reify (unsafeCast res)
 
 getNumPartitions :: RDD a -> IO Int32
-getNumPartitions rdd = do
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "getNumPartitions" "()I"
-  callIntMethod rdd method []
+getNumPartitions rdd = call rdd "getNumPartitions" []
 
 saveAsTextFile :: RDD a -> FilePath -> IO ()
 saveAsTextFile rdd fp = do
   jfp <- reflect (Text.pack fp)
-  cls <- findClass "org/apache/spark/api/java/JavaRDD"
-  method <- getMethodID cls "saveAsTextFile" "(Ljava/lang/String;)V"
-  callVoidMethod rdd method [JObject jfp]
+  call rdd "saveAsTextFile" [coerce jfp]

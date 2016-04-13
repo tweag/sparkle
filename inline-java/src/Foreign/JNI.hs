@@ -20,33 +20,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 module Foreign.JNI
-  ( -- * Java types
-    JType(..)
-  , type (<>)
-    -- * JNI types
-  , J(..)
-  , upcast
-  , unsafeCast
-  , JVM(..)
-  , JNIEnv(..)
-  , JMethodID(..)
-  , JFieldID(..)
-  , JValue(..)
-    -- * JNI defined object types
-  , JObject
-  , JClass
-  , JString
-  , JArray
-  , JObjectArray
-  , JBooleanArray
-  , JByteArray
-  , JCharArray
-  , JShortArray
-  , JIntArray
-  , JLongArray
-  , JFloatArray
-  , JDoubleArray
-  , JThrowable
+  ( module Foreign.JNI.Types
     -- * JNI functions
     -- ** Query functions
   , findClass
@@ -238,10 +212,10 @@ callObjectMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
                                            $(jmethodID method),
                                            $(jvalue *cargs)) } |]
 
-callBooleanMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Word8
+callBooleanMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Bool
 callBooleanMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
     throwIfException env $
-    withArray args $ \cargs ->
+    fmap (toEnum . fromIntegral) $ withArray args $ \cargs ->
     [C.exp| jboolean {
       (*$(JNIEnv *env))->CallBooleanMethodA($(JNIEnv *env),
                                          $(jobject obj),

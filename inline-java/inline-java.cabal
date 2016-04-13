@@ -32,6 +32,7 @@ library
     containers >=0.5,
     distributed-closure,
     inline-c >=0.5,
+    singletons >= 2.0,
     text >=1.2,
     thread-local-storage >=0.1,
     vector >=0.11
