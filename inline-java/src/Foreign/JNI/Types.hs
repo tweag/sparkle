@@ -18,6 +18,7 @@ module Foreign.JNI.Types
   , type (<>)
     -- * JNI types
   , J(..)
+  , jnull
   , upcast
   , unsafeCast
   , generic
@@ -119,6 +120,9 @@ newtype J (a :: JType) = J (Ptr (J a))
   deriving (Eq, Show, Storable)
 
 type role J representational
+
+jnull :: J a
+jnull = J nullPtr
 
 -- | Any object can be cast to @Object@.
 upcast :: J a -> JObject
