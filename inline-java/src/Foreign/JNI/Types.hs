@@ -51,7 +51,6 @@ module Foreign.JNI.Types
 
 import qualified Data.ByteString.Char8 as BS
 import Data.ByteString (ByteString)
-import Data.Coerce
 import Data.Int
 import Data.Map (fromList)
 import Data.Singletons (Sing, SingI(..), SomeSing(..), KProxy(..))
@@ -158,7 +157,7 @@ instance Show JValue where
   show (JLong x) = "JLong " ++ show x
   show (JFloat x) = "JFloat " ++ show x
   show (JDouble x) = "JDouble " ++ show x
-  show (JObject x) = "JObject " ++ show (coerce x :: J a)
+  show (JObject x) = "JObject " ++ show x
 
 instance Eq JValue where
   (JBoolean x) == (JBoolean y) = x == y
@@ -169,7 +168,7 @@ instance Eq JValue where
   (JLong x) == (JLong y) = x == y
   (JFloat x) == (JFloat y) = x == y
   (JDouble x) == (JDouble y) = x == y
-  (JObject (coerce -> J x)) == (JObject (coerce -> J y)) = castPtr x == castPtr y
+  (JObject (J x)) == (JObject (J y)) = castPtr x == castPtr y
   _ == _ = False
 
 instance Storable JValue where
@@ -184,7 +183,7 @@ instance Storable JValue where
   poke p (JLong x) = poke (castPtr p) x
   poke p (JFloat x) = poke (castPtr p) x
   poke p (JDouble x) = poke (castPtr p) x
-  poke p (JObject x) = poke (castPtr p :: Ptr (J a)) (coerce x)
+  poke p (JObject x) = poke (castPtr p :: Ptr (J a)) x
 
   peek _ = error "Storable JValue: undefined peek"
 
