@@ -18,6 +18,7 @@
 
 module Language.Java
   ( Coercible(..)
+  , classOf
   , new
   , call
   , callStatic
@@ -110,6 +111,15 @@ instance Coercible Double ('Prim "double") where
 instance Coercible () 'Void where
   coerce = error "Void value undefined."
   unsafeUncoerce _ = ()
+
+classOf
+  :: ( Coerce.Coercible a (J ('Class sym))
+     , Coercible a ('Class sym)
+     , KnownSymbol sym
+     )
+  => a
+  -> Sing sym
+classOf _ = sing
 
 -- | NULL terminate byte strings, because those that were not created from
 -- statically allocated literals aren't guaranteed to be.
