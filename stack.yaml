@@ -1,6 +1,6 @@
 packages:
+- .
 - inline-java
-- sparkle
 - apps/hello
 - apps/lda
 - apps/rdd-ops

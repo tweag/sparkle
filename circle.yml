@@ -25,4 +25,4 @@ test:
   override:
   - stack --no-terminal build --pedantic
   # Test that packaging at least one example works fine.
-  - cd sparkle; mvn package -B -Dsparkle.app=sparkle-example-hello
+  - mvn package -B -Dsparkle.app=sparkle-example-hello

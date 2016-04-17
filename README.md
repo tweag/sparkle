@@ -16,8 +16,8 @@ The tl;dr using the `hello` app as an example on your local machine:
 
 ```
 $ stack build hello
-$ mvn -f sparkle -Dsparkle.app=sparkle-example-hello package
-$ spark-submit --master 'local[1]' sparkle/target/sparkle-0.1.jar
+$ mvn -Dsparkle.app=sparkle-example-hello package
+$ spark-submit --master 'local[1]' target/sparkle-0.1.jar
 ```
 
 **Requirements:**
@@ -55,14 +55,14 @@ not using `--nix`):
 
 ```
 $ [stack --nix exec --] \
-  mvn -f sparkle -Dsparkle.app=<app-executable-name> package
+  mvn -Dsparkle.app=<app-executable-name> package
 ```
 
 Finally, to run your application, for example locally:
 
 ```
 $ [stack --nix exec --] \
-  spark-submit --master 'local[1]' sparkle/target/sparkle-0.1.jar
+  spark-submit --master 'local[1]' target/sparkle-0.1.jar
 ```
 
 See [here][spark-submit] for other options, including lauching
