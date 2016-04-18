@@ -16,14 +16,14 @@ The tl;dr using the `hello` app as an example on your local machine:
 
 ```
 $ stack build hello
-$ mvn -Dsparkle.app=sparkle-example-hello package
-$ spark-submit --master 'local[1]' target/sparkle-0.1.jar
+$ stack exec sparkle package sparkle-example-hello
+$ spark-submit --master 'local[1]' sparkle-example-hello.jar
 ```
 
 **Requirements:**
 * the [Stack][stack] build tool;
 * either, the [Nix][nix] package manager,
-* or, OpenJDK, Maven and Spark >= 1.6 installed from your distro.
+* or, OpenJDK, Gradle and Spark >= 1.6 installed from your distro.
 
 To run a Spark application the process is as follows:
 
@@ -44,7 +44,7 @@ $ stack [--nix] build
 ```
 
 You can optionally pass `--nix` to all Stack commands to ask Nix to
-provision a local Spark and Maven in a local sandbox for good build
+make Spark and Gradle available in a local sandbox for good build
 results reproducibility. Otherwise you'll need these installed through
 your OS distribution's package manager for the next steps (and you'll
 need to tell Stack how to find the JVM header files and shared
@@ -54,15 +54,13 @@ To package your app (omit the square bracket part entirely if you're
 not using `--nix`):
 
 ```
-$ [stack --nix exec --] \
-  mvn -Dsparkle.app=<app-executable-name> package
+$ [stack --nix exec --] sparkle package <app-executable-name>
 ```
 
 Finally, to run your application, for example locally:
 
 ```
-$ [stack --nix exec --] \
-  spark-submit --master 'local[1]' target/sparkle-0.1.jar
+$ [stack --nix exec --] spark-submit --master 'local[1]' <app-executable-name>.jar
 ```
 
 See [here][spark-submit] for other options, including lauching

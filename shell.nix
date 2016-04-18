@@ -18,7 +18,8 @@ haskell.lib.buildStackProject {
     , gradle
       openjdk
       spark
-      nixpkgs.zip
+      which
+      zlib
       # to fetch distributed-closure
       git
       openssh
