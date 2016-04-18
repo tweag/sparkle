@@ -15,6 +15,7 @@ haskell.lib.buildStackProject {
   name = "sparkle";
   buildInputs =
     [ maven
+    , gradle
       openjdk
       spark
       nixpkgs.zip
