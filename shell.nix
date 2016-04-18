@@ -14,8 +14,7 @@ in
 haskell.lib.buildStackProject {
   name = "sparkle";
   buildInputs =
-    [ maven
-    , gradle
+    [ gradle
       openjdk
       spark
       which
