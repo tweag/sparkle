@@ -14,10 +14,11 @@ in
 haskell.lib.buildStackProject {
   name = "sparkle";
   buildInputs =
-    [ maven
+    [ gradle
       openjdk
       spark
-      nixpkgs.zip
+      which
+      zlib
       # to fetch distributed-closure
       git
       openssh

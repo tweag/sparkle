@@ -1,0 +1,16 @@
+apply plugin: 'java'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile 'org.apache.spark:spark-core_2.10:1.6.0'
+  compile 'org.apache.spark:spark-mllib_2.10:1.6.0'
+}
+
+jar {
+  manifest {
+    attributes "Main-Class": "io.tweag.sparkle.SparkMain"
+  }
+}
