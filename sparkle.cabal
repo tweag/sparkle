@@ -7,6 +7,17 @@ maintainer:          alp.mestanogullari@tweag.io
 copyright:           2016 Tweag I/O Ltd
 build-type:          Simple
 cabal-version:       >=1.10
+extra-source-files:
+  src/main/java/io/tweag/sparkle/Sparkle.java
+  src/main/java/io/tweag/sparkle/SparkMain.java
+  src/main/java/io/tweag/sparkle/function/HaskellVoidFunction.java
+  src/main/java/io/tweag/sparkle/function/HaskellFunction4.java
+  src/main/java/io/tweag/sparkle/function/HaskellFunction0.java
+  src/main/java/io/tweag/sparkle/function/HaskellFunction2.java
+  src/main/java/io/tweag/sparkle/function/HaskellFlatMapFunction.java
+  src/main/java/io/tweag/sparkle/function/HaskellFunction3.java
+  src/main/java/io/tweag/sparkle/function/HaskellFunction.java
+  src/main/java/Helper.java
 
 source-repository head
   type:     git
