@@ -4,7 +4,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Tweag I/O
 maintainer:          alp.mestanogullari@tweag.io
-copyright:           2016 Tweag I/O Ltd
+copyright:           2016 EURL Tweag
 build-type:          Custom
 cabal-version:       >=1.10
 extra-source-files:

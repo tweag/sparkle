@@ -42,7 +42,7 @@ main = withJVM [] $ do
 ```
 ## License
 
-Copyright (c) 2015-2016 Tweag I/O Limited.
+Copyright (c) 2015-2016 EURL Tweag.
 
 All rights reserved.
 

@@ -7,7 +7,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Tweag I/O
 maintainer:          alp.mestanogullari@tweag.io
-copyright:           2015-2016 Tweag I/O Limited.
+copyright:           2015-2016 EURL Tweag.
 category:            FFI
 build-type:          Simple
 cabal-version:       >=1.10
