@@ -17,7 +17,8 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Language.Java
-  ( Coercible(..)
+  ( module Foreign.JNI.Types
+  , Coercible(..)
   , classOf
   , new
   , call
@@ -27,7 +28,6 @@ module Language.Java
   , Interp
   , Reify(..)
   , Reflect(..)
-  , Sing
   , sing
   ) where
 
@@ -50,6 +50,7 @@ import Data.Vector.Storable.Mutable (IOVector)
 import Foreign (FunPtr, Ptr, Storable, newForeignPtr, withForeignPtr)
 import Foreign.C (CChar)
 import Foreign.JNI
+import Foreign.JNI.Types
 import GHC.TypeLits (KnownSymbol, Symbol)
 
 -- | Tag data types that can be coerced in O(1) time without copy to a Java
