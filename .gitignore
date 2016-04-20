@@ -15,3 +15,5 @@ cabal.sandbox.config
 *.aux
 *.hp
 .stack-work
+.gradle
+build
