@@ -16,12 +16,15 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Foreign.JNI
   ( module Foreign.JNI.Types
     -- * JNI functions
+    -- ** VM creation
+  , withJVM
     -- ** Query functions
   , findClass
   , getFieldID
@@ -62,13 +65,14 @@ module Foreign.JNI
   , setObjectArrayElement
   ) where
 
-import Control.Exception (Exception, finally, throwIO)
+import Control.Exception (Exception, bracket, finally, throwIO)
 import Control.Monad (unless)
 import Data.Coerce
 import Data.Int
 import Data.IORef (IORef, newIORef, readIORef)
 import Data.Word
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import Data.Monoid ((<>))
 import Data.Typeable (Typeable)
 import Data.TLS.PThread
@@ -150,6 +154,36 @@ envTlsRef = unsafePerformIO $ do
 -- TODO check whether this call is only safe from a (bound) thread.
 withJNIEnv :: (Ptr JNIEnv -> IO a) -> IO a
 withJNIEnv f = f =<< getTLS =<< readIORef envTlsRef
+
+useAsCStrings :: [ByteString] -> ([Ptr CChar] -> IO a) -> IO a
+useAsCStrings strs m =
+  foldr (\str k cstrs -> BS.useAsCString str $ \cstr -> k (cstr:cstrs)) m strs []
+
+-- | Create a new JVM, with the given arguments. /Can only be called once/. Best
+-- practice: use it to wrap your @main@ function.
+withJVM :: [ByteString] -> IO () -> IO ()
+withJVM options action =
+    bracket ini fini (const action)
+  where
+    ini = do
+      useAsCStrings options $ \cstrs -> do
+        withArray cstrs $ \(coptions :: Ptr (Ptr CChar)) -> do
+          let n = fromIntegral (length cstrs) :: C.CInt
+          [C.block| JavaVM * {
+            JavaVM *jvm;
+            JNIEnv *env;
+            JavaVMInitArgs vm_args;
+            JavaVMOption *options = malloc(sizeof(JavaVMOption) * $(int n));
+            for(int i = 0; i < $(int n); i++)
+                    options[0].optionString = $(char **coptions)[i];
+            vm_args.version = JNI_VERSION_1_6;
+            vm_args.nOptions = $(int n);
+            vm_args.options = options;
+            vm_args.ignoreUnrecognized = 0;
+            JNI_CreateJavaVM(&jvm, (void**)&env, &vm_args);
+            free(options);
+            return jvm; } |]
+    fini jvm = [C.block| void { (*$(JavaVM *jvm))->DestroyJavaVM($(JavaVM *jvm)); } |]
 
 findClass :: ByteString -> IO JClass
 findClass name = withJNIEnv $ \env ->

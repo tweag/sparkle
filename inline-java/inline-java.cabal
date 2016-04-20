@@ -19,6 +19,7 @@ source-repository head
 library
   hs-source-dirs:      src
   c-sources: src/Foreign/JNI.c
+  cc-options: -std=c11
   extra-libraries: jvm
   exposed-modules:
     Foreign.JNI

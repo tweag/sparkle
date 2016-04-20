@@ -18,6 +18,7 @@
 
 module Language.Java
   ( module Foreign.JNI.Types
+  , withJVM
   , Coercible(..)
   , classOf
   , new
