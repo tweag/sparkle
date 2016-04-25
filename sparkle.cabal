@@ -47,7 +47,7 @@ library
     base >=4.8 && <4.9,
     binary >=0.7,
     bytestring >=0.10,
-    distributed-closure,
+    distributed-closure >=0.2,
     inline-java >=0.1,
     singletons >= 2.0,
     text >=1.2,
