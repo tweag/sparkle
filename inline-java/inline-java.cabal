@@ -32,7 +32,7 @@ library
     binary >=0.7,
     bytestring >=0.10,
     containers >=0.5,
-    distributed-closure,
+    distributed-closure >=0.3,
     inline-c >=0.5,
     singletons >= 2.0,
     text >=1.2,
