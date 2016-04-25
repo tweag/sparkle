@@ -1,5 +1,5 @@
 name:                inline-java
-version:             0.1.0.0
+version:             0.1
 synopsis:            Java interop via inline Java code in Haskell modules.
 description:         Please see README.md.
 homepage:            http://github.com/tweag/inline-java#readme
@@ -8,9 +8,10 @@ license-file:        LICENSE
 author:              Tweag I/O
 maintainer:          alp.mestanogullari@tweag.io
 copyright:           2015-2016 EURL Tweag.
-category:            FFI
+category:            FFI, JVM, Java
 build-type:          Simple
 cabal-version:       >=1.10
+extra-source-files:  README.md
 
 source-repository head
   type:     git
