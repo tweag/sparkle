@@ -145,7 +145,7 @@ data JValue
   = JBoolean Word8
   | JByte CChar
   | JChar Word16
-  | JShort Int8
+  | JShort Int16
   | JInt Int32
   | JLong Int64
   | JFloat Float
