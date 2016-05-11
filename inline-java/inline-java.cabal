@@ -39,3 +39,22 @@ library
     thread-local-storage >=0.1,
     vector >=0.11
   default-language:    Haskell2010
+
+test-suite spec
+  type:
+      exitcode-stdio-1.0
+  ghc-options:
+      -Wall
+  hs-source-dirs:
+      tests
+  main-is:
+      Spec.hs
+  build-depends:
+      base
+    , bytestring
+    , hspec
+    , inline-java
+    , singletons
+    , text
+  default-language:
+      Haskell2010
