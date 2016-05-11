@@ -38,6 +38,7 @@ import Control.Monad ((<=<), forM, forM_)
 import Data.Char (chr, ord)
 import qualified Data.Coerce as Coerce
 import Data.Int
+import Data.Word
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Unsafe as BS
@@ -90,7 +91,11 @@ instance Coercible Char ('Prim "char") where
   coerce x = JChar (fromIntegral (ord x))
   unsafeUncoerce (JChar x) = chr (fromIntegral x)
   unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
-instance Coercible Int8 ('Prim "short") where
+instance Coercible Word16 ('Prim "char") where
+  coerce = JChar
+  unsafeUncoerce (JChar x) = x
+  unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
+instance Coercible Int16 ('Prim "short") where
   coerce = JShort
   unsafeUncoerce (JShort x) = x
   unsafeUncoerce _ = error "unsafeUncoerce: value doesn't match target type."
@@ -173,11 +178,11 @@ call obj mname args = do
     case retsing of
       SPrim "boolean" -> unsafeUncoerce . coerce <$> callBooleanMethod obj method args
       SPrim "byte" -> unsafeUncoerce . coerce <$> callByteMethod obj method args
-      SPrim "char" -> error "call: unimplemented"
-      SPrim "short" -> error "call: unimplemented"
+      SPrim "char" -> unsafeUncoerce . coerce <$> callCharMethod obj method args
+      SPrim "short" -> unsafeUncoerce . coerce <$> callShortMethod obj method args
       SPrim "int" -> unsafeUncoerce . coerce <$> callIntMethod obj method args
       SPrim "long" -> unsafeUncoerce . coerce <$> callLongMethod obj method args
-      SPrim "float" -> error "call: unimplemented"
+      SPrim "float" -> unsafeUncoerce . coerce <$> callFloatMethod obj method args
       SPrim "double" -> unsafeUncoerce . coerce <$> callDoubleMethod obj method args
       SVoid -> do
         callVoidMethod obj method args
@@ -193,14 +198,14 @@ callStatic cname mname args = do
     klass <- findClass (nullTerminate (BS.pack (map subst (fromSing cname))))
     method <- getStaticMethodID klass mname (nullTerminate (methodSignature argsings retsing))
     case retsing of
-      SPrim "boolean" -> error "callStatic: unimplemented"
-      SPrim "byte" -> error "callStatic: unimplemented"
-      SPrim "char" -> error "callStatic: unimplemented"
-      SPrim "short" -> error "callStatic: unimplemented"
-      SPrim "int" -> error "callStatic: unimplemented"
-      SPrim "long" -> error "callStatic: unimplemented"
-      SPrim "float" -> error "callStatic: unimplemented"
-      SPrim "double" -> error "callStatic: unimplemented"
+      SPrim "boolean" -> unsafeUncoerce . coerce <$> callStaticBooleanMethod klass method args
+      SPrim "byte" -> unsafeUncoerce . coerce <$> callStaticByteMethod klass method args
+      SPrim "char" -> unsafeUncoerce . coerce <$> callStaticCharMethod klass method args
+      SPrim "short" -> unsafeUncoerce . coerce <$> callStaticShortMethod klass method args
+      SPrim "int" -> unsafeUncoerce . coerce <$> callStaticIntMethod klass method args
+      SPrim "long" -> unsafeUncoerce . coerce <$> callStaticLongMethod klass method args
+      SPrim "float" -> unsafeUncoerce . coerce <$> callStaticFloatMethod klass method args
+      SPrim "double" -> unsafeUncoerce . coerce <$> callStaticDoubleMethod klass method args
       SVoid -> do
         callStaticVoidMethod klass method args
         -- Anything uncoerces to the void type.
@@ -322,6 +327,28 @@ withStatic [d|
   instance Reflect Int ('Class "java.lang.Integer") where
     reflect x = new [JInt (fromIntegral x)]
 
+  type instance Interp Int16 = 'Class "java.lang.Short"
+
+  instance Reify Int16 ('Class "java.lang.Short") where
+    reify jobj = do
+        klass <- findClass "java/lang/Short"
+        method <- getMethodID klass "shortValue" "()S"
+        fromIntegral <$> callShortMethod jobj method []
+
+  instance Reflect Int16 ('Class "java.lang.Short") where
+    reflect x = new [JShort x]
+
+  type instance Interp Word16 = 'Class "java.lang.Character"
+
+  instance Reify Word16 ('Class "java.lang.Character") where
+    reify jobj = do
+        klass <- findClass "java/lang/Character"
+        method <- getMethodID klass "charValue" "()C"
+        fromIntegral <$> callCharMethod jobj method []
+
+  instance Reflect Word16 ('Class "java.lang.Character") where
+    reflect x = new [JChar x]
+
   type instance Interp Double = 'Class "java.lang.Double"
 
   instance Reify Double ('Class "java.lang.Double") where
@@ -332,6 +359,18 @@ withStatic [d|
 
   instance Reflect Double ('Class "java.lang.Double") where
     reflect x = new [JDouble x]
+
+  type instance Interp Float = 'Class "java.lang.Float"
+
+  instance Reify Float ('Class "java.lang.Float") where
+    reify jobj = do
+        klass <- findClass "java/lang/Float"
+        method <- getMethodID klass "floatValue" "()F"
+        callFloatMethod jobj method []
+
+  instance Reflect Float ('Class "java.lang.Float") where
+    reflect x = new [JFloat x]
+
 
   type instance Interp Text = 'Class "java.lang.String"
 
