@@ -11,8 +11,8 @@ import GHC.TypeLits
 import Language.Java
 import Test.Hspec
 
-main :: IO ()
-main = withJVM [] (hspec spec)
+-- main :: IO ()
+-- main = withJVM [] (hspec spec)
 
 spec :: Spec
 spec = describe "callStatic" $ do

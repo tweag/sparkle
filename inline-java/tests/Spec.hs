@@ -1,1 +1,6 @@
-{-# OPTIONS_GHC -F -pgmF hspec-discover #-}
+import Test.Hspec
+import Language.Java (withJVM)
+import qualified Language.JavaSpec as JS
+
+main :: IO ()
+main = withJVM [] $ hspec JS.spec
