@@ -12,6 +12,7 @@
 -- in the current thread.
 
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -19,6 +20,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
+
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Foreign.JNI
   ( module Foreign.JNI.Types
@@ -54,23 +57,44 @@ module Foreign.JNI
   , callStaticFloatMethod
     -- ** Object construction
   , newObject
-  , newIntArray
-  , newDoubleArray
-  , newByteArray
-  , newObjectArray
   , newString
+  , newObjectArray
+  , newBooleanArray
+  , newByteArray
+  , newCharArray
+  , newShortArray
+  , newIntArray
+  , newLongArray
+  , newFloatArray
+  , newDoubleArray
     -- ** Array manipulation
   , getArrayLength
   , getStringLength
-  , getIntArrayElements
+  , getBooleanArrayElements
   , getByteArrayElements
+  , getCharArrayElements
+  , getShortArrayElements
+  , getIntArrayElements
+  , getLongArrayElements
+  , getFloatArrayElements
   , getDoubleArrayElements
   , getStringChars
-  , setIntArrayRegion
+  , setBooleanArrayRegion
   , setByteArrayRegion
+  , setCharArrayRegion
+  , setShortArrayRegion
+  , setIntArrayRegion
+  , setLongArrayRegion
+  , setFloatArrayRegion
   , setDoubleArrayRegion
-  , releaseIntArrayElements
+  , releaseBooleanArrayElements
   , releaseByteArrayElements
+  , releaseCharArrayElements
+  , releaseShortArrayElements
+  , releaseIntArrayElements
+  , releaseLongArrayElements
+  , releaseFloatArrayElements
+  , releaseDoubleArrayElements
   , releaseStringChars
   , getObjectArrayElement
   , setObjectArrayElement
@@ -247,227 +271,60 @@ getStaticMethodID cls methodname sig = withJNIEnv $ \env ->
                                            $bs-ptr:methodname,
                                            $bs-ptr:sig) } |]
 
-callObjectMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO JObject
-callObjectMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jobject {
-      (*$(JNIEnv *env))->CallObjectMethodA($(JNIEnv *env),
-                                           $(jobject obj),
-                                           $(jmethodID method),
-                                           $(jvalue *cargs)) } |]
+-- Modern CPP does have ## for concatenating strings, but we use the hacky /**/
+-- comment syntax for string concatenation. This is because GHC passes
+-- the -traditional flag to the preprocessor by default, which turns off several
+-- modern CPP features.
 
+#define CALL_METHOD(name, hs_rettype, c_rettype) \
+call/**/name/**/Method :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO hs_rettype; \
+call/**/name/**/Method (coerce -> upcast -> obj) method args = withJNIEnv $ \env -> \
+    throwIfException env $ \
+    withArray args $ \cargs -> \
+    [C.exp| c_rettype { \
+      (*$(JNIEnv *env))->Call/**/name/**/MethodA($(JNIEnv *env), \
+                                               $(jobject obj), \
+                                               $(jmethodID method), \
+                                               $(jvalue *cargs)) } |]
+
+CALL_METHOD(Void, (), void)
+CALL_METHOD(Object, JObject, jobject)
 callBooleanMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Bool
-callBooleanMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    fmap (toEnum . fromIntegral) $ withArray args $ \cargs ->
-    [C.exp| jboolean {
-      (*$(JNIEnv *env))->CallBooleanMethodA($(JNIEnv *env),
-                                         $(jobject obj),
-                                         $(jmethodID method),
-                                         $(jvalue *cargs)) } |]
+callBooleanMethod x y z =
+    let CALL_METHOD(Boolean, Word8, jboolean)
+    in toEnum . fromIntegral <$> callBooleanMethod x y z
+CALL_METHOD(Byte, CChar, jbyte)
+CALL_METHOD(Char, Word16, jchar)
+CALL_METHOD(Short, Int16, jshort)
+CALL_METHOD(Int, Int32, jint)
+CALL_METHOD(Long, Int64, jlong)
+CALL_METHOD(Float, Float, jfloat)
+CALL_METHOD(Double, Double, jdouble)
 
-callIntMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Int32
-callIntMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jint {
-      (*$(JNIEnv *env))->CallIntMethodA($(JNIEnv *env),
-                                        $(jobject obj),
-                                        $(jmethodID method),
-                                        $(jvalue *cargs)) } |]
+#define CALL_STATIC_METHOD(name, hs_rettype, c_rettype) \
+callStatic/**/name/**/Method :: JClass -> JMethodID -> [JValue] -> IO hs_rettype; \
+callStatic/**/name/**/Method cls method args = withJNIEnv $ \env -> \
+    throwIfException env $ \
+    withArray args $ \cargs -> \
+    [C.exp| c_rettype { \
+      (*$(JNIEnv *env))->CallStatic/**/name/**/MethodA($(JNIEnv *env), \
+                                                       $(jclass cls), \
+                                                       $(jmethodID method), \
+                                                       $(jvalue *cargs)) } |]
 
-callLongMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Int64
-callLongMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jlong {
-      (*$(JNIEnv *env))->CallLongMethodA($(JNIEnv *env),
-                                         $(jobject obj),
-                                         $(jmethodID method),
-                                         $(jvalue *cargs)) } |]
-
-callByteMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO CChar
-callByteMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jbyte {
-      (*$(JNIEnv *env))->CallByteMethodA($(JNIEnv *env),
-                                         $(jobject obj),
-                                         $(jmethodID method),
-                                         $(jvalue *cargs)) } |]
-
-callDoubleMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Double
-callDoubleMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jdouble {
-      (*$(JNIEnv *env))->CallDoubleMethodA($(JNIEnv *env),
-                                           $(jobject obj),
-                                           $(jmethodID method),
-                                           $(jvalue *cargs)) } |]
-
-callFloatMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Float
-callFloatMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jfloat {
-      (*$(JNIEnv *env))->CallFloatMethodA($(JNIEnv *env),
-                                          $(jobject obj),
-                                          $(jmethodID method),
-                                          $(jvalue *cargs)) } |]
-
-callShortMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Int16
-callShortMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jshort {
-      (*$(JNIEnv *env))->CallShortMethodA($(JNIEnv *env),
-                                          $(jobject obj),
-                                          $(jmethodID method),
-                                          $(jvalue *cargs)) } |]
-
-callCharMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO Word16
-callCharMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jchar {
-      (*$(JNIEnv *env))->CallCharMethodA($(JNIEnv *env),
-                                         $(jobject obj),
-                                         $(jmethodID method),
-                                         $(jvalue *cargs)) } |]
-
-callVoidMethod :: Coercible o (J a) => o -> JMethodID -> [JValue] -> IO ()
-callVoidMethod (coerce -> upcast -> obj) method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| void {
-      (*$(JNIEnv *env))->CallVoidMethodA($(JNIEnv *env),
-                                         $(jobject obj),
-                                         $(jmethodID method),
-                                         $(jvalue *cargs)) } |]
-
-callStaticObjectMethod :: JClass -> JMethodID -> [JValue] -> IO JObject
-callStaticObjectMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jobject {
-      (*$(JNIEnv *env))->CallStaticObjectMethodA($(JNIEnv *env),
-                                                 $(jclass cls),
-                                                 $(jmethodID method),
-                                                 $(jvalue *cargs)) } |]
-
-callStaticVoidMethod :: JClass -> JMethodID -> [JValue] -> IO ()
-callStaticVoidMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| void {
-      (*$(JNIEnv *env))->CallStaticVoidMethodA($(JNIEnv *env),
-                                               $(jclass cls),
-                                               $(jmethodID method),
-                                               $(jvalue *cargs)) } |]
-
+CALL_STATIC_METHOD(Void, (), void)
+CALL_STATIC_METHOD(Object, JObject, jobject)
 callStaticBooleanMethod :: JClass -> JMethodID -> [JValue] -> IO Bool
-callStaticBooleanMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    fmap (toEnum . fromIntegral) $
-    withArray args $ \cargs ->
-    [C.exp| jboolean {
-      (*$(JNIEnv *env))->CallStaticBooleanMethodA($(JNIEnv *env),
-                                                  $(jclass cls),
-                                                  $(jmethodID method),
-                                                  $(jvalue *cargs)) } |]
-
-callStaticByteMethod :: JClass -> JMethodID -> [JValue] -> IO CChar
-callStaticByteMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jbyte {
-      (*$(JNIEnv *env))->CallStaticByteMethodA($(JNIEnv *env),
-                                               $(jclass cls),
-                                               $(jmethodID method),
-                                               $(jvalue *cargs)) } |]
-
-callStaticCharMethod :: JClass -> JMethodID -> [JValue] -> IO Word16
-callStaticCharMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jchar {
-      (*$(JNIEnv *env))->CallStaticCharMethodA($(JNIEnv *env),
-                                               $(jclass cls),
-                                               $(jmethodID method),
-                                               $(jvalue *cargs)) } |]
-
-callStaticShortMethod :: JClass -> JMethodID -> [JValue] -> IO Int16
-callStaticShortMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jshort {
-      (*$(JNIEnv *env))->CallStaticShortMethodA($(JNIEnv *env),
-                                                $(jclass cls),
-                                                $(jmethodID method),
-                                                $(jvalue *cargs)) } |]
-
-callStaticIntMethod :: JClass -> JMethodID -> [JValue] -> IO Int32
-callStaticIntMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jint {
-      (*$(JNIEnv *env))->CallStaticIntMethodA($(JNIEnv *env),
-                                              $(jclass cls),
-                                              $(jmethodID method),
-                                              $(jvalue *cargs)) } |]
-
-callStaticLongMethod :: JClass -> JMethodID -> [JValue] -> IO Int64
-callStaticLongMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jlong {
-      (*$(JNIEnv *env))->CallStaticLongMethodA($(JNIEnv *env),
-                                               $(jclass cls),
-                                               $(jmethodID method),
-                                               $(jvalue *cargs)) } |]
-
-callStaticFloatMethod :: JClass -> JMethodID -> [JValue] -> IO Float
-callStaticFloatMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jfloat {
-      (*$(JNIEnv *env))->CallStaticFloatMethodA($(JNIEnv *env),
-                                                $(jclass cls),
-                                                $(jmethodID method),
-                                                $(jvalue *cargs)) } |]
-
-callStaticDoubleMethod :: JClass -> JMethodID -> [JValue] -> IO Double
-callStaticDoubleMethod cls method args = withJNIEnv $ \env ->
-    throwIfException env $
-    withArray args $ \cargs ->
-    [C.exp| jdouble {
-      (*$(JNIEnv *env))->CallStaticDoubleMethodA($(JNIEnv *env),
-                                                 $(jclass cls),
-                                                 $(jmethodID method),
-                                                 $(jvalue *cargs)) } |]
-
-newIntArray :: Int32 -> IO JIntArray
-newIntArray sz = withJNIEnv $ \env ->
-    throwIfException env $
-    [CU.exp| jintArray {
-      (*$(JNIEnv *env))->NewIntArray($(JNIEnv *env),
-                                     $(jsize sz)) } |]
-
-newByteArray :: Int32 -> IO JByteArray
-newByteArray sz = withJNIEnv $ \env ->
-    throwIfException env $
-    [CU.exp| jbyteArray {
-      (*$(JNIEnv *env))->NewByteArray($(JNIEnv *env),
-                                      $(jsize sz)) } |]
-
-newDoubleArray :: Int32 -> IO JDoubleArray
-newDoubleArray sz = withJNIEnv $ \env ->
-    throwIfException env $
-    [CU.exp| jdoubleArray {
-      (*$(JNIEnv *env))->NewDoubleArray($(JNIEnv *env),
-                                        $(jsize sz)) } |]
+callStaticBooleanMethod x y z =
+    let CALL_STATIC_METHOD(Boolean, Word8, jboolean)
+    in toEnum . fromIntegral <$> callStaticBooleanMethod x y z
+CALL_STATIC_METHOD(Byte, CChar, jbyte)
+CALL_STATIC_METHOD(Char, Word16, jchar)
+CALL_STATIC_METHOD(Short, Int16, jshort)
+CALL_STATIC_METHOD(Int, Int32, jint)
+CALL_STATIC_METHOD(Long, Int64, jlong)
+CALL_STATIC_METHOD(Float, Float, jfloat)
+CALL_STATIC_METHOD(Double, Double, jdouble)
 
 newObjectArray :: Int32 -> JClass -> IO JObjectArray
 newObjectArray sz cls = withJNIEnv $ \env ->
@@ -477,6 +334,23 @@ newObjectArray sz cls = withJNIEnv $ \env ->
                                         $(jsize sz),
                                         $(jclass cls),
                                         NULL) } |]
+
+#define NEW_ARRAY(name, c_rettype) \
+new/**/name/**/Array :: Int32 -> IO J/**/name/**/Array; \
+new/**/name/**/Array sz = withJNIEnv $ \env -> \
+    throwIfException env $ \
+    [CU.exp| c_rettype/**/Array { \
+      (*$(JNIEnv *env))->New/**/name/**/Array($(JNIEnv *env), \
+                                              $(jsize sz)) } |]
+
+NEW_ARRAY(Boolean, jboolean)
+NEW_ARRAY(Byte, jbyte)
+NEW_ARRAY(Char, jchar)
+NEW_ARRAY(Short, jshort)
+NEW_ARRAY(Int, jint)
+NEW_ARRAY(Long, jlong)
+NEW_ARRAY(Float, jfloat)
+NEW_ARRAY(Double, jdouble)
 
 newString :: Ptr Word16 -> Int32 -> IO JString
 newString ptr len = withJNIEnv $ \env ->
@@ -498,29 +372,23 @@ getStringLength jstr = withJNIEnv $ \env ->
       (*$(JNIEnv *env))->GetStringLength($(JNIEnv *env),
                                          $(jstring jstr)) } |]
 
-getIntArrayElements :: JIntArray -> IO (Ptr Int32)
-getIntArrayElements array = withJNIEnv $ \env ->
-    throwIfNull $
-    [CU.exp| jint* {
-      (*$(JNIEnv *env))->GetIntArrayElements($(JNIEnv *env),
-                                             $(jintArray array),
+#define GET_ARRAY_ELEMENTS(name, hs_rettype, c_rettype) \
+get/**/name/**/ArrayElements :: J/**/name/**/Array -> IO (Ptr hs_rettype); \
+get/**/name/**/ArrayElements (upcast -> array) = withJNIEnv $ \env -> \
+    throwIfNull $ \
+    [CU.exp| c_rettype* { \
+      (*$(JNIEnv *env))->GetIntArrayElements($(JNIEnv *env), \
+                                             $(jobject array), \
                                              NULL) } |]
 
-getByteArrayElements :: JByteArray -> IO (Ptr CChar)
-getByteArrayElements array = withJNIEnv $ \env ->
-    throwIfNull $
-    [CU.exp| jbyte* {
-      (*$(JNIEnv *env))->GetByteArrayElements($(JNIEnv *env),
-                                              $(jbyteArray array),
-                                              NULL) } |]
-
-getDoubleArrayElements :: JDoubleArray -> IO (Ptr Double)
-getDoubleArrayElements array = withJNIEnv $ \env ->
-    throwIfNull $
-    [CU.exp| jdouble* {
-      (*$(JNIEnv *env))->GetDoubleArrayElements($(JNIEnv *env),
-                                                $(jdoubleArray array),
-                                                NULL) } |]
+GET_ARRAY_ELEMENTS(Boolean, Word8, jboolean)
+GET_ARRAY_ELEMENTS(Byte, CChar, jbyte)
+GET_ARRAY_ELEMENTS(Char, Word16, jchar)
+GET_ARRAY_ELEMENTS(Short, Int16, jshort)
+GET_ARRAY_ELEMENTS(Int, Int32, jint)
+GET_ARRAY_ELEMENTS(Long, Int64, jlong)
+GET_ARRAY_ELEMENTS(Float, Float, jfloat)
+GET_ARRAY_ELEMENTS(Double, Double, jdouble)
 
 getStringChars :: JString -> IO (Ptr Word16)
 getStringChars jstr = withJNIEnv $ \env ->
@@ -530,51 +398,43 @@ getStringChars jstr = withJNIEnv $ \env ->
                                         $(jstring jstr),
                                         NULL) } |]
 
-setIntArrayRegion :: JIntArray -> Int32 -> Int32 -> Ptr Int32 -> IO ()
-setIntArrayRegion array start len buf = withJNIEnv $ \env ->
-    throwIfException env $
-    [CU.exp| void {
-      (*$(JNIEnv *env))->SetIntArrayRegion($(JNIEnv *env),
-                                            $(jintArray array),
-                                            $(jsize start),
-                                            $(jsize len),
-                                            $(jint *buf)) } |]
+#define SET_ARRAY_REGION(name, hs_argtype, c_argtype) \
+set/**/name/**/ArrayRegion :: J/**/name/**/Array -> Int32 -> Int32 -> Ptr hs_argtype -> IO (); \
+set/**/name/**/ArrayRegion array start len buf = withJNIEnv $ \env -> \
+    throwIfException env $ \
+    [CU.exp| void { \
+      (*$(JNIEnv *env))->SetIntArrayRegion($(JNIEnv *env), \
+                                            $(c_argtype/**/Array array), \
+                                            $(jsize start), \
+                                            $(jsize len), \
+                                            $(c_argtype *buf)) } |]
 
-setByteArrayRegion :: JByteArray -> Int32 -> Int32 -> Ptr CChar -> IO ()
-setByteArrayRegion array start len buf = withJNIEnv $ \env ->
-    throwIfException env $
-    [CU.exp| void {
-      (*$(JNIEnv *env))->SetByteArrayRegion($(JNIEnv *env),
-                                            $(jbyteArray array),
-                                            $(jsize start),
-                                            $(jsize len),
-                                            $(jbyte *buf)) } |]
+SET_ARRAY_REGION(Boolean, Word8, jboolean)
+SET_ARRAY_REGION(Byte, CChar, jbyte)
+SET_ARRAY_REGION(Char, Word16, jchar)
+SET_ARRAY_REGION(Short, Int16, jshort)
+SET_ARRAY_REGION(Int, Int32, jint)
+SET_ARRAY_REGION(Long, Int64, jlong)
+SET_ARRAY_REGION(Float, Float, jfloat)
+SET_ARRAY_REGION(Double, Double, jdouble)
 
-setDoubleArrayRegion :: JDoubleArray -> Int32 -> Int32 -> Ptr Double -> IO ()
-setDoubleArrayRegion array start len buf = withJNIEnv $ \env ->
-    throwIfException env $
-    [CU.exp| void {
-      (*$(JNIEnv *env))->SetDoubleArrayRegion($(JNIEnv *env),
-                                            $(jdoubleArray array),
-                                            $(jsize start),
-                                            $(jsize len),
-                                            $(jdouble *buf)) } |]
+#define RELEASE_ARRAY_ELEMENTS(name, hs_argtype, c_argtype) \
+release/**/name/**/ArrayElements :: J/**/name/**/Array -> Ptr hs_argtype -> IO (); \
+release/**/name/**/ArrayElements (upcast -> array) xs = withJNIEnv $ \env -> \
+    [CU.exp| void { \
+      (*$(JNIEnv *env))->Release/**/name/**/ArrayElements($(JNIEnv *env), \
+                                                          $(jobject array), \
+                                                          $(c_argtype *xs), \
+                                                          JNI_ABORT) } |]
 
-releaseIntArrayElements :: JIntArray -> Ptr Int32 -> IO ()
-releaseIntArrayElements array xs = withJNIEnv $ \env ->
-    [CU.exp| void {
-      (*$(JNIEnv *env))->ReleaseIntArrayElements($(JNIEnv *env),
-                                                 $(jintArray array),
-                                                 $(jint *xs),
-                                                 JNI_ABORT) } |]
-
-releaseByteArrayElements :: JByteArray -> Ptr CChar -> IO ()
-releaseByteArrayElements array xs = withJNIEnv $ \env ->
-    [CU.exp| void {
-      (*$(JNIEnv *env))->ReleaseByteArrayElements($(JNIEnv *env),
-                                                  $(jbyteArray array),
-                                                  $(jbyte *xs),
-                                                  JNI_ABORT) } |]
+RELEASE_ARRAY_ELEMENTS(Boolean, Word8, jboolean)
+RELEASE_ARRAY_ELEMENTS(Byte, CChar, jbyte)
+RELEASE_ARRAY_ELEMENTS(Char, Word16, jchar)
+RELEASE_ARRAY_ELEMENTS(Short, Int16, jshort)
+RELEASE_ARRAY_ELEMENTS(Int, Int32, jint)
+RELEASE_ARRAY_ELEMENTS(Long, Int64, jlong)
+RELEASE_ARRAY_ELEMENTS(Float, Float, jfloat)
+RELEASE_ARRAY_ELEMENTS(Double, Double, jdouble)
 
 releaseStringChars :: JString -> Ptr Word16 -> IO ()
 releaseStringChars jstr chars = withJNIEnv $ \env ->
