@@ -4,7 +4,7 @@
 name:                jni
 version:             0.1
 synopsis:            FFI bindings to the Java Native Interface (JNI), for interacting with a JVM from Haskell
-description:         FFI bindings to the Java Native Interface (JNI), for interacting with a JVM from Haskell
+description:         Please see README.md
 homepage:            https://github.com/tweag/sparkle
 license:             BSD3
 license-file:        LICENSE
@@ -14,6 +14,7 @@ copyright:           2016 EURL Tweag
 category:            FFI, JVM, Java
 build-type:          Simple
 cabal-version:       >=1.10
+extra-source-files:  README.md
 
 source-repository head
   type:     git
