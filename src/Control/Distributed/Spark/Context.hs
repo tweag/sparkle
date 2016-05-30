@@ -51,3 +51,10 @@ master :: SparkContext -> IO Text
 master sc = do
   res <- call sc "master" []
   reify res
+
+getOrCreate :: SparkConf -> IO SparkContext
+getOrCreate cnf = do
+  scalaCtx :: J ('Class "org.apache.spark.SparkContext") <-
+    callStatic (sing :: Sing "org.apache.spark.SparkContext") "getOrCreate" [coerce cnf]
+
+  callStatic (sing :: Sing "org.apache.spark.api.java.JavaSparkContext") "fromSparkContext" [coerce scalaCtx]

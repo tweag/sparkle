@@ -21,6 +21,7 @@ public class Sparkle {
     public static Path extractResource(String name) throws IOException {
 	InputStream in = Sparkle.class.getResourceAsStream(name);
 	File temp = File.createTempFile(name, "");
+        System.out.println("Extracting resource " + name);
 
 	Files.copy(in, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	in.close();
@@ -38,6 +39,7 @@ public class Sparkle {
 	    InputStream in = zip.getInputStream(entry);
 	    Path path = dir.resolve(entry.getName());
 	    Files.copy(in, path);
+	    System.out.println("Copied " + path.toString());
 	    in.close();
 	}
 
