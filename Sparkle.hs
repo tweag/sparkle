@@ -6,7 +6,7 @@ import Data.List (isInfixOf)
 import qualified Data.ByteString.Lazy as BS
 import Paths_sparkle
 import System.Environment (getArgs)
-import System.FilePath ((</>), (<.>), takeBaseName)
+import System.FilePath ((</>), (<.>), takeBaseName, takeFileName)
 import System.Info (os)
 import System.IO (hPutStrLn, stderr)
 import System.Process (readProcess)
@@ -36,7 +36,7 @@ doPackage cmd = do
         newjarbytes = fromArchive $ addEntryToArchive appzip (toArchive jarbytes)
     BS.writeFile ("." </> takeBaseName cmd <.> "jar") newjarbytes
   where
-    mkEntry file = toEntry (takeBaseName file) 0 <$> BS.readFile file
+    mkEntry file = toEntry (takeFileName file) 0 <$> BS.readFile file
 
 main :: IO ()
 main = do
