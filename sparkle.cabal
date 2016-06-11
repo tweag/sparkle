@@ -11,6 +11,7 @@ category:            FFI, JVM, Java, Distributed Computing
 build-type:          Custom
 cabal-version:       >=1.10
 extra-source-files:
+  cbits/io_tweag_sparkle_Sparkle.h
   src/main/java/io/tweag/sparkle/Sparkle.java
   src/main/java/io/tweag/sparkle/SparkMain.java
   src/main/java/io/tweag/sparkle/function/HaskellVoidFunction.java
