@@ -87,6 +87,12 @@ extra-lib-dirs: [/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server]
 Or use `--nix`: since it won't use your globally installed JDK, it
 will have no trouble finding its own locally installed one.
 
+### Gradle <= 2.12 incompatible with JDK 9
+
+If you're using JDK 9, note that you'll need to either downgrade to
+JDK 8 or update your Gradle version, since Gradle versions up to and
+including 2.12 are not compatible with JDK 9.
+
 ## License
 
 Copyright (c) 2015-2016 EURL Tweag.
