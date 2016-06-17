@@ -87,6 +87,12 @@ extra-lib-dirs: [/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server]
 Or use `--nix`: since it won't use your globally installed JDK, it
 will have no trouble finding its own locally installed one.
 
+### Can't build sparkle on OS X
+
+OS X is not a supported platform for now. There are several issues to
+make sparkle work on OS X, tracked
+[in this ticket](https://github.com/tweag/sparkle/issues/12).
+
 ### Gradle <= 2.12 incompatible with JDK 9
 
 If you're using JDK 9, note that you'll need to either downgrade to
