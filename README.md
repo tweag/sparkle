@@ -71,6 +71,43 @@ a [whole cluster from scratch on EC2][spark-ec2].
 [spark-ec2]: http://spark.apache.org/docs/latest/ec2-scripts.html
 [nix]: http://nixos.org/nix
 
+### Non-Linux OSes
+
+Sparkle is not currently supported on non-linux OSes, e.g. Mac OS X or Windows. If you want to build and use it from a machine using
+such an OS, you can use the provided `Dockerfile` and build everything in [docker](http://docker.io):
+
+```
+$ docker build -t sparkle .
+```
+
+will create an image named `sparkle` containing everything that's needed to build sparkle and spark applications: GHC 7.10.3, stack,
+java 8, gradle.
+
+This image can be used to build sparkle then package and run applications:
+
+```
+$ docker run -ti -v $(pwd):/build -w build sparkle /bin/bash
+# stack build
+...
+```
+
+Note that you will need to edit the `stack.yaml` file to point to include directories and libraries for building C part that
+interacts with JVM:
+
+```
+extra-include-dirs:
+  - '/usr/lib/jvm/java-1.8.0-openjdk-amd64/include'
+  - '/usr/lib/jvm/java-1.8.0-openjdk-amd64/include/linux'
+extra-lib-dirs:
+  - '/usr/lib/jvm/java-1.8.0-openjdk-amd64/jre/lib/amd64/server/'
+```
+
+Once everything is built you can generate a spark package and run it using `sparkle`'s command-line:
+
+```
+# stack exec sparkle package apps/hello/.stack-work/dist/x86_64-linux/Cabal-1.22.5.0/build/sparkle-example-hello/sparkle-example-hello
+```
+
 ## Troubleshooting
 
 ### `jvm` library or header files not found
