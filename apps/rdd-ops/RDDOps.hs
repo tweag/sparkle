@@ -11,7 +11,7 @@ import qualified Data.Text as Text
 main :: IO ()
 main = do
     conf <- newSparkConf "RDD operations demo"
-    sc   <- newSparkContext conf
+    sc   <- getOrCreateSparkContext conf
     rdd  <- parallelize sc $ Text.words "The quick brown fox jumps over the lazy dog"
     print =<< collect rdd
     print =<< RDD.reduce (closure $ static (\a b -> b <> " " <> a)) rdd
