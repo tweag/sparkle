@@ -80,19 +80,19 @@ such an OS, you can use the provided `Dockerfile` and build everything in [docke
 $ docker build -t sparkle .
 ```
 
-will create an image named `sparkle` containing everything that's needed to build sparkle and spark applications: GHC 7.10.3, stack,
-java 8, gradle.
+will create an image named `sparkle` containing everything that's
+needed to build sparkle and Spark applications: Stack, Java 8, Gradle.
 
 This image can be used to build sparkle then package and run applications:
 
 ```
-$ docker run -ti -v $(pwd):/build -w build sparkle /bin/bash
-# stack build
+# stack --docker --docker-image sparkle build
 ...
 ```
 
-Note that you will need to edit the `stack.yaml` file to point to include directories and libraries for building C part that
-interacts with JVM:
+Note that you will need to edit the `stack.yaml` file to point to
+include directories and libraries for building the C bits that
+interact with the JVM:
 
 ```
 extra-include-dirs:
@@ -105,7 +105,7 @@ extra-lib-dirs:
 Once everything is built you can generate a spark package and run it using `sparkle`'s command-line:
 
 ```
-# stack exec sparkle package apps/hello/.stack-work/dist/x86_64-linux/Cabal-1.22.5.0/build/sparkle-example-hello/sparkle-example-hello
+# stack --docker --docker-image sparkle exec sparkle package sparkle-example-hello
 ```
 
 ## Troubleshooting
