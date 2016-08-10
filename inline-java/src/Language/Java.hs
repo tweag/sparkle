@@ -321,7 +321,7 @@ withStatic [d|
   instance Reify Int ('Class "java.lang.Integer") where
     reify jobj = do
         klass <- findClass "java/lang/Integer"
-        method <- getMethodID klass "longValue" "()L"
+        method <- getMethodID klass "longValue" "()J"
         fromIntegral <$> callLongMethod jobj method []
 
   instance Reflect Int ('Class "java.lang.Integer") where
