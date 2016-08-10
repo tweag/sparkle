@@ -50,7 +50,7 @@ your OS distribution's package manager for the next steps (and you'll
 need to tell Stack how to find the JVM header files and shared
 libraries).
 
-To package your app (omit the square bracket part entirely if you're
+To package your app (omit everything inside square brackets if you're
 not using `--nix`):
 
 ```
@@ -62,6 +62,10 @@ Finally, to run your application, for example locally:
 ```
 $ [stack --nix exec --] spark-submit --master 'local[1]' <app-executable-name>.jar
 ```
+
+The `<app-executable-name>` is any executable name as given in the
+`.cabal` file for your app. See apps in the [apps/](apps/) folder for
+examples.
 
 See [here][spark-submit] for other options, including lauching
 a [whole cluster from scratch on EC2][spark-ec2].
