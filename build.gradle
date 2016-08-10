@@ -9,6 +9,11 @@ dependencies {
   compile 'org.apache.spark:spark-mllib_2.10:1.6.0'
 }
 
+compileJava {
+  sourceCompatibility = 1.7
+  targetCompatibility = 1.7
+}
+
 jar {
   manifest {
     attributes "Main-Class": "io.tweag.sparkle.SparkMain"

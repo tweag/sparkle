@@ -5,6 +5,7 @@ with stdenv.lib;
 
 let
   spark = nixpkgs.spark.override { mesosSupport = false; };
+  openjdk = openjdk7;
 
   jvmlibdir =
     if stdenv.isLinux
