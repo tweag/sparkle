@@ -68,12 +68,18 @@ The `<app-executable-name>` is any executable name as given in the
 examples.
 
 See [here][spark-submit] for other options, including lauching
-a [whole cluster from scratch on EC2][spark-ec2].
+a [whole cluster from scratch on EC2][spark-ec2]. This
+[blog post][tweag-blog-haskell-paas] shows you how to get started on
+the [Databricks hosted platform][databricks] and on
+[Amazon's Elastic MapReduce][aws-emr].
 
 [stack]: https://github.com/commercialhaskell/stack
 [spark-submit]: http://spark.apache.org/docs/1.6.2/submitting-applications.html
 [spark-ec2]: http://spark.apache.org/docs/1.6.2/ec2-scripts.html
 [nix]: http://nixos.org/nix
+[tweag-blog-haskell-paas]: http://blog.tweag.io/posts/2016-06-20-haskell-compute-paas-with-sparkle.html
+[databricks]: https://databricks.com/
+[aws-emr]: https://aws.amazon.com/emr/
 
 ### Non-Linux OSes
 
