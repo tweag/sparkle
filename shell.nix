@@ -28,7 +28,10 @@ let
       optional stdenv.isLinux glibcLocales ++
       [ ghc pkgconfig ];
 
-    STACK_IN_NIX_SHELL=1;
+    SSL_CERT_FILE=/nix-profile/etc/ssl/certs/ca-bundle.crt;
+
+    STACK_IN_NIXSHELL=1;
+    STACK_IN_CONTAINER=1;
     STACK_IN_NIX_EXTRA_ARGS =
       args.STACK_IN_NIX_EXTRA_ARGS or
       concatMap (pkg: ["--extra-lib-dirs=${pkg}/lib"
@@ -56,15 +59,13 @@ in
 buildStackProject {
   name = "sparkle";
   buildInputs =
-    [ gradle
-      openjdk
-      spark
+    [ # gradle
+      # openjdk
+      # spark
       which
       zlib
       # to fetch distributed-closure
       git
-      openssh
-      ghc
     ];
   inherit ghc;
   extraArgs = ["--extra-lib-dirs=${jvmlibdir}"];
