@@ -5,10 +5,12 @@
 *Sparkle [spär′kəl]:* a library for writing resilient analytics
 applications in Haskell that scale to thousands of nodes, using
 [Spark][spark] and the rest of the Apache ecosystem under the hood.
+See [this blog post][hello-sparkle] for the details.
 
 **This is an early tech preview, not production ready.**
 
 [spark]: http://spark.apache.org/
+[hello-sparkle]: http://blog.tweag.io/posts/2016-02-25-hello-sparkle.html
 
 ## Getting started
 
