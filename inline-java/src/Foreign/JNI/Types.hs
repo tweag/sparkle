@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -54,7 +55,14 @@ import qualified Data.ByteString.Char8 as BS
 import Data.ByteString (ByteString)
 import Data.Int
 import Data.Map (fromList)
-import Data.Singletons (Sing, SingI(..), SomeSing(..), KProxy(..))
+import Data.Singletons
+  ( Sing
+  , SingI(..)
+  , SomeSing(..)
+#if !MIN_VERSION_singletons(2,2,0)
+  , KProxy(..)
+#endif
+  )
 import Data.Singletons.TypeLits (KnownSymbol, symbolVal)
 import Data.Word
 import Foreign.C (CChar)
@@ -191,7 +199,11 @@ instance Storable JValue where
 
   peek _ = error "Storable JValue: undefined peek"
 
+#if MIN_VERSION_singletons(2,2,0)
+jtypeOf :: JValue -> SomeSing JType
+#else
 jtypeOf :: JValue -> SomeSing ('KProxy :: KProxy JType)
+#endif
 jtypeOf (JBoolean _) = SomeSing (sing :: Sing ('Prim "boolean"))
 jtypeOf (JByte _) = SomeSing (sing :: Sing ('Prim "byte"))
 jtypeOf (JChar _) = SomeSing (sing :: Sing ('Prim "char"))
@@ -221,7 +233,11 @@ signature (SGeneric ty _) = signature ty
 signature SVoid = "V"
 
 methodSignature
+#if MIN_VERSION_singletons(2,2,0)
+  :: [SomeSing JType]
+#else
   :: [SomeSing ('KProxy :: KProxy JType)]
+#endif
   -> Sing (ty :: JType)
   -> ByteString
 methodSignature args ret =
