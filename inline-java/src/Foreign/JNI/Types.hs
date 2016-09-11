@@ -5,7 +5,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PolyKinds #-}        -- For J a
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -101,12 +100,12 @@ data instance Sing (a :: JType) where
   SClass :: ByteString -> Sing ('Class sym)
   SIface :: ByteString -> Sing ('Iface sym)
   SPrim :: ByteString -> Sing ('Prim sym)
-  -- XXX SingI constraint temporary hack because GHC 7.10 has trouble inferring
-  -- this constraint in 'signature'.
   SArray :: Sing ty -> Sing ('Array ty)
   SGeneric :: Sing ty -> Sing tys -> Sing ('Generic ty tys)
   SVoid :: Sing 'Void
 
+-- XXX SingI constraint temporary hack because GHC 7.10 has trouble inferring
+-- this constraint in 'signature'.
 instance (KnownSymbol sym, SingI sym) => SingI ('Class (sym :: Symbol)) where
   sing = SClass (BS.pack $ symbolVal (undefined :: proxy sym))
 instance (KnownSymbol sym, SingI sym) => SingI ('Iface (sym :: Symbol)) where
@@ -158,7 +157,7 @@ data JValue
   | JLong Int64
   | JFloat Float
   | JDouble Double
-  | forall a. SingI a => JObject {-# UNPACK#-} !(J a)
+  | forall a. SingI a => JObject {-# UNPACK #-} !(J a)
 
 instance Show JValue where
   show (JBoolean x) = "JBoolean " ++ show x
