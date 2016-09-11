@@ -18,10 +18,6 @@ haskell.lib.buildStackProject {
       spark
       which
       zlib
-      # to fetch distributed-closure
-      git
-      openssh
-      ghc
       zip
     ];
   inherit ghc;
