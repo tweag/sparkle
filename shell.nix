@@ -22,6 +22,7 @@ haskell.lib.buildStackProject {
       git
       openssh
       ghc
+      zip
     ];
   inherit ghc;
   extraArgs = ["--extra-lib-dirs=${jvmlibdir}"];
