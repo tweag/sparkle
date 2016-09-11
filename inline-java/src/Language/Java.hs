@@ -287,6 +287,14 @@ reflectMVector newfun fill mv = do
     return jobj
 
 withStatic [d|
+  type instance Interp (J ty) = ty
+
+  instance SingI ty => Reify (J ty) ty where
+    reify x = return x
+
+  instance SingI ty => Reflect (J ty) ty where
+    reflect x = return x
+
   type instance Interp ByteString = 'Array ('Prim "byte")
 
   instance Reify ByteString ('Array ('Prim "byte")) where
