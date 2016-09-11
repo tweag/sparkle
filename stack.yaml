@@ -8,5 +8,4 @@ resolver: lts-6.16
 extra-deps:
 - thread-local-storage-0.1.0.3
 nix:
-  enable: false
   shell-file: shell.nix
