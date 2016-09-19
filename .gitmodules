@@ -1,0 +1,3 @@
+[submodule "vendor/constraints"]
+	path = vendor/constraints
+	url = ../../mboes/constraints

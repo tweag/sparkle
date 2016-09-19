@@ -2,6 +2,10 @@ machine:
   environment:
     PATH: ~/.local/bin:~/spark/bin:$PATH
 
+checkout:
+  post:
+  - git submodule update --recursive --init
+
 dependencies:
   cache_directories:
   - "~/.stack"
