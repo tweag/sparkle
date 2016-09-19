@@ -43,6 +43,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Unsafe as BS
 import Data.Singletons (SingI(..), fromSing)
+import Data.String (fromString)
 import qualified Data.Text.Foreign as Text
 import Data.Text (Text)
 import qualified Data.Vector.Storable as Vector
@@ -53,6 +54,7 @@ import Foreign (FunPtr, Ptr, Storable, newForeignPtr, withForeignPtr)
 import Foreign.C (CChar)
 import Foreign.JNI
 import Foreign.JNI.Types
+import qualified Foreign.JNI.String as JNI
 import GHC.TypeLits (KnownSymbol, Symbol)
 
 -- | Tag data types that can be coerced in O(1) time without copy to a Java
@@ -128,17 +130,6 @@ classOf
   -> Sing sym
 classOf _ = sing
 
--- | NULL terminate byte strings, because those that were not created from
--- statically allocated literals aren't guaranteed to be.
-nullTerminate :: ByteString -> ByteString
-nullTerminate = (`BS.snoc` '\0')
-
--- | FindClass() special cases class names: in that case it doesn't want
--- a full signature, just the class name.
-signatureStrip :: ByteString -> ByteString
-signatureStrip sig | Just ('L', cls) <- BS.uncons sig = BS.init cls
-signatureStrip sig = sig
-
 -- | Creates a new instance of the class whose name is resolved from the return
 -- type.
 new
@@ -152,8 +143,8 @@ new
 new args = do
     let argsings = map jtypeOf args
         voidsing = sing :: Sing 'Void
-    klass <- findClass (nullTerminate (signatureStrip (signature (sing :: Sing ('Class sym)))))
-    Coerce.coerce <$> newObject klass (nullTerminate (methodSignature argsings voidsing)) args
+    klass <- findClass (referenceTypeName (sing :: Sing ('Class sym)))
+    Coerce.coerce <$> newObject klass (methodSignature argsings voidsing) args
 
 -- | The Swiss Army knife for calling Java methods. Give it an object or
 -- any data type coercible to one, the name of a method, and a list of
@@ -165,16 +156,16 @@ new args = do
 -- appropriately on the class instance and/or on the arguments to invoke the
 -- right method.
 call
-  :: forall a b ty1 ty2. (Coercible a ty1, Coercible b ty2, Coerce.Coercible a (J ty1))
+  :: forall a b ty1 ty2. (IsReferenceType ty1, Coercible a ty1, Coercible b ty2, Coerce.Coercible a (J ty1))
   => a
-  -> ByteString
+  -> JNI.String
   -> [JValue]
   -> IO b
 call obj mname args = do
     let argsings = map jtypeOf args
         retsing = sing :: Sing ty2
-    klass <- findClass (nullTerminate (signatureStrip (signature (sing :: Sing ty1))))
-    method <- getMethodID klass mname (nullTerminate (methodSignature argsings retsing))
+    klass <- findClass (referenceTypeName (sing :: Sing ty1))
+    method <- getMethodID klass mname (methodSignature argsings retsing)
     case retsing of
       SPrim "boolean" -> unsafeUncoerce . coerce <$> callBooleanMethod obj method args
       SPrim "byte" -> unsafeUncoerce . coerce <$> callByteMethod obj method args
@@ -191,12 +182,12 @@ call obj mname args = do
       _ -> unsafeUncoerce . coerce <$> callObjectMethod obj method args
 
 -- | Same as 'call', but for static methods.
-callStatic :: forall a ty sym. Coercible a ty => Sing (sym :: Symbol) -> ByteString -> [JValue] -> IO a
+callStatic :: forall a ty sym. Coercible a ty => Sing (sym :: Symbol) -> JNI.String -> [JValue] -> IO a
 callStatic cname mname args = do
     let argsings = map jtypeOf args
         retsing = sing :: Sing ty
-    klass <- findClass (nullTerminate (BS.pack (map subst (fromSing cname))))
-    method <- getStaticMethodID klass mname (nullTerminate (methodSignature argsings retsing))
+    klass <- findClass (referenceTypeName (SClass (fromString (fromSing cname))))
+    method <- getStaticMethodID klass mname (methodSignature argsings retsing)
     case retsing of
       SPrim "boolean" -> unsafeUncoerce . coerce <$> callStaticBooleanMethod klass method args
       SPrim "byte" -> unsafeUncoerce . coerce <$> callStaticByteMethod klass method args
@@ -211,9 +202,6 @@ callStatic cname mname args = do
         -- Anything uncoerces to the void type.
         return (unsafeUncoerce undefined)
       _ -> unsafeUncoerce . coerce <$> callStaticObjectMethod klass method args
-  where
-    subst '.' = '/'
-    subst x = x
 
 -- | Classifies Java types according to whether they are base types (data) or
 -- higher-order types (objects representing functions).

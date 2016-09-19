@@ -26,6 +26,7 @@ library
   extra-libraries: jvm
   exposed-modules:
     Foreign.JNI
+    Foreign.JNI.String
     Language.Java
   other-modules:
     Foreign.JNI.Types
@@ -35,6 +36,7 @@ library
     bytestring >=0.10,
     containers >=0.5,
     distributed-closure >=0.3,
+    filepath >= 1,
     inline-c >=0.5,
     singletons >= 2.0,
     text >=1.2,

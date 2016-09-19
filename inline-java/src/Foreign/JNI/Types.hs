@@ -14,6 +14,8 @@
 
 module Foreign.JNI.Types
   ( JType(..)
+  , IsPrimitiveType
+  , IsReferenceType
   , Sing(..)
   , type (<>)
     -- * JNI types
@@ -24,6 +26,7 @@ module Foreign.JNI.Types
   , generic
   , unsafeUngeneric
   , jtypeOf
+  , referenceTypeName
   , signature
   , methodSignature
   , JVM(..)
@@ -50,10 +53,14 @@ module Foreign.JNI.Types
   , jniCtx
   ) where
 
-import qualified Data.ByteString.Char8 as BS
-import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.ByteString.Builder as Builder
+import qualified Data.ByteString.Builder.Prim as Prim
+import Data.ByteString.Builder (Builder)
+import Data.Char (chr, ord)
 import Data.Int
 import Data.Map (fromList)
+import Data.Monoid ((<>))
 import Data.Singletons
   ( Sing
   , SingI(..)
@@ -63,8 +70,10 @@ import Data.Singletons
 #endif
   )
 import Data.Singletons.TypeLits (KnownSymbol, symbolVal)
+import Data.String (fromString)
 import Data.Word
 import Foreign.C (CChar)
+import qualified Foreign.JNI.String as JNI
 import Foreign.Ptr
 import Foreign.Storable (Storable(..))
 import GHC.TypeLits (Symbol)
@@ -96,10 +105,19 @@ data JType
   | Generic JType [JType]                      -- ^ Parameterized (generic) type
   | Void                                       -- ^ Void special type
 
+class IsPrimitiveType (ty :: JType)
+instance IsPrimitiveType ('Prim sym)
+
+class IsReferenceType (ty :: JType)
+instance IsReferenceType ('Class sym)
+instance IsReferenceType ('Iface sym)
+instance IsReferenceType ('Array ty)
+instance IsReferenceType ty => IsReferenceType ('Generic ty tys)
+
 data instance Sing (a :: JType) where
-  SClass :: ByteString -> Sing ('Class sym)
-  SIface :: ByteString -> Sing ('Iface sym)
-  SPrim :: ByteString -> Sing ('Prim sym)
+  SClass :: JNI.String -> Sing ('Class sym)
+  SIface :: JNI.String -> Sing ('Iface sym)
+  SPrim :: JNI.String -> Sing ('Prim sym)
   SArray :: Sing ty -> Sing ('Array ty)
   SGeneric :: Sing ty -> Sing tys -> Sing ('Generic ty tys)
   SVoid :: Sing 'Void
@@ -107,11 +125,11 @@ data instance Sing (a :: JType) where
 -- XXX SingI constraint temporary hack because GHC 7.10 has trouble inferring
 -- this constraint in 'signature'.
 instance (KnownSymbol sym, SingI sym) => SingI ('Class (sym :: Symbol)) where
-  sing = SClass (BS.pack $ symbolVal (undefined :: proxy sym))
+  sing = SClass $ fromString $ symbolVal (undefined :: proxy sym)
 instance (KnownSymbol sym, SingI sym) => SingI ('Iface (sym :: Symbol)) where
-  sing = SIface (BS.pack $ symbolVal (undefined :: proxy sym))
+  sing = SIface $ fromString $ symbolVal (undefined :: proxy sym)
 instance (KnownSymbol sym, SingI sym) => SingI ('Prim (sym :: Symbol)) where
-  sing = SPrim (BS.pack $ symbolVal (undefined :: proxy sym))
+  sing = SPrim $ fromString $ symbolVal (undefined :: proxy sym)
 instance SingI ty => SingI ('Array ty) where
   sing = SArray sing
 instance (SingI ty, SingI tys) => SingI ('Generic ty tys) where
@@ -213,23 +231,48 @@ jtypeOf (JFloat _) = SomeSing (sing :: Sing ('Prim "float"))
 jtypeOf (JDouble _) = SomeSing (sing :: Sing ('Prim "double"))
 jtypeOf (JObject (_ :: J ty)) = SomeSing (sing :: Sing ty)
 
-signature :: Sing (ty :: JType) -> ByteString
-signature (SClass sym) = "L" `BS.append` BS.map subst sym `BS.append` ";"
-  where subst '.' = '/'; subst x = x
-signature (SIface sym) = "L" `BS.append` BS.map subst sym `BS.append` ";"
-  where subst '.' = '/'; subst x = x
-signature (SPrim "boolean") = "Z"
-signature (SPrim "byte") = "B"
-signature (SPrim "char") = "C"
-signature (SPrim "short") = "S"
-signature (SPrim "int") = "I"
-signature (SPrim "long") = "J"
-signature (SPrim "float") = "F"
-signature (SPrim "double") = "D"
-signature (SPrim sym) = error $ "Unknown primitive: " ++ BS.unpack sym
-signature (SArray ty) = "[" `BS.append` signature ty
-signature (SGeneric ty _) = signature ty
-signature SVoid = "V"
+-- | Create a null-terminated string.
+build :: Builder -> JNI.String
+build =
+  JNI.fromByteString .
+  BSL.toStrict .
+  Builder.toLazyByteString .
+  (<> Builder.char7 '\NUL')
+
+-- | The name of a type, suitable for passing to 'Foreign.JNI.findClass'.
+referenceTypeName :: IsReferenceType ty => Sing (ty :: JType) -> JNI.String
+referenceTypeName (SClass sym) = build $ classSymbolBuilder sym
+referenceTypeName (SIface sym) = build $ classSymbolBuilder sym
+referenceTypeName ty@(SArray _) = build $ signatureBuilder ty
+referenceTypeName (SGeneric ty@(SClass _) _) = referenceTypeName ty
+referenceTypeName (SGeneric ty@(SIface _) _) = referenceTypeName ty
+referenceTypeName _ = error "referenceTypeName: Impossible."
+
+classSymbolBuilder :: JNI.String -> Builder
+classSymbolBuilder sym =
+    Prim.primMapByteStringFixed (subst Prim.>$< Prim.word8) (JNI.toByteString sym)
+  where
+    subst (chr . fromIntegral -> '.') = fromIntegral (ord '/')
+    subst x = x
+
+signatureBuilder :: Sing (ty :: JType) -> Builder
+signatureBuilder (SClass sym) = Builder.char7 'L' <> classSymbolBuilder sym <> Builder.char7 ';'
+signatureBuilder (SIface sym) = Builder.char7 'L' <> classSymbolBuilder sym <> Builder.char7 ';'
+signatureBuilder (SPrim "boolean") = Builder.char7 'Z'
+signatureBuilder (SPrim "byte") = Builder.char7 'B'
+signatureBuilder (SPrim "char") = Builder.char7 'C'
+signatureBuilder (SPrim "short") = Builder.char7 'S'
+signatureBuilder (SPrim "int") = Builder.char7 'I'
+signatureBuilder (SPrim "long") = Builder.char7 'J'
+signatureBuilder (SPrim "float") = Builder.char7 'F'
+signatureBuilder (SPrim "double") = Builder.char7 'D'
+signatureBuilder (SPrim sym) = error $ "Unknown primitive: " ++ show sym
+signatureBuilder (SArray ty) = Builder.char7 '[' <> signatureBuilder ty
+signatureBuilder (SGeneric ty _) = signatureBuilder ty
+signatureBuilder SVoid = Builder.char7 'V'
+
+signature :: Sing (ty :: JType) -> JNI.String
+signature = build . signatureBuilder
 
 methodSignature
 #if MIN_VERSION_singletons(2,2,0)
@@ -238,12 +281,13 @@ methodSignature
   :: [SomeSing ('KProxy :: KProxy JType)]
 #endif
   -> Sing (ty :: JType)
-  -> ByteString
+  -> JNI.String
 methodSignature args ret =
-    "(" `BS.append`
-    BS.concat (map (\(SomeSing s) -> signature s) args) `BS.append`
-    ")" `BS.append`
-    signature ret
+    build $
+    Builder.char7 '(' <>
+    mconcat (map (\(SomeSing s) -> signatureBuilder s) args) <>
+    Builder.char7 ')' <>
+    signatureBuilder ret
 
 type JObject = J ('Class "java.lang.Object")
 type JClass = J ('Class "java.lang.Class")

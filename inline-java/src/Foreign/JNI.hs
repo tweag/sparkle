@@ -113,11 +113,13 @@ import Data.Typeable (Typeable)
 import Data.TLS.PThread
 import Foreign.C (CChar)
 import Foreign.JNI.Types
+import qualified Foreign.JNI.String as JNI
 import Foreign.Marshal.Array
 import Foreign.Ptr (Ptr, nullPtr)
 import qualified Language.C.Inline as C
 import qualified Language.C.Inline.Unsafe as CU
 import System.IO.Unsafe (unsafePerformIO)
+import Prelude hiding (String)
 
 C.context (C.baseCtx <> C.bsCtx <> jniCtx)
 
@@ -220,12 +222,15 @@ withJVM options action =
             return jvm; } |]
     fini jvm = [C.block| void { (*$(JavaVM *jvm))->DestroyJavaVM($(JavaVM *jvm)); } |]
 
-findClass :: ByteString -> IO JClass
+findClass
+  :: JNI.String -- ^ Class name
+  -> IO JClass
 findClass name = withJNIEnv $ \env ->
     throwIfException env $
-    [C.exp| jclass { (*$(JNIEnv *env))->FindClass($(JNIEnv *env), $bs-ptr:name) } |]
+    JNI.withString name $ \namep ->
+    [CU.exp| jclass { (*$(JNIEnv *env))->FindClass($(JNIEnv *env), $(char *namep)) } |]
 
-newObject :: JClass -> ByteString -> [JValue] -> IO JObject
+newObject :: JClass -> JNI.String -> [JValue] -> IO JObject
 newObject cls sig args = withJNIEnv $ \env ->
     throwIfException env $
     withArray args $ \cargs -> do
@@ -236,14 +241,16 @@ newObject cls sig args = withJNIEnv $ \env ->
                                       $(jmethodID constr),
                                       $(jvalue *cargs)) } |]
 
-getFieldID :: JClass -> ByteString -> ByteString -> IO JFieldID
+getFieldID :: JClass -> JNI.String -> JNI.String -> IO JFieldID
 getFieldID cls fieldname sig = withJNIEnv $ \env ->
     throwIfException env $
+    JNI.withString fieldname $ \fieldnamep ->
+    JNI.withString sig $ \sigp ->
     [CU.exp| jfieldID {
       (*$(JNIEnv *env))->GetFieldID($(JNIEnv *env),
                                     $(jclass cls),
-                                    $bs-ptr:fieldname,
-                                    $bs-ptr:sig) } |]
+                                    $(char *fieldnamep),
+                                    $(char *sigp)) } |]
 
 getObjectField :: Coercible o (J a) => o -> JFieldID -> IO JObject
 getObjectField (coerce -> upcast -> obj) field = withJNIEnv $ \env ->
@@ -253,23 +260,27 @@ getObjectField (coerce -> upcast -> obj) field = withJNIEnv $ \env ->
                                         $(jobject obj),
                                         $(jfieldID field)) } |]
 
-getMethodID :: JClass -> ByteString -> ByteString -> IO JMethodID
+getMethodID :: JClass -> JNI.String -> JNI.String -> IO JMethodID
 getMethodID cls methodname sig = withJNIEnv $ \env ->
     throwIfException env $
+    JNI.withString methodname $ \methodnamep ->
+    JNI.withString sig $ \sigp ->
     [CU.exp| jmethodID {
       (*$(JNIEnv *env))->GetMethodID($(JNIEnv *env),
                                      $(jclass cls),
-                                     $bs-ptr:methodname,
-                                     $bs-ptr:sig) } |]
+                                     $(char *methodnamep),
+                                     $(char *sigp)) } |]
 
-getStaticMethodID :: JClass -> ByteString -> ByteString -> IO JMethodID
+getStaticMethodID :: JClass -> JNI.String -> JNI.String -> IO JMethodID
 getStaticMethodID cls methodname sig = withJNIEnv $ \env ->
     throwIfException env $
+    JNI.withString methodname $ \methodnamep ->
+    JNI.withString sig $ \sigp ->
     [CU.exp| jmethodID {
       (*$(JNIEnv *env))->GetStaticMethodID($(JNIEnv *env),
                                            $(jclass cls),
-                                           $bs-ptr:methodname,
-                                           $bs-ptr:sig) } |]
+                                           $(char *methodnamep),
+                                           $(char *sigp)) } |]
 
 -- Modern CPP does have ## for concatenating strings, but we use the hacky /**/
 -- comment syntax for string concatenation. This is because GHC passes
