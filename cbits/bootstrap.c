@@ -65,7 +65,7 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_bootstrap
 	exitFn = bypass_exit;
 	/* Set a control prompt just before calling main. If main()
 	 * calls longjmp(), then the exit code of the call to main()
-	 * below it must have been zero so just return without further
+	 * below must have been zero, so just return without further
 	 * ceremony.
 	 */
 	if(setjmp(bootstrap_env)) return;

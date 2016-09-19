@@ -46,14 +46,14 @@ Copyright (c) 2015-2016 EURL Tweag.
 
 All rights reserved.
 
-Sparkle is free software, and may be redistributed under the terms
+inline-java is free software, and may be redistributed under the terms
 specified in the [LICENSE](LICENSE) file.
 
 ## About
 
 ![Tweag I/O](http://i.imgur.com/0HK8X4y.png)
 
-Sparkle is maintained by [Tweag I/O](http://tweag.io/).
+inline-java is maintained by [Tweag I/O](http://tweag.io/).
 
 Have questions? Need help? Tweet at
 [@tweagio](http://twitter.com/tweagio).
