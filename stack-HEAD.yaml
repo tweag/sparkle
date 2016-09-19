@@ -1,0 +1,16 @@
+packages:
+- .
+- inline-java
+- apps/hello
+- apps/lda
+- apps/rdd-ops
+- location: vendor/constraints
+  extra-dep: true
+resolver: nightly-2016-10-02
+extra-deps:
+- thread-local-storage-0.1.0.3
+nix:
+  # Requires Stack >= 1.2.
+  shell-file: shell-HEAD.nix
+allow-newer: true
+skip-ghc-check: true
