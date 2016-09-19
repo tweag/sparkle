@@ -19,10 +19,10 @@ dependencies:
   - echo 'extra-include-dirsCOLON [/usr/lib/jvm/java-7-openjdk-amd64/include]' > ~/.stack/config.yaml
   - echo 'extra-lib-dirsCOLON [/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server]' >> ~/.stack/config.yaml
   - sed -i s/COLON/:/ ~/.stack/config.yaml
-  - stack --no-terminal build --only-snapshot --prefetch
+  - stack --no-terminal --no-system-ghc build --only-snapshot --prefetch
 
 test:
   override:
-  - stack --no-terminal build --pedantic
+  - stack --no-terminal --no-system-ghc build --pedantic
   # Test that packaging at least one example works fine.
   - stack exec sparkle package sparkle-example-hello
