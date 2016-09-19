@@ -13,6 +13,7 @@
 
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -28,6 +29,8 @@ module Foreign.JNI
     -- * JNI functions
     -- ** VM creation
   , withJVM
+    -- ** Class loading
+  , defineClass
     -- ** Query functions
   , findClass
   , getFieldID
@@ -221,6 +224,22 @@ withJVM options action =
             free(options);
             return jvm; } |]
     fini jvm = [C.block| void { (*$(JavaVM *jvm))->DestroyJavaVM($(JavaVM *jvm)); } |]
+
+defineClass
+  :: Coercible o (J ('Class "java.lang.ClassLoader"))
+  => JNI.String -- ^ Class name
+  -> o          -- ^ Loader
+  -> ByteString -- ^ Bytecode buffer
+  -> IO JClass
+defineClass name (coerce -> upcast -> loader) buf = withJNIEnv $ \env ->
+    throwIfException env $
+    JNI.withString name $ \namep ->
+    [CU.exp| jclass {
+      (*$(JNIEnv *env))->DefineClass($(JNIEnv *env),
+                                     $(char *namep),
+                                     $(jobject loader),
+                                     $bs-ptr:buf,
+                                     $bs-len:buf) } |]
 
 findClass
   :: JNI.String -- ^ Class name
