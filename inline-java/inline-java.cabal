@@ -12,6 +12,8 @@ category:            FFI, JVM, Java
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  README.md
+extra-tmp-files:
+  src/Foreign/JNI.c
 
 source-repository head
   type:     git
