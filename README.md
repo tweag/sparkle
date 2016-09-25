@@ -129,6 +129,16 @@ Once everything is built you can generate a spark package and run it using `spar
 # stack --docker --docker-image sparkle exec sparkle package sparkle-example-hello
 ```
 
+## How it works
+
+sparkle is a tool for creating self-contained Spark applications in
+Haskell. Spark applications are typically distributed as JAR files, so
+that's what sparkle creates. We embed Haskell native object code as
+compiled by GHC in these JAR files, along with any shared library
+required by this object code to run. Spark dynamically loads this
+object code into its address space at runtime and interacts with it
+via the Java Native Interface (JNI).
+
 ## Troubleshooting
 
 ### `jvm` library or header files not found
