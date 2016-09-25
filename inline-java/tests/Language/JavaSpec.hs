@@ -4,10 +4,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Language.JavaSpec where
 
-import Data.ByteString (ByteString)
 import Data.Int
 import Data.Text (Text)
-import GHC.TypeLits
 import Language.Java
 import Test.Hspec
 
