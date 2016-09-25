@@ -18,14 +18,14 @@ The tl;dr using the `hello` app as an example on your local machine:
 
 ```
 $ stack build hello
-$ stack exec sparkle package sparkle-example-hello
-$ spark-submit --master 'local[1]' sparkle-example-hello.jar
+$ stack exec -- sparkle package sparkle-example-hello
+$ stack exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
 ```
 
 **Requirements:**
-* the [Stack][stack] build tool;
+* the [Stack][stack] build tool (version 1.2 or above);
 * either, the [Nix][nix] package manager,
-* or, OpenJDK, Gradle and Spark >= 1.6 installed from your distro.
+* or, OpenJDK, Gradle and Spark (version 1.6) installed from your distro.
 
 To run a Spark application the process is as follows:
 
@@ -42,40 +42,49 @@ To run a Spark application the process is as follows:
 To build:
 
 ```
-$ stack [--nix] build
+$ stack build
 ```
 
-You can optionally pass `--nix` to all Stack commands to ask Nix to
-make Spark and Gradle available in a local sandbox for good build
-results reproducibility. Otherwise you'll need these installed through
-your OS distribution's package manager for the next steps (and you'll
-need to tell Stack how to find the JVM header files and shared
-libraries).
+You can optionally get Stack to download Spark and Gradle in a local
+sandbox (using [Nix][nix]) for good build results reproducibility.
+**This is the recommended way to build sparkle.** Alternatively,
+you'll need these installed through your OS distribution's package
+manager for the next steps (and you'll need to tell Stack how to find
+the JVM header files and shared libraries).
 
-To package your app (omit everything inside square brackets if you're
-not using `--nix`):
+To use Nix, set the following in your `~/.stack/config.yaml` (or pass
+`--nix` to all Stack commands, see the [Stack manual][stack-nix] for
+more):
+
+```yaml
+nix:
+  enable: true
+```
+
+To package your app as a JAR directly consumable by Spark:
 
 ```
-$ [stack --nix exec --] sparkle package <app-executable-name>
+$ stack exec -- sparkle package <app-executable-name>
 ```
 
 Finally, to run your application, for example locally:
 
 ```
-$ [stack --nix exec --] spark-submit --master 'local[1]' <app-executable-name>.jar
+$ stack exec -- spark-submit --master 'local[1]' <app-executable-name>.jar
 ```
 
 The `<app-executable-name>` is any executable name as given in the
 `.cabal` file for your app. See apps in the [apps/](apps/) folder for
 examples.
 
-See [here][spark-submit] for other options, including lauching
+See [here][spark-submit] for other options, including launching
 a [whole cluster from scratch on EC2][spark-ec2]. This
 [blog post][tweag-blog-haskell-paas] shows you how to get started on
 the [Databricks hosted platform][databricks] and on
 [Amazon's Elastic MapReduce][aws-emr].
 
 [stack]: https://github.com/commercialhaskell/stack
+[stack-nix]: https://docs.haskellstack.org/en/stable/nix_integration/#configuration
 [spark-submit]: http://spark.apache.org/docs/1.6.2/submitting-applications.html
 [spark-ec2]: http://spark.apache.org/docs/1.6.2/ec2-scripts.html
 [nix]: http://nixos.org/nix
