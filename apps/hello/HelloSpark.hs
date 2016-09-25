@@ -20,6 +20,7 @@ main = do
     confSet conf "spark.hadoop.fs.s3n.awsAccessKeyId" "AKIAIKSKH5DRWT5OPMSA"
     confSet conf "spark.hadoop.fs.s3n.awsSecretAccessKey" "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"
     sc   <- getOrCreateSparkContext conf
+    -- This S3 bucket is located in US East.
     rdd  <- textFile sc "s3n://tweag-sparkle/lorem-ipsum.txt"
     as   <- RDD.filter (closure (static f1)) rdd
     bs   <- RDD.filter (closure (static f2)) rdd
