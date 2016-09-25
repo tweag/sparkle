@@ -20,7 +20,7 @@ source-repository head
   location: https://github.com/tweag/inline-java
 
 library
-  hs-source-dirs:      src
+  hs-source-dirs: src
   c-sources: src/Foreign/JNI.c
   cc-options: -std=c11
   extra-libraries: jvm
@@ -40,23 +40,20 @@ library
     text >=1.2,
     thread-local-storage >=0.1,
     vector >=0.11
-  default-language:    Haskell2010
+  default-language: Haskell2010
 
 test-suite spec
   type:
-      exitcode-stdio-1.0
-  ghc-options:
-      -Wall
-  hs-source-dirs:
-      tests
-  main-is:
-      Spec.hs
+    exitcode-stdio-1.0
+  ghc-options: -Wall
+  hs-source-dirs: tests
+  main-is: Spec.hs
+  other-modules: Language.JavaSpec
   build-depends:
-      base
-    , bytestring
-    , hspec
-    , inline-java
-    , singletons
-    , text
-  default-language:
-      Haskell2010
+    base,
+    bytestring,
+    hspec,
+    inline-java,
+    singletons,
+    text
+  default-language: Haskell2010
