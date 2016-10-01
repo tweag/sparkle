@@ -6,9 +6,17 @@ packages:
 - apps/rdd-ops
 - location: vendor/constraints
   extra-dep: true
+- location: vendor/th-desugar
+  extra-dep: true
+- location: vendor/ghc-heap-view
+  extra-dep: true
 resolver: nightly-2016-10-02
 extra-deps:
 - thread-local-storage-0.1.0.3
+flags:
+  ghc-heap-view:
+    ghc_7_7: false
+    ghc_8_0: true
 nix:
   # Requires Stack >= 1.2.
   shell-file: shell-HEAD.nix
