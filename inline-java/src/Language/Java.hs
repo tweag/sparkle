@@ -320,27 +320,38 @@ withStatic [d|
   instance Reflect Bool ('Class "java.lang.Boolean") where
     reflect x = new [JBoolean (fromIntegral (fromEnum x))]
 
-  type instance Interp Int = 'Class "java.lang.Integer"
-
-  instance Reify Int ('Class "java.lang.Integer") where
-    reify jobj = do
-        klass <- findClass "java/lang/Integer"
-        method <- getMethodID klass "longValue" "()J"
-        fromIntegral <$> callLongMethod jobj method []
-
-  instance Reflect Int ('Class "java.lang.Integer") where
-    reflect x = new [JInt (fromIntegral x)]
-
   type instance Interp Int16 = 'Class "java.lang.Short"
 
   instance Reify Int16 ('Class "java.lang.Short") where
     reify jobj = do
         klass <- findClass "java/lang/Short"
         method <- getMethodID klass "shortValue" "()S"
-        fromIntegral <$> callShortMethod jobj method []
+        callShortMethod jobj method []
 
   instance Reflect Int16 ('Class "java.lang.Short") where
     reflect x = new [JShort x]
+
+  type instance Interp Int32 = 'Class "java.lang.Integer"
+
+  instance Reify Int32 ('Class "java.lang.Integer") where
+    reify jobj = do
+        klass <- findClass "java/lang/Integer"
+        method <- getMethodID klass "intValue" "()I"
+        callIntMethod jobj method []
+
+  instance Reflect Int32 ('Class "java.lang.Integer") where
+    reflect x = new [JInt x]
+
+  type instance Interp Int64 = 'Class "java.lang.Long"
+
+  instance Reify Int64 ('Class "java.lang.Long") where
+    reify jobj = do
+        klass <- findClass "java/lang/Long"
+        method <- getMethodID klass "longValue" "()J"
+        callLongMethod jobj method []
+
+  instance Reflect Int64 ('Class "java.lang.Long") where
+    reflect x = new [JLong x]
 
   type instance Interp Word16 = 'Class "java.lang.Character"
 
@@ -374,7 +385,6 @@ withStatic [d|
 
   instance Reflect Float ('Class "java.lang.Float") where
     reflect x = new [JFloat x]
-
 
   type instance Interp Text = 'Class "java.lang.String"
 
