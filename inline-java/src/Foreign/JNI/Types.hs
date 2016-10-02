@@ -234,7 +234,7 @@ jtypeOf (JObject (_ :: J ty)) = SomeSing (sing :: Sing ty)
 -- | Create a null-terminated string.
 build :: Builder -> JNI.String
 build =
-  JNI.fromByteString .
+  JNI.unsafeFromByteString .
   BSL.toStrict .
   Builder.toLazyByteString .
   (<> Builder.char7 '\NUL')

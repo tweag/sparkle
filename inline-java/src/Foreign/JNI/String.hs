@@ -17,6 +17,7 @@ module Foreign.JNI.String
   , toChars
   , fromChars
   , fromByteString
+  , unsafeFromByteString
   , toByteString
   , withString
   ) where
@@ -61,3 +62,8 @@ fromByteString :: ByteString -> String
 fromByteString bs
   | BS.last bs == 0 = String bs
   | otherwise = String (bs `BS.snoc` 0)
+
+-- | Same as 'fromByteString', but doesn't check whether the input is
+-- null-terminated or not.
+unsafeFromByteString :: ByteString -> String
+unsafeFromByteString = String
