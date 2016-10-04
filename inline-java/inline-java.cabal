@@ -49,8 +49,10 @@ test-suite spec
     exitcode-stdio-1.0
   ghc-options: -Wall
   hs-source-dirs: tests
-  main-is: Spec.hs
-  other-modules: Language.JavaSpec
+  main-is: Main.hs
+  other-modules:
+    Language.JavaSpec
+    Spec
   build-depends:
     base,
     bytestring,
