@@ -1,7 +1,33 @@
 -- | High-level helper functions for interacting with Java objects, mapping them
 -- to Haskell values and vice versa. The 'Reify' and 'Reflect' classes together
 -- are to Java what "Foreign.Storable" is to C: they provide a means to
--- marshall/unmarshall Java objects from/into Haskell data types.
+-- marshall/unmarshall Java objects from/to Haskell data types.
+--
+-- A typical pattern for wrapping Java API's using this module is:
+--
+-- @
+-- {&#45;\# LANGUAGE DataKinds \#&#45;}
+-- module Object where
+--
+-- import Language.Java as J
+--
+-- newtype Object = Object ('J' (''Class' "java.lang.Object"))
+-- instance 'Coercible' Object
+--
+-- clone :: Object -> IO Object
+-- clone obj = J.'call' obj "clone" []
+--
+-- equals :: Object -> Object -> IO Bool
+-- equals obj1 obj2 = J.'call' obj1 "equals" ['jvalue' obj2]
+--
+-- ...
+-- @
+--
+-- To call Java methods using quasiquoted Java syntax instead, see
+-- "Language.Java.Inline".
+--
+-- __NOTE:__ To use any function in this module, you'll need an initialized JVM in the
+-- current process, using 'withJVM' or otherwise.
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DefaultSignatures #-}
@@ -19,16 +45,17 @@
 module Language.Java
   ( module Foreign.JNI.Types
   , withJVM
-  , Coercible(..)
   , classOf
   , new
   , call
   , callStatic
+  , jvalue
+  , Coercible(..)
+  , Reify(..)
+  , Reflect(..)
   , Type(..)
   , Uncurry
   , Interp
-  , Reify(..)
-  , Reflect(..)
   , sing
   ) where
 
@@ -121,6 +148,7 @@ instance Coercible () 'Void where
   coerce = error "Void value undefined."
   unsafeUncoerce _ = ()
 
+-- | Get the Java class of an object or anything 'Coercible' to one.
 classOf
   :: ( Coerce.Coercible a (J ('Class sym))
      , Coercible a ('Class sym)
@@ -131,7 +159,12 @@ classOf
 classOf _ = sing
 
 -- | Creates a new instance of the class whose name is resolved from the return
--- type.
+-- type. For instance,
+--
+-- @
+-- do x :: 'J' (''Class' "java.lang.Integer") <- new ['coerce' 42]
+--    return x
+-- @
 new
   :: forall a sym.
      ( Coerce.Coercible a (J ('Class sym))
@@ -157,9 +190,9 @@ new args = do
 -- right method.
 call
   :: forall a b ty1 ty2. (IsReferenceType ty1, Coercible a ty1, Coercible b ty2, Coerce.Coercible a (J ty1))
-  => a
-  -> JNI.String
-  -> [JValue]
+  => a -- ^ Any object or value 'Coercible' to one
+  -> JNI.String -- ^ Method name
+  -> [JValue] -- ^ Arguments
   -> IO b
 call obj mname args = do
     let argsings = map jtypeOf args
@@ -203,6 +236,12 @@ callStatic cname mname args = do
         return (unsafeUncoerce undefined)
       _ -> unsafeUncoerce . coerce <$> callStaticObjectMethod klass method args
 
+-- | Inject a value (of primitive or reference type) to a 'JValue'. This
+-- datatype is useful for e.g. passing arguments as a list of homogeneous type.
+-- Synonym for 'coerce'.
+jvalue :: Coercible a ty => a -> JValue
+jvalue = coerce
+
 -- | Classifies Java types according to whether they are base types (data) or
 -- higher-order types (objects representing functions).
 data Type a
@@ -236,12 +275,14 @@ type family Interp (a :: k) :: JType
 type instance Interp ('Base a) = Interp a
 
 -- | Extract a concrete Haskell value from the space of Java objects. That is to
--- say, map a Java object to a Haskell value.
+-- say, unmarshall a Java object to a Haskell value. Unlike coercing, in general
+-- reifying induces allocations and copies.
 class (Interp (Uncurry a) ~ ty, SingI ty) => Reify a ty where
   reify :: J ty -> IO a
 
 -- | Inject a concrete Haskell value into the space of Java objects. That is to
--- say, map a Haskell value to a Java object.
+-- say, marshall a Haskell value to a Java object. Unlike coercing, in general
+-- reflection induces allocations and copies.
 class (Interp (Uncurry a) ~ ty, SingI ty) => Reflect a ty where
   reflect :: a -> IO (J ty)
 
