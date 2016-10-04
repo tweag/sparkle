@@ -25,10 +25,9 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Foreign.JNI
-  ( module Foreign.JNI.Types
-    -- * JNI functions
+  ( -- * JNI functions
     -- ** VM creation
-  , withJVM
+    withJVM
     -- ** Class loading
   , defineClass
     -- ** Query functions

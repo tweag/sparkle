@@ -26,10 +26,9 @@ library
   extra-libraries: jvm
   exposed-modules:
     Foreign.JNI
+    Foreign.JNI.Types
     Foreign.JNI.String
     Language.Java
-  other-modules:
-    Foreign.JNI.Types
   build-depends:
     base >= 4.7 && < 5,
     binary >=0.7,
