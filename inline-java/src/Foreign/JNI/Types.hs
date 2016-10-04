@@ -96,7 +96,8 @@ newtype JFieldID = JFieldID_ (Ptr JFieldID)
 newtype JMethodID = JMethodID_ (Ptr JMethodID)
   deriving (Eq, Show, Storable)
 
--- | Not part of JNI. Kind of Java object type indexes.
+-- | Not part of the JNI. The kind of 'J' type indices. Useful to reflect the
+-- object's class at the type-level.
 data JType
   = Class Symbol                               -- ^ Class name
   | Iface Symbol                               -- ^ Interface name
@@ -105,6 +106,7 @@ data JType
   | Generic JType [JType]                      -- ^ Parameterized (generic) type
   | Void                                       -- ^ Void special type
 
+-- | The class of Java types that are "unboxed".
 class IsPrimitiveType (ty :: JType)
 instance IsPrimitiveType ('Prim sym)
 
@@ -146,6 +148,7 @@ newtype J (a :: JType) = J (Ptr (J a))
 
 type role J representational
 
+-- | The null reference.
 jnull :: J a
 jnull = J nullPtr
 
@@ -216,6 +219,7 @@ instance Storable JValue where
 
   peek _ = error "Storable JValue: undefined peek"
 
+-- | Get the Java type of a value.
 #if MIN_VERSION_singletons(2,2,0)
 jtypeOf :: JValue -> SomeSing JType
 #else
@@ -271,9 +275,12 @@ signatureBuilder (SArray ty) = Builder.char7 '[' <> signatureBuilder ty
 signatureBuilder (SGeneric ty _) = signatureBuilder ty
 signatureBuilder SVoid = Builder.char7 'V'
 
+-- | Construct a JNI type signature from a Java type.
 signature :: Sing (ty :: JType) -> JNI.String
 signature = build . signatureBuilder
 
+-- | Construct a method's JNI type signature, given the type of the arguments
+-- and the return type.
 methodSignature
 #if MIN_VERSION_singletons(2,2,0)
   :: [SomeSing JType]

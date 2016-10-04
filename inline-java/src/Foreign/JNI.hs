@@ -10,7 +10,8 @@
 -- type @JNIEnv *@. If the current OS thread has not yet been "attached" to the
 -- JVM, it is attached implicitly upon the first call to one of these bindings
 -- in the current thread.
-
+--
+-- The 'String' type in this module is the type of JNI strings. See "Foreign.JNI.String".
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
@@ -259,7 +260,11 @@ newObject cls sig args = withJNIEnv $ \env ->
                                       $(jmethodID constr),
                                       $(jvalue *cargs)) } |]
 
-getFieldID :: JClass -> JNI.String -> JNI.String -> IO JFieldID
+getFieldID
+  :: JClass -- ^ A class object as returned by 'findClass'
+  -> JNI.String -- ^ Field name
+  -> JNI.String -- ^ JNI signature
+  -> IO JFieldID
 getFieldID cls fieldname sig = withJNIEnv $ \env ->
     throwIfException env $
     JNI.withString fieldname $ \fieldnamep ->
@@ -270,7 +275,11 @@ getFieldID cls fieldname sig = withJNIEnv $ \env ->
                                     $(char *fieldnamep),
                                     $(char *sigp)) } |]
 
-getObjectField :: Coercible o (J a) => o -> JFieldID -> IO JObject
+getObjectField
+  :: Coercible o (J a)
+  => o -- ^ Any object of any class
+  -> JFieldID
+  -> IO JObject
 getObjectField (coerce -> upcast -> obj) field = withJNIEnv $ \env ->
     throwIfException env $
     [CU.exp| jobject {
@@ -278,7 +287,11 @@ getObjectField (coerce -> upcast -> obj) field = withJNIEnv $ \env ->
                                         $(jobject obj),
                                         $(jfieldID field)) } |]
 
-getMethodID :: JClass -> JNI.String -> JNI.String -> IO JMethodID
+getMethodID
+  :: JClass -- ^ A class object as returned by 'findClass'
+  -> JNI.String -- ^ Field name
+  -> JNI.String -- ^ JNI signature
+  -> IO JMethodID
 getMethodID cls methodname sig = withJNIEnv $ \env ->
     throwIfException env $
     JNI.withString methodname $ \methodnamep ->
@@ -289,7 +302,11 @@ getMethodID cls methodname sig = withJNIEnv $ \env ->
                                      $(char *methodnamep),
                                      $(char *sigp)) } |]
 
-getStaticMethodID :: JClass -> JNI.String -> JNI.String -> IO JMethodID
+getStaticMethodID
+  :: JClass -- ^ A class object as returned by 'findClass'
+  -> JNI.String -- ^ Field name
+  -> JNI.String -- ^ JNI signature
+  -> IO JMethodID
 getStaticMethodID cls methodname sig = withJNIEnv $ \env ->
     throwIfException env $
     JNI.withString methodname $ \methodnamep ->
