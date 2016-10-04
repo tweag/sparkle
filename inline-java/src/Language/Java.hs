@@ -283,6 +283,14 @@ withStatic [d|
   instance SingI ty => Reflect (J ty) ty where
     reflect x = return x
 
+  type instance Interp () = 'Class "java.lang.Object"
+
+  instance Reify () ('Class "java.lang.Object") where
+    reify _ = return ()
+
+  instance Reflect () ('Class "java.lang.Object") where
+    reflect () = new []
+
   type instance Interp ByteString = 'Array ('Prim "byte")
 
   instance Reify ByteString ('Array ('Prim "byte")) where
