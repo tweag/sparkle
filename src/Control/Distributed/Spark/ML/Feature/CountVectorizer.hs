@@ -12,7 +12,6 @@ import Control.Distributed.Spark.SQL.DataFrame
 import Data.Int
 import Data.Text (Text)
 import Foreign.C.Types
-import Foreign.JNI
 import Language.Java
 
 newtype CountVectorizer = CountVectorizer (J ('Class "org.apache.spark.ml.feature.CountVectorizer"))

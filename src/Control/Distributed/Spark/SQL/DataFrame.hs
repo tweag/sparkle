@@ -9,7 +9,6 @@ import Control.Distributed.Spark.RDD
 import Control.Distributed.Spark.SQL.Context
 import Control.Distributed.Spark.SQL.Row
 import Data.Text (Text)
-import Foreign.JNI
 import Language.Java
 
 newtype DataFrame = DataFrame (J ('Class "org.apache.spark.sql.DataFrame"))

@@ -10,7 +10,6 @@ import Control.Distributed.Spark.ML.Feature.CountVectorizer
 import Control.Distributed.Spark.PairRDD
 import Data.Int
 import Foreign.C.Types
-import Foreign.JNI
 import Language.Java
 
 newtype LDA = LDA (J ('Class "org.apache.spark.mllib.clustering.LDA"))

@@ -12,7 +12,6 @@ import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
 import Data.Int
 import Data.Text (Text)
-import Foreign.JNI
 import Language.Java
 
 import qualified Data.Text as Text

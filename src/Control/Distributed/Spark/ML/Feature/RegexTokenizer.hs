@@ -8,7 +8,6 @@ module Control.Distributed.Spark.ML.Feature.RegexTokenizer where
 
 import Control.Distributed.Spark.SQL.DataFrame
 import Data.Text (Text)
-import Foreign.JNI
 import Language.Java
 
 newtype RegexTokenizer = RegexTokenizer (J ('Class "org.apache.spark.ml.feature.RegexTokenizer"))

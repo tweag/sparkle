@@ -8,7 +8,6 @@ module Control.Distributed.Spark.ML.Feature.StopWordsRemover where
 
 import Control.Distributed.Spark.SQL.DataFrame
 import Data.Text (Text)
-import Foreign.JNI
 import Language.Java
 
 newtype StopWordsRemover = StopWordsRemover (J ('Class "org.apache.spark.ml.feature.StopWordsRemover"))

@@ -7,7 +7,6 @@
 module Control.Distributed.Spark.SQL.Context where
 
 import Control.Distributed.Spark.Context
-import Foreign.JNI
 import Language.Java
 
 newtype SQLContext = SQLContext (J ('Class "org.apache.spark.sql.SQLContext"))

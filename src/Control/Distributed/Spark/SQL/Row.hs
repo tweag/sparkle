@@ -6,7 +6,6 @@ module Control.Distributed.Spark.SQL.Row where
 
 import Control.Distributed.Spark.PairRDD
 import Control.Distributed.Spark.RDD
-import Foreign.JNI
 import Language.Java
 
 newtype Row = Row (J ('Class "org.apache.spark.sql.Row"))

@@ -10,7 +10,6 @@ import Control.Distributed.Spark.Context
 import Control.Distributed.Spark.RDD
 import Data.Int
 import Data.Text (Text)
-import Foreign.JNI
 import Language.Java
 
 newtype PairRDD a b = PairRDD (J ('Class "org.apache.spark.api.java.JavaPairRDD"))
