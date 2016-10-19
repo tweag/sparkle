@@ -1,9 +1,0 @@
-[submodule "vendor/constraints"]
-	path = vendor/constraints
-	url = ../../mboes/constraints
-[submodule "vendor/th-desugar"]
-	path = vendor/th-desugar
-	url = git@github.com:mboes/th-desugar
-[submodule "vendor/ghc-heap-view"]
-	path = vendor/ghc-heap-view
-	url = git@github.com:mboes/ghc-heap-view
