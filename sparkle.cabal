@@ -53,7 +53,8 @@ library
     binary >=0.7,
     bytestring >=0.10,
     distributed-closure >=0.3,
-    inline-java >=0.1,
+    jni >=0.1,
+    jvm >=0.1,
     singletons >= 2.0,
     text >=1.2,
     vector >=0.11

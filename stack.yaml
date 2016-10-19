@@ -1,12 +1,13 @@
 packages:
 - .
-- inline-java
 - apps/hello
 - apps/lda
 - apps/rdd-ops
 resolver: lts-6.21
 extra-deps:
 - thread-local-storage-0.1.0.3
+- jni-0.1
+- jvm-0.1
 nix:
   # Requires Stack >= 1.2.
   shell-file: shell.nix
