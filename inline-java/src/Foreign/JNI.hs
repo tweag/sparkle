@@ -201,7 +201,7 @@ useAsCStrings strs m =
 
 -- | Create a new JVM, with the given arguments. /Can only be called once/. Best
 -- practice: use it to wrap your @main@ function.
-withJVM :: [ByteString] -> IO () -> IO ()
+withJVM :: [ByteString] -> IO a -> IO a
 withJVM options action =
     bracket ini fini (const action)
   where
