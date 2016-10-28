@@ -6,7 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ## [Unreleased]
 
-* More `RDD` method bindings: `randomSplit`.
+### Added
+
+* More `RDD` method bindings: `randomSplit`, `zipWithUniqueId`,
+  `reduceByKey`, `subtractByKey`.
 
 ## [0.7.2] - 2017-12-25
 

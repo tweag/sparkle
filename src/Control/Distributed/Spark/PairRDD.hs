@@ -62,6 +62,24 @@ mapValues f prdd = do
   jf <- reflectFun (sing :: Sing 1) f
   call prdd "mapValues" [coerce jf]
 
+zipWithUniqueId :: RDD a -> IO (PairRDD a Int64)
+zipWithUniqueId rdd = call rdd "zipWithUniqueId" []
+
+reduceByKey
+  :: (Static (Reify v), Static (Reflect v), Typeable v)
+  => Closure (v -> v -> v)
+  -> PairRDD k v
+  -> IO (PairRDD k v)
+reduceByKey clos rdd = do
+  f <- reflectFun (sing :: Sing 2) clos
+  call rdd "reduceByKey" [coerce f]
+
+subtractByKey
+  :: PairRDD a b
+  -> PairRDD a c
+  -> IO (PairRDD a b)
+subtractByKey prdd0 prdd1 = call prdd0 "subtractByKey" [coerce prdd1]
+
 wholeTextFiles :: SparkContext -> Text -> IO (PairRDD Text Text)
 wholeTextFiles sc uri = do
   juri <- reflect uri
