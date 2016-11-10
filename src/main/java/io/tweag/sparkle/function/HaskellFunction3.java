@@ -3,7 +3,9 @@ package io.tweag.sparkle.function;
 import org.apache.spark.api.java.function.*;
 import io.tweag.sparkle.Sparkle;
 
-public class HaskellFunction3<T1, T2, T3, R> implements Function3<T1, T2, T3, R> {
+public class HaskellFunction3<T1, T2, T3, R>
+    implements Function3<T1, T2, T3, R>
+{
     private final byte[] clos;
 
     public HaskellFunction3(final byte[] clos) {

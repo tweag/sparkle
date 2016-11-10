@@ -16,6 +16,7 @@ public class Sparkle {
             throw new ExceptionInInitializerError(e);
         }
 	System.out.println("Application loaded.");
+	Sparkle.initializeHaskellRTS();
     }
 
     public static Path extractResource(String name) throws IOException {
@@ -47,5 +48,5 @@ public class Sparkle {
 
     public static native void bootstrap();
     public static native <R> R apply(byte[] cos, Object... args);
-    public static native void invoke(byte[] cos, Object... args);
+    private static native void initializeHaskellRTS();
 }
