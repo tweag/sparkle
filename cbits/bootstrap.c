@@ -5,12 +5,14 @@
 extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
 extern int main(int argc, char *argv[]);
 
+static int argc = 0;
+static char* argv[] = { NULL }; /* or e.g { "+RTS", "-A1G", "-H1G", NULL }; */
+
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
   (JNIEnv * env, jclass klass)
 {
-	int argc = 0;
-	char *argv[] = { NULL }; /* or e.g { "+RTS", "-A1G", "-H1G", NULL }; */
-    hs_init(&argc, &argv);
+	char** pargv = argv;
+	hs_init(&argc, &pargv);
 }
 
 JNIEXPORT jobject JNICALL Java_io_tweag_sparkle_Sparkle_apply
@@ -36,9 +38,6 @@ static void bypass_exit(int rc)
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_bootstrap
   (JNIEnv * env, jclass klass)
 {
-	int argc = 0;
-	char *argv[] = { NULL };
-
 	exitFn = bypass_exit;
 	/* Set a control prompt just before calling main. If main()
 	 * calls longjmp(), then the exit code of the call to main()
