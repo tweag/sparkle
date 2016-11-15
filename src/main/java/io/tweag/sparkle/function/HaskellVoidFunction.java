@@ -3,9 +3,7 @@ package io.tweag.sparkle.function;
 import org.apache.spark.api.java.function.*;
 import io.tweag.sparkle.Sparkle;
 
-public class HaskellVoidFunction<T>
-    implements VoidFunction<T>
-{
+public class HaskellVoidFunction<T> implements VoidFunction<T> {
     private final byte[] clos;
 
     public HaskellVoidFunction(final byte[] clos) {
