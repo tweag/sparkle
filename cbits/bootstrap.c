@@ -1,39 +1,23 @@
 #include <HsFFI.h>
-#include <pthread.h>
 #include <setjmp.h>
 #include "io_tweag_sparkle_Sparkle.h"
 
 extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
 extern int main(int argc, char *argv[]);
 
-pthread_spinlock_t sparkle_init_lock;
-static int sparkle_initialized;
+static int argc = 0;
+static char* argv[] = { NULL }; /* or e.g { "+RTS", "-A1G", "-H1G", NULL }; */
 
-__attribute__((constructor)) void sparkle_init_lock_constructor()
+JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
+  (JNIEnv * env, jclass klass)
 {
-	pthread_spin_init(&sparkle_init_lock, 0);
-}
-
-/* Ensure that global variables are initialized. */
-static void sparkle_init(JNIEnv *env, int init_rts)
-{
-	int argc = 0;
-	char *argv[] = { NULL }; /* or e.g { "+RTS", "-A1G", "-H1G", NULL }; */
-	char **pargv = argv;
-
-	pthread_spin_lock(&sparkle_init_lock);
-	if(!sparkle_initialized) {
-		if(init_rts)
-			hs_init(&argc, &pargv);
-		sparkle_initialized = 1;
-	}
-	pthread_spin_unlock(&sparkle_init_lock);
+	char** pargv = argv;
+	hs_init(&argc, &pargv);
 }
 
 JNIEXPORT jobject JNICALL Java_io_tweag_sparkle_Sparkle_apply
   (JNIEnv * env, jclass klass, jbyteArray bytes, jobjectArray args)
 {
-	sparkle_init(env, 1);
 	return sparkle_apply(bytes, args);
 }
 
@@ -54,14 +38,6 @@ static void bypass_exit(int rc)
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_bootstrap
   (JNIEnv * env, jclass klass)
 {
-	int argc = 0;
-	char *argv[] = { NULL };
-	char **pargv = argv;
-
-	/* Don't init RTS before calling main(), because RTS can be
-	 * initialized only once. */
-	sparkle_init(env, 0);
-
 	exitFn = bypass_exit;
 	/* Set a control prompt just before calling main. If main()
 	 * calls longjmp(), then the exit code of the call to main()
@@ -69,5 +45,5 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_bootstrap
 	 * ceremony.
 	 */
 	if(setjmp(bootstrap_env)) return;
-	main(argc, pargv);
+	main(argc, argv);
 }
