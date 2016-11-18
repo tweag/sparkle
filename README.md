@@ -1,8 +1,8 @@
-# Sparkle: Apache Spark applications in Haskell
+# `sparkle`: Apache Spark applications in Haskell
 
 [![Circle CI](https://circleci.com/gh/tweag/sparkle.svg?style=svg)](https://circleci.com/gh/tweag/sparkle)
 
-*Sparkle [spär′kəl]:* a library for writing resilient analytics
+*sparkle [spär′kəl]:* a library for writing resilient analytics
 applications in Haskell that scale to thousands of nodes, using
 [Spark][spark] and the rest of the Apache ecosystem under the hood.
 See [this blog post][hello-sparkle] for the details.
@@ -22,10 +22,7 @@ $ stack exec -- sparkle package sparkle-example-hello
 $ stack exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
 ```
 
-**Requirements:**
-* the [Stack][stack] build tool (version 1.2 or above);
-* either, the [Nix][nix] package manager,
-* or, OpenJDK, Gradle and Spark (version 1.6) installed from your distro.
+## How to use
 
 To run a Spark application the process is as follows:
 
@@ -38,6 +35,16 @@ To run a Spark application the process is as follows:
 
 **If you run into issues, read the Troubleshooting section below
   first.**
+
+### Build
+
+#### Linux
+
+**Requirements**
+
+* the [Stack][stack] build tool (version 1.2 or above);
+* either, the [Nix][nix] package manager,
+* or, OpenJDK, Gradle and Spark (version 1.6) installed from your distro.
 
 To build:
 
@@ -61,11 +68,38 @@ nix:
   enable: true
 ```
 
+#### Non-Linux OSes
+
+`sparkle` is not supported on non-Linux operating systems (e.g. Mac OS X or
+Windows). To build and use sparkle from such an OS, use the provided
+`Dockerfile` and build everything in [Docker](http://docker.io):
+
+```
+$ docker build -t sparkle .
+```
+
+This will create a Docker image named `sparkle` that contains everything
+needed to build sparkle and Spark applications, including Stack, Java 8, and
+Gradle.
+
+The image can be used to build sparkle then package and run applications:
+
+```
+$ docker run -it -v $(pwd):/src sparkle
+# cd /src
+# stack --nix --allow-different-user build
+...
+```
+
+### Package
+
 To package your app as a JAR directly consumable by Spark:
 
 ```
 $ stack exec -- sparkle package <app-executable-name>
 ```
+
+### Submit
 
 Finally, to run your application, for example locally:
 
@@ -92,31 +126,9 @@ the [Databricks hosted platform][databricks] and on
 [databricks]: https://databricks.com/
 [aws-emr]: https://aws.amazon.com/emr/
 
-### Non-Linux OSes
-
-Sparkle is not currently supported on non-linux OSes, e.g. Mac OS X or Windows. If you want to build and use it from a machine using
-such an OS, you can use the provided `Dockerfile` and build everything in [docker](http://docker.io):
-
-```
-$ docker build -t sparkle .
-```
-
-will create an image named `sparkle` containing everything that's
-needed to build sparkle and Spark applications: Stack, Java 8, Gradle.
-
-This image can be used to build sparkle then package and run applications:
-
-```
-# stack --docker --docker-image sparkle build
-...
-```
-
-Package Spark apps and execute them as in the Linux-native case,
-making sure to pass `--docker` as a parameter as above.
-
 ## How it works
 
-sparkle is a tool for creating self-contained Spark applications in
+`sparkle` is a tool for creating self-contained Spark applications in
 Haskell. Spark applications are typically distributed as JAR files, so
 that's what sparkle creates. We embed Haskell native object code as
 compiled by GHC in these JAR files, along with any shared library
@@ -158,14 +170,14 @@ Copyright (c) 2015-2016 EURL Tweag.
 
 All rights reserved.
 
-Sparkle is free software, and may be redistributed under the terms
+`sparkle` is free software, and may be redistributed under the terms
 specified in the [LICENSE](LICENSE) file.
 
 ## About
 
 ![Tweag I/O](http://i.imgur.com/0HK8X4y.png)
 
-Sparkle is maintained by [Tweag I/O](http://tweag.io/).
+`sparkle` is maintained by [Tweag I/O](http://tweag.io/).
 
 Have questions? Need help? Tweet at
 [@tweagio](http://twitter.com/tweagio).
