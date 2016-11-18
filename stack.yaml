@@ -11,3 +11,6 @@ extra-deps:
 nix:
   # Requires Stack >= 1.2.
   shell-file: shell.nix
+docker:
+  enable: false
+  stack-exe: image

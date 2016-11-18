@@ -111,23 +111,8 @@ This image can be used to build sparkle then package and run applications:
 ...
 ```
 
-Note that you will need to edit the `stack.yaml` file to point to
-include directories and libraries for building the C bits that
-interact with the JVM:
-
-```
-extra-include-dirs:
-  - '/usr/lib/jvm/java-1.8.0-openjdk-amd64/include'
-  - '/usr/lib/jvm/java-1.8.0-openjdk-amd64/include/linux'
-extra-lib-dirs:
-  - '/usr/lib/jvm/java-1.8.0-openjdk-amd64/jre/lib/amd64/server/'
-```
-
-Once everything is built you can generate a spark package and run it using `sparkle`'s command-line:
-
-```
-# stack --docker --docker-image sparkle exec sparkle package sparkle-example-hello
-```
+Package Spark apps and execute them as in the Linux-native case,
+making sure to pass `--docker` as a parameter as above.
 
 ## How it works
 
