@@ -30,7 +30,7 @@ doPackage cmd = do
     libentries <- mapM mkEntry libs
     cmdentry <- toEntry "hsapp" 0 <$> BS.readFile cmdpath
     let appzip =
-          toEntry "app.zip" 0 $
+          toEntry "sparkle-app.zip" 0 $
           fromArchive $
           foldr addEntryToArchive emptyArchive (cmdentry : libentries)
         newjarbytes = fromArchive $ addEntryToArchive appzip (toArchive jarbytes)
