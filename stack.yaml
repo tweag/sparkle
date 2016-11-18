@@ -13,4 +13,5 @@ nix:
   shell-file: shell.nix
 docker:
   enable: false
+  run-args: ["--net=bridge"]
   stack-exe: image
