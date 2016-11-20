@@ -18,6 +18,13 @@ RUN mkdir -p /usr/bin \
 # https://github.com/1science/docker-elasticsearch/issues/1#issuecomment-106307522
 RUN echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf
 
+# A very long line in /etc/group is not necessary and prevents newer groups to
+# be found. Fixes the error:
+#   $ stack --docker --docker-image sparkle build
+#   Running /usr/sbin/useradd -oN --uid 1000 --gid 1000 --home .../_home stack exited with ExitFailure 6
+#   useradd: group '1000' does not exist
+RUN sed -i 's/nixbld:x:30000:.*/nixbld:x:30000:/g' /etc/group
+
 ADD entrypoint.py /
 ENTRYPOINT ["/entrypoint.py"]
 CMD ["/bin/bash"]
