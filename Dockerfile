@@ -9,7 +9,6 @@ RUN apk --update add ca-certificates python shadow
 RUN nix-channel --add https://nixos.org/channels/nixpkgs-unstable && nix-channel --update
 ADD shell.nix /
 RUN nix-shell /shell.nix
-RUN nix-env -i stack
 # This is necessary because Stack overrides the initial PATH to some hardcoded value.
 RUN mkdir -p /usr/bin \
     && ln -s $(readlink -f $(which nix-shell)) /usr/bin/nix-shell

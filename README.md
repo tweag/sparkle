@@ -85,10 +85,9 @@ Gradle.
 The image can be used to build sparkle then package and run applications:
 
 ```
-$ docker run -it -v $(pwd):/src sparkle
-# cd /src
-# stack --nix --allow-different-user build
-...
+$ stack --docker --docker-image sparkle build
+$ stack --docker --docker-image sparkle exec -- sparkle package sparkle-example-hello
+$ stack --docker --docker-image sparkle exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
 ```
 
 ### Package

@@ -15,7 +15,8 @@ in
 haskell.lib.buildStackProject {
   name = "sparkle";
   buildInputs =
-    [ gradle
+    [ stack
+      gradle
       openjdk
       spark
       which
