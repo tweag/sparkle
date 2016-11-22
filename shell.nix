@@ -1,4 +1,6 @@
-{ nixpkgs ? import <nixpkgs> {}, ghc }:
+{ nixpkgs ? import <nixpkgs> {}
+, ghc ? nixpkgs.haskell.compiler.ghc7103   # Default needed for Docker build.
+}:
 
 with nixpkgs;
 
@@ -13,7 +15,8 @@ in
 haskell.lib.buildStackProject {
   name = "sparkle";
   buildInputs =
-    [ gradle
+    [ stack
+      gradle
       openjdk
       spark
       which
