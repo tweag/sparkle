@@ -5,8 +5,31 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Control.Distributed.Spark.RDD where
+module Control.Distributed.Spark.RDD
+  ( RDD(..)
+  , parallelize
+  , repartition
+  , filter
+  , map
+  , fold
+  , reduce
+  , aggregate
+  , treeAggregate
+  , count
+  , collect
+  , take
+  , textFile
+  , binaryRecords
+  , distinct
+  , intersection
+  , union
+  , sample
+  , first
+  , getNumPartitions
+  , saveAsTextFile
+  ) where
 
+import Prelude hiding (filter, map, take)
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
