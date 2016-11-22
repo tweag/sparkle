@@ -3,11 +3,24 @@ packages:
 - apps/hello
 - apps/lda
 - apps/rdd-ops
-resolver: lts-6.21
+- location: vendor/constraints
+  extra-dep: true
+- location: vendor/th-desugar
+  extra-dep: true
+- location:
+    git: https://github.com/nomeata/ghc-heap-view
+    commit: 97791de616dc095a8eec2fc5b056497616c98051
+resolver: lts-7.2
+allow-newer: true
 extra-deps:
 - thread-local-storage-0.1.0.3
 - jni-0.1
-- jvm-0.1
+- jvm-0.1.2
+- inline-java-0.5.1
+flags:
+  ghc-heap-view:
+    ghc_7_7: false
+    ghc_8_0: true
 nix:
   # Requires Stack >= 1.2.
   shell-file: shell.nix

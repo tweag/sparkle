@@ -8,7 +8,7 @@
 module Control.Distributed.Spark.RDD where
 
 import Control.Distributed.Closure
-import Control.Distributed.Spark.Closure ()
+import Control.Distributed.Spark.Closure
 import Control.Distributed.Spark.Context
 import Data.Int
 import Data.Text (Text)
@@ -44,7 +44,7 @@ filter clos rdd = do
     call rdd "filter" [coerce f]
 
 map
-  :: Reflect (Closure (a -> b)) ty
+  :: Reflect (Closure (a -> b)) (JFun1 _a _b)
   => Closure (a -> b)
   -> RDD a
   -> IO (RDD b)
@@ -53,7 +53,7 @@ map clos rdd = do
     call rdd "map" [coerce f]
 
 fold
-  :: (Reflect (Closure (a -> a -> a)) ty1, Reflect a ty2, Reify a ty2)
+  :: (Reflect (Closure (a -> a -> a)) (JFun2 _a _a _a), Reflect a _a, Reify a _a)
   => Closure (a -> a -> a)
   -> a
   -> RDD a
@@ -65,7 +65,7 @@ fold clos zero rdd = do
   reify (unsafeCast res)
 
 reduce
-  :: (Reflect (Closure (a -> a -> a)) ty1, Reify a ty2, Reflect a ty2)
+  :: (Reflect (Closure (a -> a -> a)) (JFun2 _a _a _a), Reify a _a)
   => Closure (a -> a -> a)
   -> RDD a
   -> IO a
@@ -75,10 +75,10 @@ reduce clos rdd = do
   reify (unsafeCast res)
 
 aggregate
-  :: ( Reflect (Closure (b -> a -> b)) ty1
-     , Reflect (Closure (b -> b -> b)) ty2
-     , Reify b ty3
-     , Reflect b ty3
+  :: ( Reflect (Closure (b -> a -> b)) (JFun2 _b _a _b)
+     , Reflect (Closure (b -> b -> b)) (JFun2 _b _b _b)
+     , Reify b _b
+     , Reflect b _b
      )
   => Closure (b -> a -> b)
   -> Closure (b -> b -> b)

@@ -6,7 +6,7 @@ with nixpkgs;
 
 let
   spark = nixpkgs.spark.override { mesosSupport = false; };
-  openjdk = openjdk7;
+  openjdk = openjdk8;
   jvmlibdir =
     if stdenv.isLinux
     then "${openjdk}/lib/openjdk/jre/lib/amd64/server"
@@ -15,8 +15,7 @@ in
 haskell.lib.buildStackProject {
   name = "sparkle";
   buildInputs =
-    [ stack
-      gradle
+    [ gradle
       openjdk
       spark
       which
@@ -27,4 +26,5 @@ haskell.lib.buildStackProject {
   extraArgs = ["--extra-lib-dirs=${jvmlibdir}"];
   # XXX Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
   LD_LIBRARY_PATH = [jvmlibdir];
+  LANG = "en_US.utf8";
 }
