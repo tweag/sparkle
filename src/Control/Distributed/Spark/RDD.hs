@@ -10,6 +10,7 @@ module Control.Distributed.Spark.RDD where
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
+import Data.ByteString (ByteString)
 import Data.Int
 import Data.Text (Text)
 import Language.Java
@@ -33,6 +34,9 @@ parallelize sc xs = do
           (sing :: Sing "java.util.Arrays")
           "asList"
           [coerce (unsafeCast jxs :: JObjectArray)]
+
+repartition :: Int32 -> RDD a -> IO (RDD a)
+repartition nbPart rdd = call rdd "repartition" [JInt nbPart]
 
 filter
   :: Reflect (Closure (a -> Bool)) ty
@@ -92,6 +96,28 @@ aggregate seqOp combOp zero rdd = do
   res :: JObject <- call rdd "aggregate" [coerce jzero, coerce jseqOp, coerce jcombOp]
   reify (unsafeCast res)
 
+treeAggregate
+  :: ( Reflect (Closure (b -> a -> b)) ty1
+     , Reflect (Closure (b -> b -> b)) ty2
+     , Reflect b ty3
+     , Reify b ty3
+     )
+  => Closure (b -> a -> b)
+  -> Closure (b -> b -> b)
+  -> b
+  -> Int32
+  -> RDD a
+  -> IO b
+treeAggregate seqOp combOp zero depth rdd = do
+  jseqOp <- reflect seqOp
+  jcombOp <- reflect combOp
+  jzero <- upcast <$> reflect zero
+  let jdepth = coerce depth
+  res :: JObject <-
+    call rdd "treeAggregate"
+      [ coerce jseqOp, coerce jcombOp, coerce jzero, jdepth ]
+  reify (unsafeCast res)
+
 count :: RDD a -> IO Int64
 count rdd = call rdd "count" []
 
@@ -111,6 +137,12 @@ textFile :: SparkContext -> FilePath -> IO (RDD Text)
 textFile sc path = do
   jpath <- reflect (Text.pack path)
   call sc "textFile" [coerce jpath]
+
+-- recordLength = number of bytes
+binaryRecords :: SparkContext -> FilePath -> Int32 -> IO (RDD ByteString)
+binaryRecords sc fp recordLength = do
+  jpath <- reflect (Text.pack fp)
+  call sc "binaryRecords" [coerce jpath, coerce recordLength]
 
 distinct :: RDD a -> IO (RDD a)
 distinct r = call r "distinct" []
