@@ -99,6 +99,8 @@ instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
          , Reify b ty2
          , Typeable a
          , Typeable b
+         , Typeable ty1
+         , Typeable ty2
          ) =>
          Reify (Closure (a -> b)) (JFun1 ty1 ty2) where
   reify jobj = do
@@ -135,6 +137,9 @@ instance ( JFun2 ty1 ty2 ty3 ~ Interp (Uncurry (Closure (a -> b -> c)))
          , Typeable a
          , Typeable b
          , Typeable c
+         , Typeable ty1
+         , Typeable ty2
+         , Typeable ty3
          ) =>
          Reify (Closure (a -> b -> c)) (JFun2 ty1 ty2 ty3) where
   reify jobj = do
