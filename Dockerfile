@@ -16,6 +16,9 @@ RUN nix-shell /shell.nix --indirect --add-root /nix-shell-gc-root \
 RUN mkdir -p /usr/bin \
     && ln -s $(readlink -f $(which nix-shell)) /usr/bin/nix-shell
 
+RUN mkdir -p /etc/stack \
+    && echo -e 'nix:\n  enable: true' > /etc/stack/config.yaml
+
 # Workaround for Java getLocalHost() failure.
 # https://github.com/1science/docker-elasticsearch/issues/1#issuecomment-106307522
 RUN echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf
