@@ -10,6 +10,7 @@ RUN nix-channel --add https://nixos.org/channels/nixpkgs-unstable && nix-channel
 ADD shell.nix /
 # Clean up non-essential downloaded archives after provisioning a shell.
 RUN nix-shell /shell.nix --indirect --add-root /nix-shell-gc-root \
+    && nix-env -i stack \
     && nix-shell /shell.nix --run 'nix-collect-garbage'
 # This is necessary because Stack overrides the initial PATH to some hardcoded value.
 RUN mkdir -p /usr/bin \
