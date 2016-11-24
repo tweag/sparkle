@@ -3,7 +3,22 @@
 #include "io_tweag_sparkle_Sparkle.h"
 
 extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
-extern int main(int argc, char *argv[]);
+
+// main is provided when linking an executable. But sparkle is sometimes
+// loaded dynamically when no main symbol is provided. Typically, ghc
+// could load it when building code which uses ANN pragmas or template
+// haskell.
+//
+// Because of this we make main a weak symbol. The man page of nm [1]
+// says:
+//
+//   When a weak undefined symbol is linked and the symbol is not
+//   defined, the value of the symbol is determined in a system-specific
+//   manner without error.
+//
+// [1] https://linux.die.net/man/1/nm
+// [2] https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-g_t_0040code_007bweak_007d-function-attribute-3369
+extern int main(int argc, char *argv[]) __attribute__((weak));
 
 static int argc = 0;
 static char* argv[] = { NULL }; /* or e.g { "+RTS", "-A1G", "-H1G", NULL }; */
