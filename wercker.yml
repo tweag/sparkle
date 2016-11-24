@@ -1,0 +1,19 @@
+box: tweag/sparkle
+
+build:
+  steps:
+  - script:
+      name: Dependencies
+      code: |
+        stack --no-terminal build --only-snapshot --prefetch
+  - script:
+      name: Project
+      code: |
+        stack --no-terminal build --pedantic
+        
+test:
+  steps:
+  - script:
+      name: Package hello
+      code: |
+        stack --no-terminal exec sparkle package sparkle-example-hello
