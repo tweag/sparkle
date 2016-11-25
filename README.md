@@ -68,27 +68,26 @@ nix:
   enable: true
 ```
 
-#### Non-Linux OSes
+#### Other platforms
 
-sparkle is not supported on non-Linux operating systems (e.g. Mac OS X or
-Windows). To build and use sparkle from such an OS, use the provided
-`Dockerfile` and build everything in [Docker](http://docker.io):
-
-```
-$ docker build -t sparkle .
-```
-
-This will create a Docker image named sparkle that contains everything
-needed to build sparkle and Spark applications, including Stack, Java 8, and
-Gradle.
-
-The image can be used to build sparkle then package and run applications:
+sparkle is not directly supported on non-Linux operating systems (e.g.
+Mac OS X or Windows). But you can use Docker to run sparkle natively
+inside a container on those platforms. First,
 
 ```
-$ stack --docker --docker-image sparkle build
-$ stack --docker --docker-image sparkle exec -- sparkle package sparkle-example-hello
-$ stack --docker --docker-image sparkle exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
+$ stack docker pull
 ```
+
+Then, just add `--docker` as an argument to *all* Stack commands, e.g.
+
+```
+$ stack --docker build
+```
+
+By default, Stack uses the [tweag/sparkle][docker-build-img] build and
+test Docker image, which includes everything that Nix does as in the
+Linux section. See the [Stack manual][stack-docker] for how to modify
+the Docker settings.
 
 ### Package
 
@@ -116,7 +115,9 @@ a [whole cluster from scratch on EC2][spark-ec2]. This
 the [Databricks hosted platform][databricks] and on
 [Amazon's Elastic MapReduce][aws-emr].
 
+[docker-build-img]: https://hub.docker.com/r/tweag/sparkle/
 [stack]: https://github.com/commercialhaskell/stack
+[stack-docker]: https://docs.haskellstack.org/en/stable/docker_integration/
 [stack-nix]: https://docs.haskellstack.org/en/stable/nix_integration/#configuration
 [spark-submit]: http://spark.apache.org/docs/1.6.2/submitting-applications.html
 [spark-ec2]: http://spark.apache.org/docs/1.6.2/ec2-scripts.html
