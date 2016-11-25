@@ -1,4 +1,4 @@
-# `sparkle`: Apache Spark applications in Haskell
+# sparkle: Apache Spark applications in Haskell
 
 [![Circle CI](https://circleci.com/gh/tweag/sparkle.svg?style=svg)](https://circleci.com/gh/tweag/sparkle)
 
@@ -70,7 +70,7 @@ nix:
 
 #### Non-Linux OSes
 
-`sparkle` is not supported on non-Linux operating systems (e.g. Mac OS X or
+sparkle is not supported on non-Linux operating systems (e.g. Mac OS X or
 Windows). To build and use sparkle from such an OS, use the provided
 `Dockerfile` and build everything in [Docker](http://docker.io):
 
@@ -78,7 +78,7 @@ Windows). To build and use sparkle from such an OS, use the provided
 $ docker build -t sparkle .
 ```
 
-This will create a Docker image named `sparkle` that contains everything
+This will create a Docker image named sparkle that contains everything
 needed to build sparkle and Spark applications, including Stack, Java 8, and
 Gradle.
 
@@ -127,7 +127,7 @@ the [Databricks hosted platform][databricks] and on
 
 ## How it works
 
-`sparkle` is a tool for creating self-contained Spark applications in
+sparkle is a tool for creating self-contained Spark applications in
 Haskell. Spark applications are typically distributed as JAR files, so
 that's what sparkle creates. We embed Haskell native object code as
 compiled by GHC in these JAR files, along with any shared library
@@ -169,14 +169,14 @@ Copyright (c) 2015-2016 EURL Tweag.
 
 All rights reserved.
 
-`sparkle` is free software, and may be redistributed under the terms
+sparkle is free software, and may be redistributed under the terms
 specified in the [LICENSE](LICENSE) file.
 
 ## About
 
 ![Tweag I/O](http://i.imgur.com/0HK8X4y.png)
 
-`sparkle` is maintained by [Tweag I/O](http://tweag.io/).
+sparkle is maintained by [Tweag I/O](http://tweag.io/).
 
 Have questions? Need help? Tweet at
 [@tweagio](http://twitter.com/tweagio).
