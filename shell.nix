@@ -16,6 +16,7 @@ haskell.lib.buildStackProject {
   name = "sparkle";
   buildInputs =
     [ gradle
+      ncurses5 # For intero
       openjdk
       spark
       which
