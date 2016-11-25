@@ -26,4 +26,11 @@ haskell.lib.buildStackProject {
   extraArgs = ["--extra-lib-dirs=${jvmlibdir}"];
   # XXX Workaround https://ghc.haskell.org/trac/ghc/ticket/11042.
   LD_LIBRARY_PATH = [jvmlibdir];
+  # XXX By default recent Nixpkgs passes hardening flags to the
+  # linker. The bindnow hardening flag is problematic, because it
+  # makes objects fail to load in GHCi, with strange errors about
+  # undefined symbols. See
+  # https://ghc.haskell.org/trac/ghc/ticket/12684. As a workaround,
+  # disable bindnow for now.
+  hardeningDisable = [ "bindnow" ];
 }
