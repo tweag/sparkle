@@ -18,13 +18,23 @@ confirmation and we will close it.
 If you would like to contribute code to fix a bug, add a new feature,
 or otherwise improve sparkle, [pull requests][pull-requests] are most
 welcome. It's a good idea to [submit an issue][new-issue] to discuss
-the change before plowing into writing code.
+the change before plowing into writing code. The main criteria for
+acceptance are:
+
+* a patch should be a minimal and accurate answer to exactly one
+  identified and agreed problem,
+* a patch that modifies a stable public API should not break existing
+  applications unless there is overriding consensus on the value of
+  doing this.
+* A patch must adhere to the [code style guidelines][style-guide] of
+  the project.
 
 Please include a [changelog][changelog] entry and full Haddock
 documentation updates with your pull request.
 
 [changelog]: https://github.com/tweag/sparkle/blob/master/CHANGELOG.md
 [pull-requests]: https://help.github.com/articles/about-pull-requests/
+[style-guide]: https://github.com/tweag/guides/blob/master/style/Haskell.md
 
 ## Continuous integration
 
