@@ -6,7 +6,7 @@ with nixpkgs;
 
 let
   spark = nixpkgs.spark.override { mesosSupport = false; };
-  openjdk = openjdk7;
+  openjdk = openjdk8;
   jvmlibdir =
     if stdenv.isLinux
     then "${openjdk}/lib/openjdk/jre/lib/amd64/server"
