@@ -6,6 +6,8 @@
 
 module Control.Distributed.Spark.PairRDD where
 
+import Control.Distributed.Closure
+import Control.Distributed.Spark.Closure
 import Control.Distributed.Spark.Context
 import Control.Distributed.Spark.RDD
 import Data.Int
@@ -25,3 +27,9 @@ wholeTextFiles sc uri = do
 
 justValues :: PairRDD a b -> IO (RDD b)
 justValues prdd = call prdd "values" []
+
+keyByIO :: Reflect (IOFun (Closure (v -> IO k))) ty1
+        => Closure (v -> IO k) -> RDD v -> IO (PairRDD k v)
+keyByIO byKeyOp rdd = do
+    jbyKeyOp <- reflect $ IOFun byKeyOp
+    call rdd "keyBy" [ coerce jbyKeyOp ]

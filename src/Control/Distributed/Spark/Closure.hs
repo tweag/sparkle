@@ -17,10 +17,12 @@ module Control.Distributed.Spark.Closure
   ( JFun1
   , JFun2
   , apply
+  , IOFun(..)
   ) where
 
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
+import Control.Monad ((>=>))
 import Data.Binary (encode, decode)
 import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
@@ -46,6 +48,7 @@ foreign export ccall "sparkle_apply" apply
 
 type JFun1 a b = 'Iface "org.apache.spark.api.java.function.Function" <> [a, b]
 type instance Interp ('Fun '[a] b) = JFun1 (Interp a) (Interp b)
+type instance Interp ('Act '[a] b) = JFun1 (Interp a) (Interp b)
 
 pairDict :: Dict c1 -> Dict c2 -> Dict (c1, c2)
 pairDict Dict Dict = Dict
@@ -58,6 +61,20 @@ closFun1
   -> IO JObject
 closFun1 Dict f args =
     fmap upcast . refl =<< return . f =<< reif . unsafeCast =<< getObjectArrayElement args 0
+  where
+    reif = reify :: J ty1 -> IO a
+    refl = reflect :: b -> IO (J ty2)
+
+closFun1IO
+  :: forall a b ty1 ty2.
+     Dict (Reify a ty1, Reflect b ty2)
+  -> (a -> IO b)
+  -> JObjectArray
+  -> IO JObject
+closFun1IO Dict f = (`getObjectArrayElement` 0)
+                    >=> reif . unsafeCast
+                    >=> f
+                    >=> fmap upcast . refl
   where
     reif = reify :: J ty1 -> IO a
     refl = reflect :: b -> IO (J ty2)
@@ -125,6 +142,30 @@ instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
     where
       wrap :: Closure (JObjectArray -> IO JObject)
       wrap = $(cstatic 'closFun1) `cap`
+             ($(cstatic 'pairDict) `cap` closureDict `cap` closureDict) `cap`
+             f
+
+-- | This wrapper is used to select reflect instances for impure functions.
+newtype IOFun a = IOFun { ioFun :: a }
+type instance Interp (IOFun a) = Interp (Uncurry a)
+
+-- Needs UndecidableInstances
+instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> IO b)))
+         , Static (Reify a ty1)
+         , Static (Reflect b ty2)
+         , Typeable a
+         , Typeable b
+         , Typeable ty1
+         , Typeable ty2
+         ) =>
+         Reflect (IOFun (Closure (a -> IO b))) (JFun1 ty1 ty2) where
+  reflect (IOFun f) = do
+      jpayload <- reflect (clos2bs wrap)
+      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new [coerce jpayload]
+      return (generic (unsafeCast obj))
+    where
+      wrap :: Closure (JObjectArray -> IO JObject)
+      wrap = $(cstatic 'closFun1IO) `cap`
              ($(cstatic 'pairDict) `cap` closureDict `cap` closureDict) `cap`
              f
 
