@@ -25,3 +25,21 @@ wholeTextFiles sc uri = do
 
 justValues :: PairRDD a b -> IO (RDD b)
 justValues prdd = call prdd "values" []
+
+aggregateByKey
+  :: ( Reflect (Closure (b -> a -> b)) ty1
+     , Reflect (Closure (b -> b -> b)) ty2
+     , Reify b ty3
+     , Reflect b ty3
+     )
+  => Closure (b -> a -> b)
+  -> Closure (b -> b -> b)
+  -> b
+  -> PairRDD k a
+  -> IO (PairRDD k b)
+aggregateByKey seqOp combOp zero prdd = do
+    jseqOp <- reflect seqOp
+    jcombOp <- reflect combOp
+    jzero <- upcast <$> reflect zero
+    call prdd "aggregateByKey"
+      [coerce jzero, coerce jseqOp, coerce jcombOp]
