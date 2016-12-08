@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
@@ -20,6 +21,7 @@ module Control.Distributed.Spark.RDD
   , take
   , textFile
   , binaryRecords
+  , rddCoerce
   , distinct
   , intersection
   , union
@@ -34,6 +36,7 @@ import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
 import Data.ByteString (ByteString)
+import qualified Data.Coerce (coerce)
 import Data.Int
 import Data.Text (Text)
 import Language.Java
@@ -166,6 +169,11 @@ binaryRecords :: SparkContext -> FilePath -> Int32 -> IO (RDD ByteString)
 binaryRecords sc fp recordLength = do
   jpath <- reflect (Text.pack fp)
   call sc "binaryRecords" [coerce jpath, coerce recordLength]
+
+-- | Reinterprets an @RDD a@ as an @RDD b@ provided that both types have
+-- the same representation on the java side.
+rddCoerce :: (Interp a ~ Interp b) => RDD a -> RDD b
+rddCoerce = Data.Coerce.coerce
 
 distinct :: RDD a -> IO (RDD a)
 distinct r = call r "distinct" []
