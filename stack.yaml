@@ -6,9 +6,10 @@ packages:
 - apps/lda
 - apps/rdd-ops
 - apps/argv
+- location: inline-java/jni
+  extra-dep: true
 extra-deps:
 - thread-local-storage-0.1.0.3
-- jni-0.1
 - jvm-0.1
 
 nix:
