@@ -6,11 +6,13 @@ import org.apache.spark.api.java.function.*;
 import org.apache.spark.ml.feature.*;
 import org.apache.spark.mllib.clustering.*;
 import org.apache.spark.mllib.linalg.Vector;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.*;
+import org.apache.spark.sql.functions;
 import scala.Tuple2;
 
 public class Helper {

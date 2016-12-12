@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Control.Distributed.Spark.SQL.DataFrame where
 
@@ -94,3 +95,73 @@ dataType sf = call sf "dataType" []
 
 typeName :: DataType -> IO Text
 typeName dt = call dt "typeName" [] >>= reify
+
+newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
+instance Coercible Column ('Class "org.apache.spark.sql.Column")
+
+type instance Interp Column = 'Class "org.apache.spark.sql.Column"
+instance Reflect Column ('Class "org.apache.spark.sql.Column") where
+  reflect (Column jcol) = return jcol
+
+select :: DataFrame -> [Column] -> IO DataFrame
+select d1 colexprs = do
+  jcols <- reflect colexprs
+  call d1 "select" [coerce jcols]
+
+filterDF :: DataFrame -> Column -> IO DataFrame
+filterDF d1 colexpr = call d1 "where" [coerce colexpr]
+
+joinOn :: DataFrame -> DataFrame -> Column -> IO DataFrame
+joinOn d1 d2 colexpr = call d1 "join" [coerce d2, coerce colexpr]
+
+unionAll :: DataFrame -> DataFrame -> IO DataFrame
+unionAll d1 d2 = call d1 "unionAll" [coerce d2]
+
+col :: DataFrame -> Text -> IO Column
+col d1 t = do
+  colName <- reflect t
+  call d1 "col" [coerce colName]
+
+lit :: Reflect a ty => a -> IO Column
+lit a =  do
+  col <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
+  callStatic (sing :: Sing "org.apache.spark.sql.functions") "lit" [coerce col]
+
+plus :: Column -> Column -> IO Column
+plus col1 (Column col2) = call col1 "plus" [coerce $ upcast col2]
+
+minus :: Column -> Column -> IO Column
+minus col1 (Column col2) = call col1 "minus" [coerce $ upcast col2]
+
+multiply :: Column -> Column -> IO Column
+multiply col1 (Column col2) = call col1 "multiply" [coerce $ upcast col2]
+
+divide :: Column -> Column -> IO Column
+divide col1 (Column col2) = call col1 "divide" [coerce $ upcast col2]
+
+modCol :: Column -> Column -> IO Column
+modCol col1 (Column col2) = call col1 "mod" [coerce $ upcast col2]
+
+equalTo :: Column -> Column -> IO Column
+equalTo col1 (Column col2) = call col1 "equalTo" [coerce $ upcast col2]
+
+notEqual :: Column -> Column -> IO Column
+notEqual col1 (Column col2) = call col1 "notEqual" [coerce $ upcast col2]
+
+leq :: Column -> Column -> IO Column
+leq col1 (Column col2) = call col1 "leq" [coerce $ upcast col2]
+
+lt :: Column -> Column -> IO Column
+lt col1 (Column col2) = call col1 "lt" [coerce $ upcast col2]
+
+geq :: Column -> Column -> IO Column
+geq col1 (Column col2) = call col1 "geq" [coerce $ upcast col2]
+
+gt :: Column -> Column -> IO Column
+gt col1 (Column col2) = call col1 "gt" [coerce $ upcast col2]
+
+andCol :: Column -> Column -> IO Column
+andCol col1 (Column col2) = call col1 "and" [coerce col2]
+
+orCol :: Column -> Column -> IO Column
+orCol col1 (Column col2) = call col1 "or" [coerce col2]

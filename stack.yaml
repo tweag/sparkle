@@ -6,6 +6,8 @@ packages:
 - apps/lda
 - apps/rdd-ops
 - apps/argv
+- apps/dataframe
+
 extra-deps:
 - choice-0.1.1.0
 - jni-0.2.2
