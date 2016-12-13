@@ -34,4 +34,5 @@ haskell.lib.buildStackProject {
   # https://ghc.haskell.org/trac/ghc/ticket/12684. As a workaround,
   # disable bindnow for now.
   hardeningDisable = [ "bindnow" ];
+  LANG = "en_US.utf8";
 }
