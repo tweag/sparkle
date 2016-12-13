@@ -3,16 +3,17 @@ compiler: ghc-8.0.2
 
 packages:
 - .
+- apps/argv
+- apps/bench
+- apps/dataframe
 - apps/hello
 - apps/lda
 - apps/rdd-ops
-- apps/argv
-- apps/dataframe
 
 extra-deps:
  - choice-0.2.0
  - inline-c-0.5.6.1
- - inline-java-0.6.2
+ - inline-java-0.6.3
  - jni-0.3.0
  - jvm-0.2.0
  - jvm-streaming-0.2
