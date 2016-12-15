@@ -165,3 +165,30 @@ andCol col1 (Column col2) = call col1 "and" [coerce col2]
 
 orCol :: Column -> Column -> IO Column
 orCol col1 (Column col2) = call col1 "or" [coerce col2]
+
+minCol :: Column -> IO Column
+minCol col =
+  callStatic (sing :: Sing "org.apache.spark.sql.functions") "min" [coerce col]
+
+meanCol :: Column -> IO Column
+meanCol col =
+  callStatic (sing :: Sing "org.apache.spark.sql.functions") "mean" [coerce col]
+
+maxCol :: Column -> IO Column
+maxCol col =
+  callStatic (sing :: Sing "org.apache.spark.sql.functions") "max" [coerce col]
+
+newtype GroupedData = GroupedData (J ('Class "org.apache.spark.sql.GroupedData"))
+instance Coercible GroupedData ('Class "org.apache.spark.sql.GroupedData")
+
+groupBy :: DataFrame -> [Column] -> IO GroupedData
+groupBy d1 colexprs = do
+  jcols <- reflect colexprs
+  call d1 "groupBy" [coerce jcols]
+
+agg :: GroupedData -> [Column] -> IO DataFrame
+agg _ [] = error "agg: not enough arguments."
+agg df (col:cols) = do
+  jcol <- reflect col
+  jcols <- reflect cols
+  call df "agg" [coerce jcol, coerce jcols]

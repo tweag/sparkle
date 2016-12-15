@@ -27,16 +27,16 @@ main = do
     debugDF unionedDF
 
     do colexp1   <- col unionedDF "index"
+       colexp4   <- lit (4 :: Int64)
        colexp2a  <- lit (32 :: Int32)
        colexp2b  <- lit (10 :: Int32)
        colexp2   <- plus colexp2a colexp1
        colexp2m  <- minus colexp2 colexp1
        colexp2mu <- multiply colexp2 colexp2
        colexp2d  <- divide colexp2 colexp1
-       colexp2mo <- modCol colexp2 colexp2b
+       colexp2mo <- modCol colexp2 colexp4
        colexp2ne <- notEqual colexp2 colexp2b
        colexp3   <- lit (True :: Bool)
-       colexp4   <- lit (2 :: Int64)
        colexp5   <- lit (3.14 :: Double)
        colexp6   <- lit ("text" :: Text.Text)
        selected  <- select unionedDF
@@ -44,6 +44,14 @@ main = do
           ,    colexp2m, colexp2mu, colexp2d, colexp2mo, colexp2ne
           ,    colexp4, colexp5, colexp6 ]
        debugDF selected
+
+       coldiv <- col selected "((32 + index) / index)"
+       colmin <- minCol coldiv
+       colix <- col selected "index"
+       colmean <- meanCol colix
+       grouped <- groupBy selected [colexp2mo]
+       aggregated <- agg grouped [colmin, colmean]
+       debugDF aggregated
 
     do colexp1   <- col df2 "index"
        colexp2   <- lit (3 :: Int32)
