@@ -122,6 +122,12 @@ col d1 t = do
   colName <- reflect t
   call d1 "col" [coerce colName]
 
+-- | Give a 'Column' a new name.
+alias :: Column -> Text -> IO Column
+alias col name = do
+  colName <- reflect name
+  call col "alias" [coerce colName]
+
 lit :: Reflect a ty => a -> IO Column
 lit a =  do
   col <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
