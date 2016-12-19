@@ -1,0 +1,17 @@
+name:                osthreads
+version:             0.1
+license:             BSD3
+author:              Tweag I/O, LeapYear Technologies
+maintainer:          alp.mestanogullari@tweag.io
+copyright:           2016 EURL Tweag, LeapYear Technologies 2016
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable sparkle-example-osthreads
+  main-is: osthreads.hs
+  build-depends: base >=4.7 && <5, distributed-closure, sparkle, text, vector, jni
+  default-language: Haskell2010
+  extra-libraries: pthread
+  ghc-options: -dynamic -threaded
+  if !os(darwin)
+    ld-options: -pie -Wl,-z,origin -Wl,-rpath,$ORIGIN
