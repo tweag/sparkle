@@ -4,16 +4,22 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StaticPointers #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
+  , Iterator(..)
   , parallelize
   , repartition
   , filter
   , map
+  , mapPartitions
+  , mapPartitionsWithIndex
   , fold
   , reduce
   , aggregate
+  , aggregate'
   , treeAggregate
   , count
   , collect
@@ -33,12 +39,16 @@ import Prelude hiding (filter, map, take)
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
+import Control.Distributed.Spark.Iterator
+import Control.Monad ((>=>))
 import Data.ByteString (ByteString)
 import Data.Int
 import Data.Text (Text)
+import Data.Typeable (Typeable)
 import Language.Java
 
 import qualified Data.Text as Text
+
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
 instance Coercible (RDD a) ('Class "org.apache.spark.api.java.JavaRDD")
@@ -79,6 +89,35 @@ map clos rdd = do
     f <- reflect clos
     call rdd "map" [coerce f]
 
+mapPartitions
+    :: ( Reflect (Closure (Int32 -> Iterator a -> Iterator b)) ty
+       , Typeable a
+       , Typeable b
+       )
+    => Closure (Iterator a -> Iterator b)
+    -> RDD a
+    -> IO (RDD b)
+mapPartitions fun =
+    mapPartitionsWithIndex (closure (static const) `cap` fun) False
+
+-- | @mapPartitionsWithIndex f rdd@ replaces all elements in each partition with
+-- the elements returned by the callback.
+--
+-- @f@ is called once per partition. It takes the partition index and an @IO@
+-- stream with the elements of the partition, and yields a stream with the new
+-- elements for the partition.
+--
+mapPartitionsWithIndex
+    :: Reflect (Closure (Int32 -> Iterator a -> Iterator b)) ty
+    => Closure (Int32 -> Iterator a -> Iterator b)
+    -> Bool
+    -> RDD a
+    -> IO (RDD b)
+mapPartitionsWithIndex fun preservesPartitioning rdd = do
+    jfun <- reflect fun
+    call rdd "mapPartitionsWithIndex"
+      [coerce jfun, coerce preservesPartitioning]
+
 fold
   :: (Reflect (Closure (a -> a -> a)) ty1, Reflect a ty2, Reify a ty2)
   => Closure (a -> a -> a)
@@ -92,7 +131,7 @@ fold clos zero rdd = do
   reify (unsafeCast res)
 
 reduce
-  :: (Reflect (Closure (a -> a -> a)) ty1, Reify a ty2, Reflect a ty2)
+  :: (Reflect (Closure (a -> a -> a)) ty1, Reify a ty2)
   => Closure (a -> a -> a)
   -> RDD a
   -> IO a
@@ -118,6 +157,27 @@ aggregate seqOp combOp zero rdd = do
   jzero <- upcast <$> reflect zero
   res :: JObject <- call rdd "aggregate" [coerce jzero, coerce jseqOp, coerce jcombOp]
   reify (unsafeCast res)
+
+-- | A version of aggregate implemented in terms of 'mapPartitions'.
+aggregate'
+  :: ( Reflect (Closure (b -> b -> b)) ty2
+     , Reflect (Closure (Int32 -> Iterator a -> Iterator b)) ty
+     , Static (Serializable b)
+     , Reify b ty3
+     , Typeable a
+     )
+  => Closure (b -> a -> b)
+  -> Closure (b -> b -> b)
+  -> b
+  -> RDD a
+  -> IO b
+aggregate' seqOp combOp zero =
+    mapPartitions
+      ((closure $ static (\f z -> singletonIterator . foldIterator f z))
+       `cap` seqOp
+       `cap` cpure closureDict zero
+      )
+    >=> reduce combOp
 
 treeAggregate
   :: ( Reflect (Closure (b -> a -> b)) ty1

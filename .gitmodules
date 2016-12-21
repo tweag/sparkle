@@ -1,0 +1,3 @@
+[submodule "inline-java"]
+	path = inline-java
+	url = git@github.com:tweag/inline-java.git
