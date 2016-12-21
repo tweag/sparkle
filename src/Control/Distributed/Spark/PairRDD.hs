@@ -6,6 +6,8 @@
 
 module Control.Distributed.Spark.PairRDD where
 
+import Control.Distributed.Closure
+import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
 import Control.Distributed.Spark.RDD
 import Data.Int
