@@ -19,8 +19,11 @@ public class Sparkle {
             Files.copy(in, sparkleAppZipFile.toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
             in.close();
-            loadApplication(sparkleAppZipFile, "hsapp");
-            sparkleAppZipFile.delete();
+            try {
+              loadApplication(sparkleAppZipFile, "hsapp");
+            } finally {
+              sparkleAppZipFile.delete();
+            }
         } catch (Exception e) {
             System.out.println(e);
             throw new ExceptionInInitializerError(e);
@@ -39,24 +42,25 @@ public class Sparkle {
         Path sparkleAppTmpDir =
             Files.createTempDirectory(Paths.get(tmpDir), "sparkle-app-");
         ArrayList<Path> pathsList = new ArrayList();
-        for (Enumeration e = zip.entries(); e.hasMoreElements(); ) {
+        try {
+          for (Enumeration e = zip.entries(); e.hasMoreElements(); ) {
             ZipEntry entry = (ZipEntry)e.nextElement();
             InputStream in = zip.getInputStream(entry);
             Path path = sparkleAppTmpDir.resolve(entry.getName());
             pathsList.add(path);
             Files.copy(in, path);
             in.close();
-        }
-        zip.close();
+          }
+          zip.close();
 
-        // Dynamically load the app.
-        //
-        System.load(sparkleAppTmpDir.resolve(appName).toString());
-
-        // Delete the app binary and its libraries, now that they are loaded.
-        //
-        for (Iterator<Path> i = pathsList.iterator(); i.hasNext(); ) {
-            i.next().toFile().delete();
+          // Dynamically load the app.
+          //
+          System.load(sparkleAppTmpDir.resolve(appName).toString());
+        } finally {
+          // Delete the app binary and its libraries, now that they are loaded.
+          //
+          for (Path p : pathsList)
+            p.toFile().delete();
         }
         sparkleAppTmpDir.toFile().delete();
     }
