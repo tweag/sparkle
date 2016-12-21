@@ -11,6 +11,7 @@ module Control.Distributed.Spark.RDD
   , repartition
   , filter
   , map
+  , mapIO
   , fold
   , reduce
   , aggregate
@@ -31,7 +32,7 @@ module Control.Distributed.Spark.RDD
 
 import Prelude hiding (filter, map, take)
 import Control.Distributed.Closure
-import Control.Distributed.Spark.Closure ()
+import Control.Distributed.Spark.Closure (IOFun(..))
 import Control.Distributed.Spark.Context
 import Data.ByteString (ByteString)
 import Data.Int
@@ -77,6 +78,15 @@ map
   -> IO (RDD b)
 map clos rdd = do
     f <- reflect clos
+    call rdd "map" [coerce f]
+
+mapIO
+  :: Reflect (IOFun (Closure (a -> IO b))) ty
+  => Closure (a -> IO b)
+  -> RDD a
+  -> IO (RDD b)
+mapIO clos rdd = do
+    f <- reflect $ IOFun clos
     call rdd "map" [coerce f]
 
 fold
