@@ -4,10 +4,6 @@
 #include <stdlib.h>  // For malloc, free
 #include <string.h>  // For memcpy
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
 
 // main is provided when linking an executable. But sparkle is sometimes
@@ -165,7 +161,3 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
 	}
 	free(new_argv);
 }
-
-#ifdef __cplusplus
-}
-#endif
