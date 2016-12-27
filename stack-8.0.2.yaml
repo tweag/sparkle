@@ -1,18 +1,10 @@
-resolver: lts-7.10
+resolver: lts-7.14
 
 packages:
 - .
 - apps/hello
 - apps/lda
 - apps/rdd-ops
-
-- location: vendor/constraints
-  extra-dep: true
-- location: vendor/th-desugar
-  extra-dep: true
-- location:
-    git: https://github.com/nomeata/ghc-heap-view
-    commit: 97791de616dc095a8eec2fc5b056497616c98051
 
 extra-deps:
 - thread-local-storage-0.1.0.3
@@ -32,10 +24,3 @@ docker:
   image: tweag/sparkle
   run-args: ["--net=bridge"]
   stack-exe: image
-
-allow-newer: true
-skip-ghc-check: true
-flags:
-  ghc-heap-view:
-    ghc_7_7: false
-    ghc_8_0: true
