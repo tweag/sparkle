@@ -20,6 +20,12 @@ instance Coercible (PairRDD a b) ('Class "org.apache.spark.api.java.JavaPairRDD"
 zipWithIndex :: RDD a -> IO (PairRDD Int64 a)
 zipWithIndex rdd = call rdd "zipWithIndex" []
 
+keyBy :: Reflect (Closure (v -> k)) ty1
+      => Closure (v -> k) -> RDD v -> IO (PairRDD k v)
+keyBy byKeyOp rdd = do
+    jbyKeyOp <- reflect byKeyOp
+    call rdd "keyBy" [ coerce jbyKeyOp ]
+
 wholeTextFiles :: SparkContext -> Text -> IO (PairRDD Text Text)
 wholeTextFiles sc uri = do
   juri <- reflect uri
