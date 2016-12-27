@@ -5,10 +5,10 @@ packages:
 - apps/hello
 - apps/lda
 - apps/rdd-ops
-
+- apps/argv
 extra-deps:
 - thread-local-storage-0.1.0.3
-- jni-0.1
+- jni-0.2.2
 - jvm-0.1.2
 - inline-java-0.6
 
