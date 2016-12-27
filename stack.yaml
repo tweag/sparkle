@@ -7,9 +7,10 @@ packages:
 - apps/rdd-ops
 - apps/argv
 extra-deps:
-- thread-local-storage-0.1.0.3
+- choice-0.1.1.0
 - jni-0.2.2
 - jvm-0.1.2
+- thread-local-storage-0.1.0.3
 
 nix:
   # Requires Stack >= 1.2.

@@ -7,10 +7,12 @@ packages:
 - apps/rdd-ops
 - apps/argv
 extra-deps:
-- thread-local-storage-0.1.0.3
+- choice-0.1.1.0
 - jni-0.2.2
 - jvm-0.1.2
-- inline-java-0.6
+- jvm-streaming-0.1
+- inline-java-0.6.1
+- thread-local-storage-0.1.0.3
 
 explicit-setup-deps:
   bench: true

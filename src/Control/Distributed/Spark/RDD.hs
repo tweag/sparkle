@@ -3,12 +3,14 @@
 --
 -- Please refer to that documentation for the meaning of each binding.
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StaticPointers #-}
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
@@ -16,6 +18,9 @@ module Control.Distributed.Spark.RDD
   , repartition
   , filter
   , map
+  , module Choice
+  , mapPartitions
+  , mapPartitionsWithIndex
   , fold
   , reduce
   , aggregate
@@ -39,11 +44,18 @@ import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
 import Data.ByteString (ByteString)
+import Data.Choice (Choice)
+import qualified Data.Choice as Choice
 import Data.Int
 import Data.Text (Text)
-import Language.Java
-
 import qualified Data.Text as Text
+import Data.Typeable (Typeable)
+import Language.Java
+-- We don't need this instance. But import to bring it in scope transitively for users.
+#if MIN_VERSION_base(4,9,1)
+import Language.Java.Streaming ()
+#endif
+import Streaming (Stream, Of)
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
 instance Coercible (RDD a) ('Class "org.apache.spark.api.java.JavaRDD")
@@ -83,6 +95,25 @@ map
 map clos rdd = do
     f <- reflect clos
     call rdd "map" [coerce f]
+
+mapPartitions
+  :: (Reflect (Closure (Int32 -> Stream (Of a) IO () -> Stream (Of b) IO ())) ty, Typeable a, Typeable b)
+  => Choice "preservePartitions"
+  -> Closure (Stream (Of a) IO () -> Stream (Of b) IO ())
+  -> RDD a
+  -> IO (RDD b)
+mapPartitions preservePartitions clos rdd =
+  mapPartitionsWithIndex preservePartitions (closure (static const) `cap` clos) rdd
+
+mapPartitionsWithIndex
+  :: (Reflect (Closure (Int32 -> Stream (Of a) IO () -> Stream (Of b) IO ())) ty)
+  => Choice "preservePartitions"
+  -> Closure (Int32 -> Stream (Of a) IO () -> Stream (Of b) IO ())
+  -> RDD a
+  -> IO (RDD b)
+mapPartitionsWithIndex preservePartitions clos rdd = do
+  f <- reflect clos
+  call rdd "mapPartitionsWithIndex" [coerce f, coerce (Choice.toBool preservePartitions)]
 
 fold
   :: (Reflect (Closure (a -> a -> a)) ty1, Reflect a ty2, Reify a ty2)
