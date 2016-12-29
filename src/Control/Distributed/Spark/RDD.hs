@@ -37,10 +37,11 @@ module Control.Distributed.Spark.RDD
   , first
   , getNumPartitions
   , saveAsTextFile
+  , subtract
   -- $reading_files
   ) where
 
-import Prelude hiding (filter, map, take)
+import Prelude hiding (filter, map, subtract, take)
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
 import Control.Distributed.Spark.Context
@@ -180,6 +181,9 @@ treeAggregate seqOp combOp zero depth rdd = do
 
 count :: RDD a -> IO Int64
 count rdd = call rdd "count" []
+
+subtract :: RDD a -> RDD a -> IO (RDD a)
+subtract rdd rdds = call rdd "subtract" [coerce rdds]
 
 -- $reading_files
 --
