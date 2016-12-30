@@ -37,6 +37,7 @@ module Control.Distributed.Spark.RDD
   , first
   , getNumPartitions
   , saveAsTextFile
+  -- $reading_files
   ) where
 
 import Prelude hiding (filter, map, take)
@@ -180,24 +181,45 @@ treeAggregate seqOp combOp zero depth rdd = do
 count :: RDD a -> IO Int64
 count rdd = call rdd "count" []
 
+-- $reading_files
+--
+-- ==== Note [Reading files]
+-- #reading_files#
+--
+-- File-reading functions might produce a particular form of RDD (HadoopRDD)
+-- whose elements are sensitive to the order in which they are used. If
+-- the elements are not used sequentially, then the RDD might show incorrect
+-- contents [1].
+--
+-- In practice, most functions respect this access pattern, but 'collect' and
+-- 'take' do not. A workaround is to use a copy of the RDD created with
+-- 'map' before using those functions.
+--
+-- [1] https://issues.apache.org/jira/browse/SPARK-1018
+
+-- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
 collect :: Reify a ty => RDD a -> IO [a]
 collect rdd = do
   alst :: J ('Iface "java.util.List") <- call rdd "collect" []
   arr :: JObjectArray <- call alst "toArray" []
   reify (unsafeCast arr)
 
+-- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
 take :: Reify a ty => RDD a -> Int32 -> IO [a]
 take rdd n = do
   res :: J ('Class "java.util.List") <- call rdd "take" [JInt n]
   arr :: JObjectArray <- call res "toArray" []
   reify (unsafeCast arr)
 
+-- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
 textFile :: SparkContext -> FilePath -> IO (RDD Text)
 textFile sc path = do
   jpath <- reflect (Text.pack path)
   call sc "textFile" [coerce jpath]
 
--- recordLength = number of bytes
+-- | The record length must be provided in bytes.
+--
+-- See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
 binaryRecords :: SparkContext -> FilePath -> Int32 -> IO (RDD ByteString)
 binaryRecords sc fp recordLength = do
   jpath <- reflect (Text.pack fp)
