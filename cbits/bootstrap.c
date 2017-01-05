@@ -3,6 +3,7 @@
 #include "io_tweag_sparkle_Sparkle.h"
 #include <stdlib.h>  // For malloc, free
 #include <string.h>  // For memcpy
+#include "Rts.h"
 
 extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
 
@@ -33,6 +34,8 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
 {
 	// TODO: accept values for argc, argv via Java properties.
 	hs_init(&sparkle_argc, &sparkle_argv);
+	if (!rtsSupportsBoundThreads())
+	    (*env)->FatalError(env,"Sparkle.initializeHaskellRTS: Haskell RTS is not threaded.");
 }
 
 JNIEXPORT jobject JNICALL Java_io_tweag_sparkle_Sparkle_apply
