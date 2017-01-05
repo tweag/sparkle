@@ -23,8 +23,8 @@ toDF sqlc rdd s1 s2 = do
 
 selectDF :: DataFrame -> [Text] -> IO DataFrame
 selectDF _ [] = error "selectDF: not enough arguments."
-selectDF df (col:cols) = do
-  jcol <- reflect col
+selectDF df (c:cols) = do
+  jcol <- reflect c
   jcols <- reflect cols
   call df "select" [coerce jcol, coerce jcols]
 
@@ -124,14 +124,14 @@ col d1 t = do
 
 -- | Give a 'Column' a new name.
 alias :: Column -> Text -> IO Column
-alias col name = do
-  colName <- reflect name
-  call col "alias" [coerce colName]
+alias c n = do
+  colName <- reflect n
+  call c "alias" [coerce colName]
 
 lit :: Reflect a ty => a -> IO Column
 lit a =  do
-  col <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "lit" [coerce col]
+  c <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
+  callStatic (sing :: Sing "org.apache.spark.sql.functions") "lit" [coerce c]
 
 plus :: Column -> Column -> IO Column
 plus col1 (Column col2) = call col1 "plus" [coerce $ upcast col2]
@@ -173,16 +173,16 @@ orCol :: Column -> Column -> IO Column
 orCol col1 (Column col2) = call col1 "or" [coerce col2]
 
 minCol :: Column -> IO Column
-minCol col =
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "min" [coerce col]
+minCol c =
+  callStatic (sing :: Sing "org.apache.spark.sql.functions") "min" [coerce c]
 
 meanCol :: Column -> IO Column
-meanCol col =
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "mean" [coerce col]
+meanCol c =
+  callStatic (sing :: Sing "org.apache.spark.sql.functions") "mean" [coerce c]
 
 maxCol :: Column -> IO Column
-maxCol col =
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "max" [coerce col]
+maxCol c =
+  callStatic (sing :: Sing "org.apache.spark.sql.functions") "max" [coerce c]
 
 newtype GroupedData = GroupedData (J ('Class "org.apache.spark.sql.GroupedData"))
 instance Coercible GroupedData ('Class "org.apache.spark.sql.GroupedData")
@@ -194,7 +194,7 @@ groupBy d1 colexprs = do
 
 agg :: GroupedData -> [Column] -> IO DataFrame
 agg _ [] = error "agg: not enough arguments."
-agg df (col:cols) = do
-  jcol <- reflect col
+agg df (c:cols) = do
+  jcol <- reflect c
   jcols <- reflect cols
   call df "agg" [coerce jcol, coerce jcols]

@@ -39,7 +39,7 @@ main = do
        colexp3   <- lit (True :: Bool)
        colexp5   <- lit (3.14 :: Double)
        colexp6   <- lit ("text" :: Text.Text)
-       colexp7   <- alias colexp5 "pi"
+       _colexp7   <- alias colexp5 "pi"
        selected  <- select unionedDF
           [    colexp1, colexp2, colexp3
           ,    colexp2m, colexp2mu, colexp2d, colexp2mo, colexp2ne
