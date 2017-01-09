@@ -8,6 +8,7 @@ import qualified Control.Distributed.Spark.SQL.Column as Column
 import Data.Int (Int32, Int64)
 import qualified Data.Text as Text
 import Language.Java
+import Prelude hiding (sqrt)
 
 main :: IO ()
 main = do
@@ -92,4 +93,39 @@ main = do
          >>= mapM (mapM (\x -> (reify (unsafeCast x) :: IO Double)))
          >>= print
 
+    -- implicit and explicit casts
+    do longCol         <- col df1 "index" >>= named "long"
+       boolCol         <- cast longCol "boolean" >>= named "cast long to bool"
+       sqrtLongCol     <- sqrt longCol >>= named "sqrt(long)"
+
+       -- the following two don't work, no implicit casts
+       -- for Bool -> Double and Bool -> Int
+       --
+       -- sqrtBoolCol    <- sqrt boolCol
+       -- longPlusBoolCol <- plus longCol boolCol
+
+       castBoolIntCol <- cast boolCol "long"
+                     >>= named "cast bool to long"
+
+       castBoolDoubleCol <- cast boolCol "double"
+                        >>= named "cast bool to double"
+
+       sqrtBoolIntCol <- sqrt castBoolIntCol
+                     >>= named "sqrt(cast bool to long)"
+       sqrtBoolDoubleCol <- sqrt castBoolDoubleCol
+                        >>= named "sqrt(cast bool to double)"
+
+       select df1 [ longCol
+                  , boolCol
+                  , sqrtLongCol
+                  , castBoolIntCol
+                  , castBoolDoubleCol
+                  , sqrtBoolIntCol
+                  , sqrtBoolDoubleCol
+                  ]
+         >>= debugDF
+
     return ()
+
+named :: Text.Text -> Column -> IO Column
+named = flip alias

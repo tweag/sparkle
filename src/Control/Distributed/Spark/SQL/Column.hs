@@ -146,3 +146,15 @@ array :: [Column] -> IO Column
 array colexprs = do
   jcols <- reflect [ j | Column j <- colexprs ]
   callStaticSqlFun "array" [coerce jcols]
+
+-- | From the Spark docs:
+--
+-- Casts the column to a different data type, using the
+-- canonical string representation of the type.
+--
+-- The supported types are: string, boolean, byte, short,
+-- int, long, float, double, decimal, date, timestamp.
+cast :: Column -> Text -> IO Column
+cast col destType = do
+  jdestType <- reflect destType
+  call col "cast" [coerce jdestType]
