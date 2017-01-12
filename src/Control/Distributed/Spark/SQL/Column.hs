@@ -1,3 +1,8 @@
+-- | Bindings for
+-- <https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/Column.html org.apache.spark.sql.Column>.
+--
+-- This module is intended to be imported qualified.
+
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -8,7 +13,7 @@ module Control.Distributed.Spark.SQL.Column where
 
 import Data.Text (Text)
 import Language.Java
-import Prelude hiding (min, max, and, or)
+import Prelude hiding (min, max, mod, and, or)
 
 newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
 instance Coercible Column ('Class "org.apache.spark.sql.Column")
@@ -40,8 +45,8 @@ multiply col1 (Column col2) = call col1 "multiply" [coerce $ upcast col2]
 divide :: Column -> Column -> IO Column
 divide col1 (Column col2) = call col1 "divide" [coerce $ upcast col2]
 
-modCol :: Column -> Column -> IO Column
-modCol col1 (Column col2) = call col1 "mod" [coerce $ upcast col2]
+mod :: Column -> Column -> IO Column
+mod col1 (Column col2) = call col1 "mod" [coerce $ upcast col2]
 
 equalTo :: Column -> Column -> IO Column
 equalTo col1 (Column col2) = call col1 "equalTo" [coerce $ upcast col2]
