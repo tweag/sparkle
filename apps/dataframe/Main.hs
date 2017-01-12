@@ -2,7 +2,9 @@
 
 module Main where
 
-import Control.Distributed.Spark
+import Control.Distributed.Spark as Spark
+import Control.Distributed.Spark.SQL.DataFrame as DataFrame
+import Control.Distributed.Spark.SQL.Column as Column
 import Data.Int (Int32, Int64)
 import qualified Data.Text as Text
 
@@ -47,9 +49,9 @@ main = do
        debugDF selected
 
        coldiv <- col selected "((32 + index) / index)"
-       colmin <- minCol coldiv
+       colmin <- Column.min coldiv
        colix <- col selected "index"
-       colmean <- meanCol colix
+       colmean <- mean colix
        grouped <- groupBy selected [colexp2mo]
        aggregated <- agg grouped [colmin, colmean]
        debugDF aggregated
@@ -57,7 +59,7 @@ main = do
     do colexp1   <- col df2 "index"
        colexp2   <- lit (3 :: Int32)
        colexp3   <- leq colexp1 colexp2
-       filtered  <- filterDF df2 colexp3 -- index <= 3
+       filtered  <- DataFrame.filter df2 colexp3 -- index <= 3
        debugDF filtered
 
     do colindex1 <- col df1 "index"

@@ -7,10 +7,13 @@
 module Control.Distributed.Spark.SQL.DataFrame where
 
 import Control.Distributed.Spark.RDD
+import Control.Distributed.Spark.SQL.Column
 import Control.Distributed.Spark.SQL.Context
 import Control.Distributed.Spark.SQL.Row
+import qualified Data.Coerce
 import Data.Text (Text)
 import Language.Java
+import Prelude hiding (filter)
 
 newtype DataFrame = DataFrame (J ('Class "org.apache.spark.sql.DataFrame"))
 instance Coercible DataFrame ('Class "org.apache.spark.sql.DataFrame")
@@ -21,18 +24,14 @@ toDF sqlc rdd s1 s2 = do
   col2 <- reflect s2
   callStatic (sing :: Sing "Helper") "toDF" [coerce sqlc, coerce rdd, coerce col1, coerce col2]
 
-selectDF :: DataFrame -> [Text] -> IO DataFrame
-selectDF _ [] = error "selectDF: not enough arguments."
-selectDF df (c:cols) = do
-  jcol <- reflect c
-  jcols <- reflect cols
-  call df "select" [coerce jcol, coerce jcols]
-
 debugDF :: DataFrame -> IO ()
 debugDF df = call df "show" []
 
 join :: DataFrame -> DataFrame -> IO DataFrame
 join d1 d2 = call d1 "join" [coerce d2]
+
+joinOn :: DataFrame -> DataFrame -> Column -> IO DataFrame
+joinOn d1 d2 colexpr = call d1 "join" [coerce d2, coerce colexpr]
 
 newtype DataFrameReader =
     DataFrameReader (J ('Class "org.apache.spark.sql.DataFrameReader"))
@@ -65,9 +64,8 @@ newtype StructType =
 instance Coercible StructType
                    ('Class "org.apache.spark.sql.types.StructType")
 
-type JStructFieldClass = 'Class "org.apache.spark.sql.types.StructField"
-
-newtype StructField = StructField (J JStructFieldClass)
+newtype StructField =
+    StructField (J ('Class "org.apache.spark.sql.types.StructField"))
 instance Coercible StructField
                    ('Class "org.apache.spark.sql.types.StructField")
 
@@ -78,7 +76,8 @@ fields :: StructType -> IO [StructField]
 fields st = do
     jfields <- call st "fields" []
     Prelude.map StructField <$>
-      reify (jfields :: J ('Array JStructFieldClass))
+      reify (jfields ::
+              J ('Array ('Class "org.apache.spark.sql.types.StructField")))
 
 name :: StructField -> IO Text
 name sf = call sf "name" [] >>= reify
@@ -96,23 +95,13 @@ dataType sf = call sf "dataType" []
 typeName :: DataType -> IO Text
 typeName dt = call dt "typeName" [] >>= reify
 
-newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
-instance Coercible Column ('Class "org.apache.spark.sql.Column")
-
-type instance Interp Column = 'Class "org.apache.spark.sql.Column"
-instance Reflect Column ('Class "org.apache.spark.sql.Column") where
-  reflect (Column jcol) = return jcol
-
 select :: DataFrame -> [Column] -> IO DataFrame
 select d1 colexprs = do
-  jcols <- reflect colexprs
+  jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
   call d1 "select" [coerce jcols]
 
-filterDF :: DataFrame -> Column -> IO DataFrame
-filterDF d1 colexpr = call d1 "where" [coerce colexpr]
-
-joinOn :: DataFrame -> DataFrame -> Column -> IO DataFrame
-joinOn d1 d2 colexpr = call d1 "join" [coerce d2, coerce colexpr]
+filter :: DataFrame -> Column -> IO DataFrame
+filter d1 colexpr = call d1 "where" [coerce colexpr]
 
 unionAll :: DataFrame -> DataFrame -> IO DataFrame
 unionAll d1 d2 = call d1 "unionAll" [coerce d2]
@@ -122,79 +111,13 @@ col d1 t = do
   colName <- reflect t
   call d1 "col" [coerce colName]
 
--- | Give a 'Column' a new name.
-alias :: Column -> Text -> IO Column
-alias c n = do
-  colName <- reflect n
-  call c "alias" [coerce colName]
-
-lit :: Reflect a ty => a -> IO Column
-lit a =  do
-  c <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "lit" [coerce c]
-
-plus :: Column -> Column -> IO Column
-plus col1 (Column col2) = call col1 "plus" [coerce $ upcast col2]
-
-minus :: Column -> Column -> IO Column
-minus col1 (Column col2) = call col1 "minus" [coerce $ upcast col2]
-
-multiply :: Column -> Column -> IO Column
-multiply col1 (Column col2) = call col1 "multiply" [coerce $ upcast col2]
-
-divide :: Column -> Column -> IO Column
-divide col1 (Column col2) = call col1 "divide" [coerce $ upcast col2]
-
-modCol :: Column -> Column -> IO Column
-modCol col1 (Column col2) = call col1 "mod" [coerce $ upcast col2]
-
-equalTo :: Column -> Column -> IO Column
-equalTo col1 (Column col2) = call col1 "equalTo" [coerce $ upcast col2]
-
-notEqual :: Column -> Column -> IO Column
-notEqual col1 (Column col2) = call col1 "notEqual" [coerce $ upcast col2]
-
-leq :: Column -> Column -> IO Column
-leq col1 (Column col2) = call col1 "leq" [coerce $ upcast col2]
-
-lt :: Column -> Column -> IO Column
-lt col1 (Column col2) = call col1 "lt" [coerce $ upcast col2]
-
-geq :: Column -> Column -> IO Column
-geq col1 (Column col2) = call col1 "geq" [coerce $ upcast col2]
-
-gt :: Column -> Column -> IO Column
-gt col1 (Column col2) = call col1 "gt" [coerce $ upcast col2]
-
-andCol :: Column -> Column -> IO Column
-andCol col1 (Column col2) = call col1 "and" [coerce col2]
-
-orCol :: Column -> Column -> IO Column
-orCol col1 (Column col2) = call col1 "or" [coerce col2]
-
-minCol :: Column -> IO Column
-minCol c =
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "min" [coerce c]
-
-meanCol :: Column -> IO Column
-meanCol c =
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "mean" [coerce c]
-
-maxCol :: Column -> IO Column
-maxCol c =
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "max" [coerce c]
-
-newtype GroupedData = GroupedData (J ('Class "org.apache.spark.sql.GroupedData"))
-instance Coercible GroupedData ('Class "org.apache.spark.sql.GroupedData")
-
 groupBy :: DataFrame -> [Column] -> IO GroupedData
 groupBy d1 colexprs = do
-  jcols <- reflect colexprs
+  jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
   call d1 "groupBy" [coerce jcols]
 
 agg :: GroupedData -> [Column] -> IO DataFrame
 agg _ [] = error "agg: not enough arguments."
 agg df (c:cols) = do
-  jcol <- reflect c
-  jcols <- reflect cols
-  call df "agg" [coerce jcol, coerce jcols]
+  jcols <- reflect (Prelude.map Data.Coerce.coerce cols :: [J ('Class "org.apache.spark.sql.Column")])
+  call df "agg" [coerce c, coerce jcols]

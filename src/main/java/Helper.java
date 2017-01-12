@@ -6,7 +6,6 @@ import org.apache.spark.api.java.function.*;
 import org.apache.spark.ml.feature.*;
 import org.apache.spark.mllib.clustering.*;
 import org.apache.spark.mllib.linalg.Vector;
-import org.apache.spark.sql.Column;
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.Row;
