@@ -4,7 +4,7 @@ module Main where
 
 import Control.Distributed.Spark as Spark
 import Control.Distributed.Spark.SQL.DataFrame as DataFrame
-import Control.Distributed.Spark.SQL.Column as Column
+import qualified Control.Distributed.Spark.SQL.Column as Column
 import Data.Int (Int32, Int64)
 import qualified Data.Text as Text
 
@@ -29,18 +29,18 @@ main = do
     debugDF unionedDF
 
     do colexp1   <- col unionedDF "index"
-       colexp4   <- lit (4 :: Int64)
-       colexp2a  <- lit (32 :: Int32)
-       colexp2b  <- lit (10 :: Int32)
-       colexp2   <- plus colexp2a colexp1
-       colexp2m  <- minus colexp2 colexp1
-       colexp2mu <- multiply colexp2 colexp2
-       colexp2d  <- divide colexp2 colexp1
-       colexp2mo <- modCol colexp2 colexp4
-       colexp2ne <- notEqual colexp2 colexp2b
-       colexp3   <- lit (True :: Bool)
-       colexp5   <- lit (3.14 :: Double)
-       colexp6   <- lit ("text" :: Text.Text)
+       colexp4   <- Column.lit (4 :: Int64)
+       colexp2a  <- Column.lit (32 :: Int32)
+       colexp2b  <- Column.lit (10 :: Int32)
+       colexp2   <- Column.plus colexp2a colexp1
+       colexp2m  <- Column.minus colexp2 colexp1
+       colexp2mu <- Column.multiply colexp2 colexp2
+       colexp2d  <- Column.divide colexp2 colexp1
+       colexp2mo <- Column.mod colexp2 colexp4
+       colexp2ne <- Column.notEqual colexp2 colexp2b
+       colexp3   <- Column.lit (True :: Bool)
+       colexp5   <- Column.lit (3.14 :: Double)
+       colexp6   <- Column.lit ("text" :: Text.Text)
        _colexp7   <- alias colexp5 "pi"
        selected  <- select unionedDF
           [    colexp1, colexp2, colexp3
