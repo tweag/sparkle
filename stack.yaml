@@ -1,4 +1,4 @@
-resolver: lts-6.21
+resolver: lts-7.14
 
 packages:
 - .
@@ -12,11 +12,18 @@ extra-deps:
 - choice-0.1.1.0
 - jni-0.2.2
 - jvm-0.1.2
+- jvm-streaming-0.1
+- inline-java-0.6.1
 - thread-local-storage-0.1.0.3
+
+explicit-setup-deps:
+  bench: true
 
 nix:
   # Requires Stack >= 1.2.
-  shell-file: shell.nix
+  shell-file: shell-8.0.2.nix
+
+skip-ghc-check: true
 
 docker:
   enable: false
