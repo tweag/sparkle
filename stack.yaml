@@ -22,7 +22,7 @@ explicit-setup-deps:
 
 nix:
   # Requires Stack >= 1.2.
-  shell-file: shell-8.0.2.nix
+  shell-file: shell.nix
 
 docker:
   enable: false
