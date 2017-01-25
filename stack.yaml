@@ -1,4 +1,5 @@
 resolver: lts-7.14
+compiler: ghc-8.0.2
 
 packages:
 - .
@@ -22,8 +23,6 @@ explicit-setup-deps:
 nix:
   # Requires Stack >= 1.2.
   shell-file: shell-8.0.2.nix
-
-skip-ghc-check: true
 
 docker:
   enable: false
