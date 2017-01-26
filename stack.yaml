@@ -15,7 +15,7 @@ extra-deps:
 - jvm-0.1.2
 - jvm-streaming-0.1
 - inline-java-0.6.1
-- thread-local-storage-0.1.0.3
+- thread-local-storage-0.1.1
 
 explicit-setup-deps:
   bench: true
