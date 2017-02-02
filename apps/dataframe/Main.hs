@@ -129,6 +129,25 @@ main = do
                   ]
          >>= debugDF
 
+    do int2Col   <- lit (2 :: Int32)
+       int4Col   <- lit (4 :: Int32)
+       fooCol    <- lit ("foo" :: Text.Text)
+       barCol    <- lit ("bar" :: Text.Text)
+       index1Col <- col df1 "index"
+       cond1Col  <- leq index1Col int2Col  -- index <= 2
+       cond2Col  <- leq index1Col int4Col  -- index <= 4
+
+       trueCol   <- lit True
+       falseCol  <- lit False
+       colwords1 <- col df1 "word"
+       ex1      <- when trueCol  colwords1  -- all words
+       ex2      <- when falseCol colwords1  -- all null
+       ex3      <- when cond1Col colwords1  -- some words, some null
+       ex4      <- multiwayIf [(cond1Col, colwords1),
+                               (cond2Col, fooCol)]
+                              barCol         -- some words, foo, bar
+       select df1 [ex1, ex2, ex3, ex4] >>= debugDF
+
     return ()
 
 named :: Text.Text -> Column -> IO Column

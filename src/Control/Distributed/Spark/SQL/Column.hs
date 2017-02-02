@@ -11,10 +11,11 @@
 
 module Control.Distributed.Spark.SQL.Column where
 
+import Control.Monad (foldM)
 import Data.Text (Text)
 import qualified Foreign.JNI.String
 import Language.Java
-import Prelude hiding (min, max, mod, and, or)
+import Prelude hiding (min, max, mod, and, or, otherwise)
 
 newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
 instance Coercible Column ('Class "org.apache.spark.sql.Column")
@@ -169,3 +170,38 @@ cast :: Column -> Text -> IO Column
 cast col destType = do
   jdestType <- reflect destType
   call col "cast" [coerce jdestType]
+
+-- | 'when', 'orWhen' and 'otherwise' are designed to be used
+-- together to make if-then-else and more generally mutli-way if branches:
+-- start with 'when', use as many extra 'orWhen' as needed and finish
+-- with an 'otherwise'.
+--
+-- NULL values are produced if none of the conditions hold and a
+-- value is not specified with 'otherwise'.
+when :: Column -> Column -> IO Column
+when cond (Column val) =
+  callStaticSqlFun "when" [coerce cond, coerce (upcast val)]
+
+orWhen :: Column -> Column -> Column -> IO Column
+orWhen chain cond (Column val) =
+  call chain "when" [coerce cond, coerce (upcast val)]
+
+otherwise :: Column -> Column -> IO Column
+otherwise chain (Column val) =
+  call chain "otherwise" [coerce (upcast val)]
+
+-- | @if c then e1 else e2@
+--
+-- This is just a combination of 'when' and 'otherwise'.
+ifThenElse :: Column -> Column -> Column -> IO Column
+ifThenElse c e1 e2 = when c e1 >>= (`otherwise` e2)
+
+-- | @if c1 then e1 elseif c2 then e2 ... else def@
+--
+-- This is just a combination of 'when', 'orWhen' and 'otherwise'.
+multiwayIf :: [(Column, Column)] -> Column -> IO Column
+multiwayIf [] def = return def
+multiwayIf ((c1, e1):cases0) def =
+      when c1 e1
+  >>= flip (foldM (uncurry . orWhen)) cases0
+  >>= (`otherwise` def)
