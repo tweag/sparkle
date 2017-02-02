@@ -17,7 +17,7 @@ import Language.Java
 newtype PairRDD a b = PairRDD (J ('Class "org.apache.spark.api.java.JavaPairRDD"))
 instance Coercible (PairRDD a b) ('Class "org.apache.spark.api.java.JavaPairRDD")
 
-zipWithIndex :: RDD a -> IO (PairRDD Int64 a)
+zipWithIndex :: RDD a -> IO (PairRDD a Int64)
 zipWithIndex rdd = call rdd "zipWithIndex" []
 
 wholeTextFiles :: SparkContext -> Text -> IO (PairRDD Text Text)
