@@ -12,6 +12,7 @@
 module Control.Distributed.Spark.SQL.Column where
 
 import Data.Text (Text)
+import qualified Foreign.JNI.String
 import Language.Java
 import Prelude hiding (min, max, mod, and, or)
 
@@ -28,10 +29,14 @@ alias c n = do
   colName <- reflect n
   call c "alias" [coerce colName]
 
+callStaticSqlFun :: Coercible a ty
+                 => Foreign.JNI.String.String -> [JValue] -> IO a
+callStaticSqlFun = callStatic (sing :: Sing "org.apache.spark.sql.functions")
+
 lit :: Reflect a ty => a -> IO Column
 lit a =  do
   c <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "lit" [coerce c]
+  callStaticSqlFun "lit" [coerce c]
 
 plus :: Column -> Column -> IO Column
 plus col1 (Column col2) = call col1 "plus" [coerce $ upcast col2]
@@ -73,13 +78,66 @@ or :: Column -> Column -> IO Column
 or col1 (Column col2) = call col1 "or" [coerce col2]
 
 min :: Column -> IO Column
-min c =
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "min" [coerce c]
+min c = callStaticSqlFun "min" [coerce c]
 
 mean :: Column -> IO Column
-mean c =
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "mean" [coerce c]
+mean c = callStaticSqlFun "mean" [coerce c]
 
 max :: Column -> IO Column
-max c =
-  callStatic (sing :: Sing "org.apache.spark.sql.functions") "max" [coerce c]
+max c = callStaticSqlFun "max" [coerce c]
+
+not :: Column -> IO Column
+not col = callStaticSqlFun "not" [coerce col]
+
+negate :: Column -> IO Column
+negate col = callStaticSqlFun "negate" [coerce col]
+
+signum :: Column -> IO Column
+signum col = callStaticSqlFun "signum" [coerce col]
+
+abs :: Column -> IO Column
+abs col = callStaticSqlFun "abs" [coerce col]
+
+sqrt :: Column -> IO Column
+sqrt col = callStaticSqlFun "sqrt" [coerce col]
+
+floor :: Column -> IO Column
+floor col = callStaticSqlFun "floor" [coerce col]
+
+ceil :: Column -> IO Column
+ceil col = callStaticSqlFun "ceil" [coerce col]
+
+round :: Column -> IO Column
+round col = callStaticSqlFun "round" [coerce col]
+
+second :: Column -> IO Column
+second col = callStaticSqlFun "second" [coerce col]
+
+minute :: Column -> IO Column
+minute col = callStaticSqlFun "minute" [coerce col]
+
+hour :: Column -> IO Column
+hour col = callStaticSqlFun "hour" [coerce col]
+
+day :: Column -> IO Column
+day col = callStaticSqlFun "day" [coerce col]
+
+month :: Column -> IO Column
+month col = callStaticSqlFun "month" [coerce col]
+
+year :: Column -> IO Column
+year col = callStaticSqlFun "year" [coerce col]
+
+pow :: Column -> Column -> IO Column
+pow col1 col2 = callStaticSqlFun "pow" [coerce col1, coerce col2]
+
+exp :: Column -> IO Column
+exp col1 = callStaticSqlFun "exp" [coerce col1]
+
+isnull :: Column -> IO Column
+isnull col = callStaticSqlFun "isnull" [coerce col]
+
+coalesce :: [Column] -> IO Column
+coalesce colexprs = do
+  jcols <- reflect [ j | Column j <- colexprs ]
+  callStaticSqlFun "coalesce" [coerce jcols]
