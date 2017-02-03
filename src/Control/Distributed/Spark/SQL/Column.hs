@@ -141,3 +141,8 @@ coalesce :: [Column] -> IO Column
 coalesce colexprs = do
   jcols <- reflect [ j | Column j <- colexprs ]
   callStaticSqlFun "coalesce" [coerce jcols]
+
+array :: [Column] -> IO Column
+array colexprs = do
+  jcols <- reflect [ j | Column j <- colexprs ]
+  callStaticSqlFun "array" [coerce jcols]

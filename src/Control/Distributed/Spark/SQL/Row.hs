@@ -46,6 +46,11 @@ getLong i (Row r) = call r "getLong" [coerce i]
 getString :: Int32 -> Row -> IO Text
 getString i (Row r) = call r "getString" [coerce i] >>= reify
 
+getList :: Int32 -> Row -> IO [JObject]
+getList i (Row r) = do
+    jarraylist <- call r "getList" [coerce i]
+    call (jarraylist :: J ('Class "java.util.List")) "toArray" [] >>= reify
+
 createRow :: [JObject] -> IO Row
 createRow vs = do
     jvs <- reflect vs

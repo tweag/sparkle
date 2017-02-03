@@ -7,6 +7,7 @@ import Control.Distributed.Spark.SQL.DataFrame as DataFrame
 import qualified Control.Distributed.Spark.SQL.Column as Column
 import Data.Int (Int32, Int64)
 import qualified Data.Text as Text
+import Language.Java
 
 main :: IO ()
 main = do
@@ -76,5 +77,19 @@ main = do
        colwords2 <- col df2 "word"
        selected <- select joined [colindex, colwords1, colwords2]
        debugDF selected
+
+    do wcol <- col df1 "word"
+       arrCols <- array [wcol, wcol]
+       select df1 [arrCols] >>= debugDF
+
+    do col1 <- lit (3.14 :: Double)
+       col2 <- lit (10.0 :: Double)
+       arrCols <- array [col1, col2]
+       select df1 [arrCols]
+         >>= javaRDD
+         >>= collect
+         >>= mapM (getList 0)
+         >>= mapM (mapM (\x -> (reify (unsafeCast x) :: IO Double)))
+         >>= print
 
     return ()
