@@ -89,10 +89,22 @@ unionAll d1 d2 = call d1 "unionAll" [coerce d2]
 distinct :: DataFrame -> IO DataFrame
 distinct d = call d "distinct" []
 
+withColumnRenamed :: Text -> Text -> DataFrame -> IO DataFrame
+withColumnRenamed old newName df = do
+  jold <- reflect old
+  jnew <- reflect newName
+  call df "withColumnRenamed" [coerce jold, coerce jnew]
+
 col :: DataFrame -> Text -> IO Column
 col d1 t = do
   colName <- reflect t
   call d1 "col" [coerce colName]
+
+columns :: DataFrame -> IO [Text]
+columns df = call df "columns" [] >>= reify
+
+printSchema :: DataFrame -> IO ()
+printSchema df = call df "printSchema" []
 
 groupBy :: DataFrame -> [Column] -> IO GroupedData
 groupBy d1 colexprs = do

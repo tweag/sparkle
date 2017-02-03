@@ -153,6 +153,11 @@ array colexprs = do
   jcols <- reflect [ j | Column j <- colexprs ]
   callStaticSqlFun "array" [coerce jcols]
 
+expr :: Text -> IO Column
+expr e = do
+  jexpr <- reflect e
+  callStaticSqlFun "expr" [coerce jexpr]
+
 -- | From the Spark docs:
 --
 -- Casts the column to a different data type, using the
