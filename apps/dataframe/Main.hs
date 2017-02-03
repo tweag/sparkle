@@ -93,6 +93,10 @@ main = do
          >>= mapM (mapM (\x -> (reify (unsafeCast x) :: IO Double)))
          >>= print
 
+    do redundantDF <- unionAll df1 df1
+       distinctDF  <- DataFrame.distinct redundantDF
+       debugDF distinctDF
+
     -- implicit and explicit casts
     do longCol         <- col df1 "index" >>= named "long"
        boolCol         <- cast longCol "boolean" >>= named "cast long to bool"

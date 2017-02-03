@@ -86,6 +86,9 @@ filter d1 colexpr = call d1 "where" [coerce colexpr]
 unionAll :: DataFrame -> DataFrame -> IO DataFrame
 unionAll d1 d2 = call d1 "unionAll" [coerce d2]
 
+distinct :: DataFrame -> IO DataFrame
+distinct d = call d "distinct" []
+
 col :: DataFrame -> Text -> IO Column
 col d1 t = do
   colName <- reflect t
