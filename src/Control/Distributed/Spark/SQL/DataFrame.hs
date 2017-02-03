@@ -12,6 +12,7 @@ import Control.Distributed.Spark.SQL.Context
 import Control.Distributed.Spark.SQL.Row
 import Control.Distributed.Spark.SQL.StructType
 import qualified Data.Coerce
+import Data.Int
 import Data.Text (Text)
 import Language.Java
 import Prelude hiding (filter)
@@ -25,8 +26,19 @@ toDF sqlc rdd s1 s2 = do
   col2 <- reflect s2
   callStatic (sing :: Sing "Helper") "toDF" [coerce sqlc, coerce rdd, coerce col1, coerce col2]
 
+javaRDD :: DataFrame -> IO (RDD Row)
+javaRDD df = call df "javaRDD" []
+
+createDataFrame :: SQLContext -> RDD Row -> StructType -> IO DataFrame
+createDataFrame sqlc rdd st =
+  call sqlc "createDataFrame" [coerce rdd, coerce st]
+
 debugDF :: DataFrame -> IO ()
 debugDF df = call df "show" []
+
+range :: Int64 -> Int64 -> Int64 -> Int32 -> SQLContext -> IO DataFrame
+range start end step partitions sqlc =
+  call sqlc "range" [coerce start, coerce end, coerce step, coerce partitions]
 
 join :: DataFrame -> DataFrame -> IO DataFrame
 join d1 d2 = call d1 "join" [coerce d2]
