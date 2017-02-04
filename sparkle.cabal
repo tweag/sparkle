@@ -6,7 +6,7 @@ homepage:            http://github.com/tweag/sparkle#readme
 license:             BSD3
 license-file:        LICENSE
 author:              Tweag I/O
-maintainer:          alp.mestanogullari@tweag.io
+maintainer:          m@tweag.io
 copyright:           2016 EURL Tweag
 category:            FFI, JVM, Java, Distributed Computing
 build-type:          Custom
