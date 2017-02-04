@@ -21,6 +21,7 @@ extra-source-files:
   src/main/java/io/tweag/sparkle/function/HaskellFunction3.java
   src/main/java/io/tweag/sparkle/function/HaskellFunction.java
   src/main/java/Helper.java
+  CHANGELOG.md
   README.md
 data-dir: build/libs
 data-files: sparkle.jar
