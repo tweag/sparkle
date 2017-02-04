@@ -1,5 +1,5 @@
 name:                sparkle
-version:             0.3
+version:             0.4
 synopsis:            Distributed Apache Spark applications in Haskell
 description:         See README.md
 license:             BSD3
