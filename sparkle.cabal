@@ -7,7 +7,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Tweag I/O
 maintainer:          m@tweag.io
-copyright:           2016 EURL Tweag
+copyright:           (c) 2016-2017 EURL Tweag
 category:            FFI, JVM, Java, Distributed Computing
 build-type:          Custom
 cabal-version:       >=1.10
