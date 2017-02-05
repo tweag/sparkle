@@ -24,11 +24,11 @@ toRows prdd = callStatic (sing :: Sing "Helper") "toRows" [coerce prdd]
 schema :: Row -> IO StructType
 schema (Row r) = call r "schema" []
 
-rowGet :: Int32 -> Row -> IO JObject
-rowGet i r = call r "get" [coerce i]
+get :: Int32 -> Row -> IO JObject
+get i r = call r "get" [coerce i]
 
-rowSize :: Row -> IO Int32
-rowSize r = call r "size" []
+size :: Row -> IO Int32
+size r = call r "size" []
 
 isNullAt :: Int32 -> Row -> IO Bool
 isNullAt i (Row r) = call r "isNullAt" [coerce i]
@@ -50,8 +50,8 @@ getList i r = do
     jarraylist <- call r "getList" [coerce i]
     call (jarraylist :: J ('Class "java.util.List")) "toArray" [] >>= reify
 
-createRow :: [JObject] -> IO Row
-createRow vs = do
+create :: [JObject] -> IO Row
+create vs = do
     jvs <- reflect vs
     callStatic (sing :: Sing "org.apache.spark.sql.RowFactory")
                "create"

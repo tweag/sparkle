@@ -34,8 +34,8 @@ fromRDD rdd =
   callStatic (sing :: Sing "org.apache.spark.api.java.JavaPairRDD")
              "fromJavaRDD" [coerce rdd]
 
-joinPairRDD :: PairRDD a b -> PairRDD a c -> IO (PairRDD a (Tuple2 b c))
-joinPairRDD prdd0 prdd1 = call prdd0 "join" [coerce prdd1]
+join :: PairRDD a b -> PairRDD a c -> IO (PairRDD a (Tuple2 b c))
+join prdd0 prdd1 = call prdd0 "join" [coerce prdd1]
 
 keyBy :: Reflect (Closure (v -> k)) ty1
       => Closure (v -> k) -> RDD v -> IO (PairRDD k v)
