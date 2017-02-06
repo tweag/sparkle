@@ -11,10 +11,11 @@
 
 module Control.Distributed.Spark.SQL.Column where
 
+import Control.Monad (foldM)
 import Data.Text (Text)
 import qualified Foreign.JNI.String
 import Language.Java
-import Prelude hiding (min, max, mod, and, or)
+import Prelude hiding (min, max, mod, and, or, otherwise)
 
 newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
 instance Coercible Column ('Class "org.apache.spark.sql.Column")
@@ -134,6 +135,12 @@ pow col1 col2 = callStaticSqlFun "pow" [coerce col1, coerce col2]
 exp :: Column -> IO Column
 exp col1 = callStaticSqlFun "exp" [coerce col1]
 
+log :: Column -> IO Column
+log col = callStaticSqlFun "log" [coerce col]
+
+log1p :: Column -> IO Column
+log1p col = callStaticSqlFun "log1p" [coerce col]
+
 isnull :: Column -> IO Column
 isnull col = callStaticSqlFun "isnull" [coerce col]
 
@@ -141,3 +148,60 @@ coalesce :: [Column] -> IO Column
 coalesce colexprs = do
   jcols <- reflect [ j | Column j <- colexprs ]
   callStaticSqlFun "coalesce" [coerce jcols]
+
+array :: [Column] -> IO Column
+array colexprs = do
+  jcols <- reflect [ j | Column j <- colexprs ]
+  callStaticSqlFun "array" [coerce jcols]
+
+expr :: Text -> IO Column
+expr e = do
+  jexpr <- reflect e
+  callStaticSqlFun "expr" [coerce jexpr]
+
+-- | From the Spark docs:
+--
+-- Casts the column to a different data type, using the
+-- canonical string representation of the type.
+--
+-- The supported types are: string, boolean, byte, short,
+-- int, long, float, double, decimal, date, timestamp.
+cast :: Column -> Text -> IO Column
+cast col destType = do
+  jdestType <- reflect destType
+  call col "cast" [coerce jdestType]
+
+-- | 'when', 'orWhen' and 'otherwise' are designed to be used
+-- together to make if-then-else and more generally mutli-way if branches:
+-- start with 'when', use as many extra 'orWhen' as needed and finish
+-- with an 'otherwise'.
+--
+-- NULL values are produced if none of the conditions hold and a
+-- value is not specified with 'otherwise'.
+when :: Column -> Column -> IO Column
+when cond (Column val) =
+  callStaticSqlFun "when" [coerce cond, coerce (upcast val)]
+
+orWhen :: Column -> Column -> Column -> IO Column
+orWhen chain cond (Column val) =
+  call chain "when" [coerce cond, coerce (upcast val)]
+
+otherwise :: Column -> Column -> IO Column
+otherwise chain (Column val) =
+  call chain "otherwise" [coerce (upcast val)]
+
+-- | @if c then e1 else e2@
+--
+-- This is just a combination of 'when' and 'otherwise'.
+ifThenElse :: Column -> Column -> Column -> IO Column
+ifThenElse c e1 e2 = when c e1 >>= (`otherwise` e2)
+
+-- | @if c1 then e1 elseif c2 then e2 ... else def@
+--
+-- This is just a combination of 'when', 'orWhen' and 'otherwise'.
+multiwayIf :: [(Column, Column)] -> Column -> IO Column
+multiwayIf [] def = return def
+multiwayIf ((c1, e1):cases0) def =
+      when c1 e1
+  >>= flip (foldM (uncurry . orWhen)) cases0
+  >>= (`otherwise` def)

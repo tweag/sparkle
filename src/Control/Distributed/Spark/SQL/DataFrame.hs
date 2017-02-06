@@ -10,7 +10,9 @@ import Control.Distributed.Spark.RDD
 import Control.Distributed.Spark.SQL.Column
 import Control.Distributed.Spark.SQL.Context
 import Control.Distributed.Spark.SQL.Row
+import Control.Distributed.Spark.SQL.StructType
 import qualified Data.Coerce
+import Data.Int
 import Data.Text (Text)
 import Language.Java
 import Prelude hiding (filter)
@@ -24,8 +26,19 @@ toDF sqlc rdd s1 s2 = do
   col2 <- reflect s2
   callStatic (sing :: Sing "Helper") "toDF" [coerce sqlc, coerce rdd, coerce col1, coerce col2]
 
+javaRDD :: DataFrame -> IO (RDD Row)
+javaRDD df = call df "javaRDD" []
+
+createDataFrame :: SQLContext -> RDD Row -> StructType -> IO DataFrame
+createDataFrame sqlc rdd st =
+  call sqlc "createDataFrame" [coerce rdd, coerce st]
+
 debugDF :: DataFrame -> IO ()
 debugDF df = call df "show" []
+
+range :: Int64 -> Int64 -> Int64 -> Int32 -> SQLContext -> IO DataFrame
+range start end step partitions sqlc =
+  call sqlc "range" [coerce start, coerce end, coerce step, coerce partitions]
 
 join :: DataFrame -> DataFrame -> IO DataFrame
 join d1 d2 = call d1 "join" [coerce d2]
@@ -59,41 +72,8 @@ writeParquet fp dfw = do
     jfp <- reflect fp
     call dfw "parquet" [coerce jfp]
 
-newtype StructType =
-    StructType (J ('Class "org.apache.spark.sql.types.StructType"))
-instance Coercible StructType
-                   ('Class "org.apache.spark.sql.types.StructType")
-
-newtype StructField =
-    StructField (J ('Class "org.apache.spark.sql.types.StructField"))
-instance Coercible StructField
-                   ('Class "org.apache.spark.sql.types.StructField")
-
 schema :: DataFrame -> IO StructType
 schema df = call df "schema" []
-
-fields :: StructType -> IO [StructField]
-fields st = do
-    jfields <- call st "fields" []
-    Prelude.map StructField <$>
-      reify (jfields ::
-              J ('Array ('Class "org.apache.spark.sql.types.StructField")))
-
-name :: StructField -> IO Text
-name sf = call sf "name" [] >>= reify
-
-nullable :: StructField -> IO Bool
-nullable sf = call sf "nullable" []
-
-newtype DataType = DataType (J ('Class "org.apache.spark.sql.types.DataType"))
-instance Coercible DataType
-                   ('Class "org.apache.spark.sql.types.DataType")
-
-dataType :: StructField -> IO DataType
-dataType sf = call sf "dataType" []
-
-typeName :: DataType -> IO Text
-typeName dt = call dt "typeName" [] >>= reify
 
 select :: DataFrame -> [Column] -> IO DataFrame
 select d1 colexprs = do
@@ -106,10 +86,25 @@ filter d1 colexpr = call d1 "where" [coerce colexpr]
 unionAll :: DataFrame -> DataFrame -> IO DataFrame
 unionAll d1 d2 = call d1 "unionAll" [coerce d2]
 
+distinct :: DataFrame -> IO DataFrame
+distinct d = call d "distinct" []
+
+withColumnRenamed :: Text -> Text -> DataFrame -> IO DataFrame
+withColumnRenamed old newName df = do
+  jold <- reflect old
+  jnew <- reflect newName
+  call df "withColumnRenamed" [coerce jold, coerce jnew]
+
 col :: DataFrame -> Text -> IO Column
 col d1 t = do
   colName <- reflect t
   call d1 "col" [coerce colName]
+
+columns :: DataFrame -> IO [Text]
+columns df = call df "columns" [] >>= reify
+
+printSchema :: DataFrame -> IO ()
+printSchema df = call df "printSchema" []
 
 groupBy :: DataFrame -> [Column] -> IO GroupedData
 groupBy d1 colexprs = do

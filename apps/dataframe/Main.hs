@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
@@ -5,8 +6,11 @@ module Main where
 import Control.Distributed.Spark as Spark
 import Control.Distributed.Spark.SQL.DataFrame as DataFrame
 import qualified Control.Distributed.Spark.SQL.Column as Column
+import qualified Data.Coerce
 import Data.Int (Int32, Int64)
 import qualified Data.Text as Text
+import Language.Java
+import Prelude hiding (sqrt)
 
 main :: IO ()
 main = do
@@ -77,4 +81,78 @@ main = do
        selected <- select joined [colindex, colwords1, colwords2]
        debugDF selected
 
+    do wcol <- col df1 "word"
+       arrCols <- array [wcol, wcol]
+       select df1 [arrCols] >>= debugDF
+
+    do col1 <- lit (3.14 :: Double)
+       col2 <- lit (10.0 :: Double)
+       arrCols <- array [col1, col2]
+       select df1 [arrCols]
+         >>= javaRDD
+         >>= \rdd -> collect
+               (Data.Coerce.coerce rdd
+                  :: RDD (J ('Class "org.apache.spark.sql.Row")))
+         >>= mapM (getList 0 . Data.Coerce.coerce)
+         >>= mapM (mapM (\x -> (reify (unsafeCast x) :: IO Double)))
+         >>= print
+
+    do redundantDF <- unionAll df1 df1
+       distinctDF  <- DataFrame.distinct redundantDF
+       debugDF distinctDF
+
+    -- implicit and explicit casts
+    do longCol         <- col df1 "index" >>= named "long"
+       boolCol         <- cast longCol "boolean" >>= named "cast long to bool"
+       sqrtLongCol     <- sqrt longCol >>= named "sqrt(long)"
+
+       -- the following two don't work, no implicit casts
+       -- for Bool -> Double and Bool -> Int
+       --
+       -- sqrtBoolCol    <- sqrt boolCol
+       -- longPlusBoolCol <- plus longCol boolCol
+
+       castBoolIntCol <- cast boolCol "long"
+                     >>= named "cast bool to long"
+
+       castBoolDoubleCol <- cast boolCol "double"
+                        >>= named "cast bool to double"
+
+       sqrtBoolIntCol <- sqrt castBoolIntCol
+                     >>= named "sqrt(cast bool to long)"
+       sqrtBoolDoubleCol <- sqrt castBoolDoubleCol
+                        >>= named "sqrt(cast bool to double)"
+
+       select df1 [ longCol
+                  , boolCol
+                  , sqrtLongCol
+                  , castBoolIntCol
+                  , castBoolDoubleCol
+                  , sqrtBoolIntCol
+                  , sqrtBoolDoubleCol
+                  ]
+         >>= debugDF
+
+    do int2Col   <- lit (2 :: Int32)
+       int4Col   <- lit (4 :: Int32)
+       fooCol    <- lit ("foo" :: Text.Text)
+       barCol    <- lit ("bar" :: Text.Text)
+       index1Col <- col df1 "index"
+       cond1Col  <- leq index1Col int2Col  -- index <= 2
+       cond2Col  <- leq index1Col int4Col  -- index <= 4
+
+       trueCol   <- lit True
+       falseCol  <- lit False
+       colwords1 <- col df1 "word"
+       ex1      <- when trueCol  colwords1  -- all words
+       ex2      <- when falseCol colwords1  -- all null
+       ex3      <- when cond1Col colwords1  -- some words, some null
+       ex4      <- multiwayIf [(cond1Col, colwords1),
+                               (cond2Col, fooCol)]
+                              barCol         -- some words, foo, bar
+       select df1 [ex1, ex2, ex3, ex4] >>= debugDF
+
     return ()
+
+named :: Text.Text -> Column -> IO Column
+named = flip alias

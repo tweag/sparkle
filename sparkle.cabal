@@ -50,6 +50,10 @@ library
     Control.Distributed.Spark.SQL.Context
     Control.Distributed.Spark.SQL.DataFrame
     Control.Distributed.Spark.SQL.Row
+    Control.Distributed.Spark.SQL.StructType
+    Control.Distributed.Spark.SQL.StructField
+    Control.Distributed.Spark.SQL.DataType
+    Control.Distributed.Spark.SQL.Metadata
     Control.Distributed.Spark.RDD
   build-depends:
     base >=4.8 && <5,
