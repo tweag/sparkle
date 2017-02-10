@@ -120,14 +120,20 @@ minute col = callStaticSqlFun "minute" [coerce col]
 hour :: Column -> IO Column
 hour col = callStaticSqlFun "hour" [coerce col]
 
-day :: Column -> IO Column
-day col = callStaticSqlFun "day" [coerce col]
+dayofmonth :: Column -> IO Column
+dayofmonth col = callStaticSqlFun "dayofmonth" [coerce col]
 
 month :: Column -> IO Column
 month col = callStaticSqlFun "month" [coerce col]
 
 year :: Column -> IO Column
 year col = callStaticSqlFun "year" [coerce col]
+
+current_timestamp :: IO Column
+current_timestamp = callStaticSqlFun "current_timestamp" []
+
+current_date :: IO Column
+current_date = callStaticSqlFun "current_date" []
 
 pow :: Column -> Column -> IO Column
 pow col1 col2 = callStaticSqlFun "pow" [coerce col1, coerce col2]
