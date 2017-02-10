@@ -152,6 +152,33 @@ main = do
                               barCol         -- some words, foo, bar
        select df1 [ex1, ex2, ex3, ex4] >>= debugDF
 
+    do nowTsCol   <- current_timestamp
+       nowDtCol   <- current_date
+
+       jdate <- new [ JLong 0 ] :: IO (J ('Class "java.sql.Date"))
+       epochTsCol <- lit jdate
+       jtimestamp <- new [ JLong 0 ] :: IO (J ('Class "java.sql.Timestamp"))
+       epochDtCol <- lit jtimestamp
+
+       secCol     <- second nowTsCol
+       minsCol    <- minute nowTsCol
+       hrsCol     <- hour nowTsCol
+
+       daysCol    <- dayofmonth nowTsCol
+       monthsCol  <- month nowTsCol
+       yearsCol   <- year nowTsCol
+
+       daysCol'   <- dayofmonth nowDtCol
+       monthsCol' <- month nowDtCol
+       yearsCol'  <- year nowDtCol
+
+       select df1 [ epochDtCol, epochTsCol
+                  , nowTsCol, nowDtCol
+                  , secCol, minsCol, hrsCol
+                  , daysCol, monthsCol, yearsCol
+                  , daysCol', monthsCol', yearsCol' ]
+         >>= debugDF
+
     return ()
 
 named :: Text.Text -> Column -> IO Column
