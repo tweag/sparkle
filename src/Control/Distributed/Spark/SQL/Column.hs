@@ -141,6 +141,9 @@ pow col1 col2 = callStaticSqlFun "pow" [coerce col1, coerce col2]
 exp :: Column -> IO Column
 exp col1 = callStaticSqlFun "exp" [coerce col1]
 
+expm1 :: Column -> IO Column
+expm1 col = callStaticSqlFun "expm1" [coerce col]
+
 log :: Column -> IO Column
 log col = callStaticSqlFun "log" [coerce col]
 
