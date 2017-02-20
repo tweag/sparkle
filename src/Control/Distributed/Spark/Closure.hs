@@ -19,12 +19,14 @@ module Control.Distributed.Spark.Closure
   , apply
   ) where
 
+import Control.Exception (fromException, catch)
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
 import Data.Binary (encode, decode)
 import qualified Data.Coerce as Coerce
 import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
+import Data.Text as Text
 import Data.Typeable (Typeable)
 import Foreign.ForeignPtr (newForeignPtr_)
 import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
@@ -45,7 +47,18 @@ apply
 apply bytes args = do
     bs <- (J <$> newForeignPtr_ bytes) >>= reify
     let f = unclosure (bs2clos bs) :: JObjectArray -> IO JObject
-    unsafeForeignPtrToPtr <$> Coerce.coerce <$> (newForeignPtr_ args >>= f . J)
+    unsafeForeignPtrToPtr <$> Coerce.coerce <$>
+      (do fptr <- newForeignPtr_ args
+          f (J fptr) `catch` \e -> case fromException e of
+            -- forward JVMExceptions
+            Just (JVMException j) -> Foreign.JNI.throw j >> return jnull
+            -- send other exceptions in string form
+            Nothing -> do
+              jt <- reflect (Text.pack $ show e)
+              je <- new [coerce jt]
+              Foreign.JNI.throw (je :: J ('Class "java/lang/RuntimeException"))
+              return jnull
+      )
 
 foreign export ccall "sparkle_apply" apply
   :: Ptr JByteArray
