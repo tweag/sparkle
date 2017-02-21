@@ -22,27 +22,35 @@ module Control.Distributed.Spark.Closure
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
 import Data.Binary (encode, decode)
+import qualified Data.Coerce as Coerce
 import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
 import Data.Typeable (Typeable)
+import Foreign.ForeignPtr (newForeignPtr_)
+import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import Foreign.JNI
+import Foreign.Ptr (Ptr)
 import Language.Java
 
 -- | The main entry point for Java code to apply a Haskell 'Closure'. This
 -- function is foreign exported.
+--
+-- The function in the closure pointed by the first argument must yield
+-- a local reference to a Java object, or the reference might be released
+-- prematurely.
 apply
-  :: JByteArray
-  -> JObjectArray
-  -> IO JObject
+  :: Ptr JByteArray
+  -> Ptr JObjectArray
+  -> IO (Ptr JObject)
 apply bytes args = do
-    bs <- reify bytes
+    bs <- (J <$> newForeignPtr_ bytes) >>= reify
     let f = unclosure (bs2clos bs) :: JObjectArray -> IO JObject
-    f args
+    unsafeForeignPtrToPtr <$> Coerce.coerce <$> (newForeignPtr_ args >>= f . J)
 
 foreign export ccall "sparkle_apply" apply
-  :: JByteArray
-  -> JObjectArray
-  -> IO JObject
+  :: Ptr JByteArray
+  -> Ptr JObjectArray
+  -> IO (Ptr JObject)
 
 type JFun1 a b = 'Iface "org.apache.spark.api.java.function.Function" <> [a, b]
 type instance Interp ('Fun '[a] b) = JFun1 (Interp a) (Interp b)

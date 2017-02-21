@@ -10,12 +10,13 @@ packages:
 - apps/dataframe
 
 extra-deps:
-- choice-0.1.1.0
-- jni-0.2.2
-- jvm-0.1.2
-- jvm-streaming-0.1
-- inline-java-0.6.1
-- thread-local-storage-0.1.1
+ - choice-0.2.0
+ - inline-c-0.5.6.1
+ - inline-java-0.6.2
+ - jni-0.3.0
+ - jvm-0.2.0
+ - jvm-streaming-0.2
+ - thread-local-storage-0.1.1
 
 explicit-setup-deps:
   bench: true
