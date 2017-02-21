@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [0.5]
+
+### Added
+
+* Bind to expm1
+* Add bindings to dayofmonth, current_timestamp and current_date.
+* Add support for the dataframe condition expressions
+* Add bindings to withColumnRenamed, columns, printSchema, Column.expr.
+* Bind DataFrame distinct.
+* Add bindings for log and log1p for Columns.
+* Add binding to Column.cast.
+* Add bindings getList and array for columns.
+* Add bindings: schema for rows, Metadata type, javaRDD, range, Row
+  getters and constructors, StrucType constructors, createDataFrame,
+  more DataType bindings.
+
+### Changed
+
+* Prevent Haskell exceptions from escaping apply.
+* Update sparkle to work with latest jni which uses ForeignPtr
+  for java references.
+* Move StructType and friends to modules StructField, DataType and Metadata.
+* Rename createRow, rowGet, rowSize, joinPairRDD to have the same names
+  as the java methods.
+
 ## [0.4]
 
 ### Added
