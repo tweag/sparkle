@@ -173,9 +173,12 @@ All rights reserved.
 sparkle is free software, and may be redistributed under the terms
 specified in the [LICENSE](LICENSE) file.
 
-## About
+## Sponsors
 
-![Tweag I/O](http://i.imgur.com/0HK8X4y.png)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+[![Tweag I/O](http://i.imgur.com/0HK8X4y.png)](http://tweag.io)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+[![LeapYear](http://i.imgur.com/t9VxRHn.png)](http://leapyear.io)
 
 sparkle is maintained by [Tweag I/O](http://tweag.io/).
 
