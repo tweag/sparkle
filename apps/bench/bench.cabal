@@ -1,0 +1,29 @@
+name:                bench
+version:             0.1
+license:             BSD3
+license-file:        LICENSE
+author:              Tweag I/O
+maintainer:          m@tweag.io
+copyright:           2016 EURL Tweag
+build-type:          Custom
+cabal-version:       >=1.10
+
+custom-setup
+  setup-depends:
+    Cabal >= 1.24,
+    inline-java
+
+executable sparkle-benchmarks
+  main-is: Main.hs
+  build-depends:
+    base >=4.7 && <5,
+    criterion >= 1.1,
+    distributed-closure >= 0.3.3,
+    jvm,
+    inline-java,
+    sparkle,
+    text,
+    vector
+  default-language: Haskell2010
+  ghc-options: -dynamic -lpthread -threaded
+  ld-options: -pie -Wl,-z,origin -Wl,-rpath,$ORIGIN
