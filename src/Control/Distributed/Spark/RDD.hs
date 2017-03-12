@@ -14,7 +14,6 @@
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
-  , parallelize
   , repartition
   , filter
   , map
@@ -28,8 +27,6 @@ module Control.Distributed.Spark.RDD
   , count
   , collect
   , take
-  , textFile
-  , binaryRecords
   , distinct
   , intersection
   , union
@@ -44,12 +41,9 @@ module Control.Distributed.Spark.RDD
 import Prelude hiding (filter, map, subtract, take)
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure ()
-import Control.Distributed.Spark.Context
-import Data.ByteString (ByteString)
 import Data.Choice (Choice)
 import qualified Data.Choice as Choice
 import Data.Int
-import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Typeable (Typeable)
 import Language.Java
@@ -61,21 +55,6 @@ import Streaming (Stream, Of)
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
 instance Coercible (RDD a) ('Class "org.apache.spark.api.java.JavaRDD")
-
-parallelize
-  :: Reflect a ty
-  => SparkContext
-  -> [a]
-  -> IO (RDD a)
-parallelize sc xs = do
-    jxs :: J ('Iface "java.util.List") <- arrayToList =<< reflect xs
-    call sc "parallelize" [coerce jxs]
-  where
-    arrayToList jxs =
-        callStatic
-          (sing :: Sing "java.util.Arrays")
-          "asList"
-          [coerce (unsafeCast jxs :: JObjectArray)]
 
 repartition :: Int32 -> RDD a -> IO (RDD a)
 repartition nbPart rdd = call rdd "repartition" [JInt nbPart]
@@ -214,20 +193,6 @@ take rdd n = do
   res :: J ('Class "java.util.List") <- call rdd "take" [JInt n]
   arr :: JObjectArray <- call res "toArray" []
   reify (unsafeCast arr)
-
--- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
-textFile :: SparkContext -> FilePath -> IO (RDD Text)
-textFile sc path = do
-  jpath <- reflect (Text.pack path)
-  call sc "textFile" [coerce jpath]
-
--- | The record length must be provided in bytes.
---
--- See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
-binaryRecords :: SparkContext -> FilePath -> Int32 -> IO (RDD ByteString)
-binaryRecords sc fp recordLength = do
-  jpath <- reflect (Text.pack fp)
-  call sc "binaryRecords" [coerce jpath, coerce recordLength]
 
 distinct :: RDD a -> IO (RDD a)
 distinct r = call r "distinct" []
