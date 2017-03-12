@@ -25,7 +25,9 @@ jincr = unsafePerformIO $
        } |]
 
 hincr :: J ('Iface "org.apache.spark.api.java.function.Function")
-hincr = unsafeUngeneric . unsafePerformIO $ reflect (closure (static (\x -> (x :: Int32) + 1)))
+hincr =
+    unsafeUngeneric . unsafePerformIO $
+    reflect (static (+1) :: Closure (Int32 -> Int32))
 
 mapJava :: RDD Int32 -> IO Int32
 mapJava rdd = reify =<< [java| $rdd.map($jincr).count() |]
