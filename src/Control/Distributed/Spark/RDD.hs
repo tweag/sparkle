@@ -238,14 +238,13 @@ intersection r r' = call r "intersection" [coerce r']
 union :: RDD a -> RDD a -> IO (RDD a)
 union r r' = call r "union" [coerce r']
 
-sample :: RDD a
-       -> Bool   -- ^ sample with replacement (can elements be sampled
-                 --   multiple times) ?
-       -> Double -- ^ fraction of elements to keep
-       -> IO (RDD a)
-sample r withReplacement frac = do
-  let rep = if withReplacement then 255 else 0
-  call r "sample" [JBoolean rep, JDouble frac]
+sample
+  :: RDD a
+  -> Choice "replacement" -- ^ sample with replacement
+  -> Double -- ^ fraction of elements to keep
+  -> IO (RDD a)
+sample rdd replacement frac = do
+  call rdd "sample" [jvalue (Choice.toBool replacement), jvalue frac]
 
 first :: Reify a ty => RDD a -> IO a
 first rdd = do
