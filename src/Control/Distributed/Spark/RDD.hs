@@ -14,28 +14,33 @@
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
-  , repartition
-  , filter
-  , map
-  , module Choice
-  , mapPartitions
-  , mapPartitionsWithIndex
-  , fold
-  , reduce
+  , Choice
+  -- * Queries
+  -- $reading_files
+  , collect
+  , first
+  , take
+  -- * Properties
+  , getNumPartitions
+  , count
+  -- * Folds
   , aggregate
   , treeAggregate
-  , count
-  , collect
-  , take
+  , fold
+  , reduce
+  -- * Transformations
   , distinct
+  , filter
   , intersection
-  , union
+  , map
+  , mapPartitions
+  , mapPartitionsWithIndex
+  , repartition
   , sample
-  , first
-  , getNumPartitions
-  , saveAsTextFile
   , subtract
-  -- $reading_files
+  , union
+  -- * Input/Output
+  , saveAsTextFile
   ) where
 
 import Prelude hiding (filter, map, subtract, take)
