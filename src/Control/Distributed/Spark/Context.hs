@@ -9,7 +9,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Control.Distributed.Spark.Context where
+module Control.Distributed.Spark.Context
+  ( -- * Spark configurations
+    SparkConf(..)
+  , newSparkConf
+  , confSet
+    -- * Spark contexts
+  , SparkContext(..)
+  , newSparkContext
+  , getOrCreateSparkContext
+  , addFile
+  , getFile
+  , master
+  ) where
 
 import Data.Text (Text, pack, unpack)
 import Language.Java
