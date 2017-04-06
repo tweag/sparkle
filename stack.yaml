@@ -1,5 +1,4 @@
-resolver: lts-7.14
-compiler: ghc-8.0.2
+resolver: lts-8.8
 
 packages:
 - .
@@ -11,13 +10,9 @@ packages:
 - apps/rdd-ops
 
 extra-deps:
- - choice-0.2.0
- - inline-c-0.5.6.1
- - inline-java-0.6.3
  - jni-0.3.0
  - jvm-0.2.0
- - jvm-streaming-0.2
- - thread-local-storage-0.1.1
+ - inline-java-0.6.3
 
 explicit-setup-deps:
   bench: true
