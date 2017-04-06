@@ -10,9 +10,10 @@ packages:
 - apps/rdd-ops
 
 extra-deps:
- - jni-0.3.0
- - jvm-0.2.0
- - inline-java-0.6.3
+- jni-0.3.0
+- jvm-0.2.0
+- jvm-streaming-0.2
+- inline-java-0.6.3
 
 explicit-setup-deps:
   bench: true
