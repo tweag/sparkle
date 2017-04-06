@@ -18,7 +18,7 @@ executable sparkle-benchmarks
   build-depends:
     base >=4.7 && <5,
     criterion >= 1.1,
-    distributed-closure >= 0.3.3,
+    distributed-closure >= 0.3.4,
     jvm,
     inline-java,
     sparkle,
