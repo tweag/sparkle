@@ -33,6 +33,12 @@ source-repository head
   location: https://github.com/tweag/sparkle
   subdir:   sparkle
 
+custom-setup
+  setup-depends:
+    base,
+    Cabal >= 1.24,
+    process
+
 library
   include-dirs: cbits
   c-sources: cbits/bootstrap.c

@@ -10,6 +10,7 @@ cabal-version:       >=1.10
 
 custom-setup
   setup-depends:
+    base,
     Cabal >= 1.24,
     inline-java
 
