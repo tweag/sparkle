@@ -9,6 +9,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StaticPointers #-}
 
@@ -40,13 +41,14 @@ module Control.Distributed.Spark.RDD
 
 import Prelude hiding (filter, map, subtract, take)
 import Control.Distributed.Closure
-import Control.Distributed.Spark.Closure ()
+import Control.Distributed.Spark.Closure (JFun1, JFun2)
 import Data.Choice (Choice)
 import qualified Data.Choice as Choice
 import Data.Int
 import qualified Data.Text as Text
 import Data.Typeable (Typeable)
 import Language.Java
+import Language.Java.Inline
 -- We don't need this instance. But import to bring it in scope transitively for users.
 #if MIN_VERSION_base(4,9,1)
 import Language.Java.Streaming ()
@@ -57,7 +59,7 @@ newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
 instance Coercible (RDD a) ('Class "org.apache.spark.api.java.JavaRDD")
 
 repartition :: Int32 -> RDD a -> IO (RDD a)
-repartition nbPart rdd = call rdd "repartition" [JInt nbPart]
+repartition n rdd = [java| $rdd.repartition($n) |]
 
 filter
   :: Reflect (Closure (a -> Bool)) ty
@@ -65,17 +67,17 @@ filter
   -> RDD a
   -> IO (RDD a)
 filter clos rdd = do
-    f <- reflect clos
-    call rdd "filter" [coerce f]
+    f <- unsafeUngeneric <$> reflect clos
+    [java| $rdd.filter($f) |]
 
 map
-  :: Reflect (Closure (a -> b)) ty
+  :: Reflect (Closure (a -> b)) (JFun1 ty1 ty2)
   => Closure (a -> b)
   -> RDD a
   -> IO (RDD b)
 map clos rdd = do
-    f <- reflect clos
-    call rdd "map" [coerce f]
+    f <- unsafeUngeneric <$> reflect clos
+    [java| $rdd.map($f) |]
 
 mapPartitions
   :: (Reflect (Closure (Int32 -> Stream (Of a) IO () -> Stream (Of b) IO ())) ty, Typeable a, Typeable b)
@@ -93,36 +95,36 @@ mapPartitionsWithIndex
   -> RDD a
   -> IO (RDD b)
 mapPartitionsWithIndex preservePartitions clos rdd = do
-  f <- reflect clos
-  call rdd "mapPartitionsWithIndex" [coerce f, coerce (Choice.toBool preservePartitions)]
+  f <- unsafeUngeneric <$> reflect clos
+  [java| $rdd.mapPartitionsWithIndex($f, $preservePartitions) |]
 
 fold
-  :: (Reflect (Closure (a -> a -> a)) ty1, Reflect a ty2, Reify a ty2)
+  :: (Reflect (Closure (a -> a -> a)) (JFun2 ty ty ty), Reflect a ty, Reify a ty)
   => Closure (a -> a -> a)
   -> a
   -> RDD a
   -> IO a
 fold clos zero rdd = do
-  f <- reflect clos
+  f <- unsafeUngeneric <$> reflect clos
   jzero <- upcast <$> reflect zero
-  res :: JObject <- call rdd "fold" [coerce jzero, coerce f]
+  res :: JObject <- [java| $rdd.fold($jzero, $f) |]
   reify (unsafeCast res)
 
 reduce
-  :: (Reflect (Closure (a -> a -> a)) ty1, Reify a ty2, Reflect a ty2)
+  :: (Reflect (Closure (a -> a -> a)) (JFun2 ty ty ty), Reify a ty, Reflect a ty)
   => Closure (a -> a -> a)
   -> RDD a
   -> IO a
 reduce clos rdd = do
-  f <- reflect clos
-  res :: JObject <- call rdd "reduce" [coerce f]
+  f <- unsafeUngeneric <$> reflect clos
+  res :: JObject <- [java| $rdd.reduce($f) |]
   reify (unsafeCast res)
 
 aggregate
-  :: ( Reflect (Closure (b -> a -> b)) ty1
-     , Reflect (Closure (b -> b -> b)) ty2
-     , Reify b ty3
-     , Reflect b ty3
+  :: ( Reflect (Closure (b -> a -> b)) (JFun2 ty2 ty1 ty2)
+     , Reflect (Closure (b -> b -> b)) (JFun2 ty2 ty2 ty2)
+     , Reify b ty2
+     , Reflect b ty2
      )
   => Closure (b -> a -> b)
   -> Closure (b -> b -> b)
@@ -130,17 +132,17 @@ aggregate
   -> RDD a
   -> IO b
 aggregate seqOp combOp zero rdd = do
-  jseqOp <- reflect seqOp
-  jcombOp <- reflect combOp
+  jseqOp <- unsafeUngeneric <$> reflect seqOp
+  jcombOp <- unsafeUngeneric <$> reflect combOp
   jzero <- upcast <$> reflect zero
-  res :: JObject <- call rdd "aggregate" [coerce jzero, coerce jseqOp, coerce jcombOp]
+  res :: JObject <- [java| $rdd.aggregate($jzero, $jseqOp, $jcombOp) |]
   reify (unsafeCast res)
 
 treeAggregate
-  :: ( Reflect (Closure (b -> a -> b)) ty1
-     , Reflect (Closure (b -> b -> b)) ty2
-     , Reflect b ty3
-     , Reify b ty3
+  :: ( Reflect (Closure (b -> a -> b)) (JFun2 ty2 ty1 ty2)
+     , Reflect (Closure (b -> b -> b)) (JFun2 ty2 ty2 ty2)
+     , Reflect b ty2
+     , Reify b ty2
      )
   => Closure (b -> a -> b)
   -> Closure (b -> b -> b)
@@ -149,20 +151,17 @@ treeAggregate
   -> RDD a
   -> IO b
 treeAggregate seqOp combOp zero depth rdd = do
-  jseqOp <- reflect seqOp
-  jcombOp <- reflect combOp
+  jseqOp <- unsafeUngeneric <$> reflect seqOp
+  jcombOp <- unsafeUngeneric <$> reflect combOp
   jzero <- upcast <$> reflect zero
-  let jdepth = coerce depth
-  res :: JObject <-
-    call rdd "treeAggregate"
-      [ coerce jseqOp, coerce jcombOp, coerce jzero, jdepth ]
+  res :: JObject <- [java| $rdd.treeAggregate($jzero, $jseqOp, $jcombOp, $depth) |]
   reify (unsafeCast res)
 
 count :: RDD a -> IO Int64
-count rdd = call rdd "count" []
+count rdd = [java| $rdd.count() |]
 
 subtract :: RDD a -> RDD a -> IO (RDD a)
-subtract rdd rdds = call rdd "subtract" [coerce rdds]
+subtract rdd1 rdd2 = [java| $rdd1.subtract($rdd2) |]
 
 -- $reading_files
 --
@@ -183,43 +182,44 @@ subtract rdd rdds = call rdd "subtract" [coerce rdds]
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
 collect :: Reify a ty => RDD a -> IO [a]
 collect rdd = do
-  alst :: J ('Iface "java.util.List") <- call rdd "collect" []
-  arr :: JObjectArray <- call alst "toArray" []
+  res :: J ('Iface "java.util.List") <- [java| $rdd.collect() |]
+  arr :: JObjectArray <- [java| $res.toArray() |]
   reify (unsafeCast arr)
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
 take :: Reify a ty => RDD a -> Int32 -> IO [a]
 take rdd n = do
-  res :: J ('Class "java.util.List") <- call rdd "take" [JInt n]
-  arr :: JObjectArray <- call res "toArray" []
+  res :: J ('Class "java.util.List") <- [java| $rdd.take($n) |]
+  arr :: JObjectArray <- [java| $res.toArray() |]
   reify (unsafeCast arr)
 
 distinct :: RDD a -> IO (RDD a)
-distinct r = call r "distinct" []
+distinct rdd = [java| $rdd.distinct() |]
 
 intersection :: RDD a -> RDD a -> IO (RDD a)
-intersection r r' = call r "intersection" [coerce r']
+intersection rdd1 rdd2 = [java| $rdd1.intersection($rdd2) |]
 
 union :: RDD a -> RDD a -> IO (RDD a)
-union r r' = call r "union" [coerce r']
+union rdd1 rdd2 = [java| $rdd1.union($rdd2) |]
 
 sample
   :: RDD a
-  -> Choice "replacement" -- ^ sample with replacement
+  -> Choice "replacement" -- ^ Whether to sample with replacement
   -> Double -- ^ fraction of elements to keep
   -> IO (RDD a)
-sample rdd replacement frac = do
-  call rdd "sample" [jvalue (Choice.toBool replacement), jvalue frac]
+sample rdd replacement frac = [java| $rdd.sample($replacement, $frac) |]
 
 first :: Reify a ty => RDD a -> IO a
 first rdd = do
-  res :: JObject <- call rdd "first" []
+  res :: JObject <- [java| $rdd.first() |]
   reify (unsafeCast res)
 
 getNumPartitions :: RDD a -> IO Int32
-getNumPartitions rdd = call rdd "getNumPartitions" []
+getNumPartitions rdd = [java| $rdd.getNumPartitions() |]
 
 saveAsTextFile :: RDD a -> FilePath -> IO ()
 saveAsTextFile rdd fp = do
   jfp <- reflect (Text.pack fp)
-  call rdd "saveAsTextFile" [coerce jfp]
+  -- XXX workaround for inline-java-0.6 not supporting void return types.
+  _ :: JObject <- [java| { $rdd.saveAsTextFile($jfp); return null; } |]
+  return ()

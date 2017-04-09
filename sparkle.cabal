@@ -37,7 +37,7 @@ custom-setup
   setup-depends:
     base,
     Cabal >= 1.24,
-    process
+    inline-java >= 0.6.3
 
 library
   include-dirs: cbits
@@ -67,8 +67,9 @@ library
     bytestring >=0.10,
     choice >= 0.1,
     distributed-closure >=0.3,
+    inline-java >= 0.6.3,
     jni >=0.3.0,
-    jvm >=0.2.0,
+    jvm >=0.2.1,
     singletons >= 2.0,
     streaming >= 0.1,
     text >=1.2,
