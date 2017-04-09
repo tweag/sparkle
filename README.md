@@ -1,6 +1,6 @@
 # sparkle: Apache Spark applications in Haskell
 
-[![Circle CI](https://circleci.com/gh/tweag/sparkle.svg?style=svg)](https://circleci.com/gh/tweag/sparkle)
+[![wercker status](https://app.wercker.com/status/c4778c4101904af891bec03afb24f0da/s/master "wercker status")](https://app.wercker.com/project/byKey/c4778c4101904af891bec03afb24f0da)
 
 *sparkle [spär′kəl]:* a library for writing resilient analytics
 applications in Haskell that scale to thousands of nodes, using
