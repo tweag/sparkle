@@ -11,4 +11,5 @@ public class Sparkle extends SparkleBase {
 
     public static native <R> R apply(byte[] cos, Object... args);
     private static native void initializeHaskellRTS();
+    public static native void loadJavaWrappers();
 }

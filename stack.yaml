@@ -15,7 +15,7 @@ extra-deps:
 - jni-0.3.0
 - jvm-0.2.1
 - jvm-streaming-0.2
-- inline-java-0.6.3
+- inline-java-0.6.5
 
 nix:
   # Requires Stack >= 1.2.
