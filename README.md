@@ -164,6 +164,31 @@ If you're using JDK 9, note that you'll need to either downgrade to
 JDK 8 or update your Gradle version, since Gradle versions up to and
 including 2.12 are not compatible with JDK 9.
 
+### Anonymous classes in inline-java quasiquotes fail to deserialize
+
+When using inline-java, it is recommended to use the Kryo serializer,
+which is currently not the default in Spark but is faster anyways. If
+you don't use the Kryo serializer, objects of anonymous class, which
+arise e.g. when using Java 8 function literals,
+
+```haskell
+foo :: RDD Int -> IO (RDD Bool)
+foo rdd = [java| $rdd.map((Integer x) -> x.equals(0)) |]
+```
+
+won't be deserialized properly in multi-node setups. To avoid this
+problem, switch to the Kryo serializer by setting the following
+configuration properties in your `SparkConf`:
+
+```haskell
+do conf <- newSparkConf "some spark app"
+   confSet conf "spark.serializer" "org.apache.spark.serializer.KryoSerializer"
+   confSet conf "spark.kryo.registrator" "io.tweag.sparkle.kryo.InlineJavaRegistrator"
+```
+
+See [#104](https://github.com/tweag/sparkle/issues/104) for more
+details.
+
 ## License
 
 Copyright (c) 2015-2016 EURL Tweag.

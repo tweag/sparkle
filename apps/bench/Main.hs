@@ -38,6 +38,8 @@ mapHaskell rdd = reify =<< [java| $rdd.map($hincr).count() |]
 main :: IO ()
 main = do
     conf <- newSparkConf "RDD benchmarks"
+    confSet conf "spark.serializer" "org.apache.spark.serializer.KryoSerializer"
+    confSet conf "spark.kryo.registrator" "io.tweag.sparkle.kryo.InlineJavaRegistrator"
     sc   <- getOrCreateSparkContext conf
     forM_ [0,200..10000 :: Int32] $ \x -> do
       putStrLn $ "Size " ++ show x

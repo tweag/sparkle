@@ -15,6 +15,7 @@ extra-source-files:
   cbits/io_tweag_sparkle_Sparkle.h
   src/main/java/io/tweag/sparkle/Sparkle.java
   src/main/java/io/tweag/sparkle/SparkMain.java
+  src/main/java/io/tweag/sparkle/kryo/InlineJavaRegistrator.java
   src/main/java/io/tweag/sparkle/function/HaskellVoidFunction.java
   src/main/java/io/tweag/sparkle/function/HaskellFunction4.java
   src/main/java/io/tweag/sparkle/function/HaskellFunction0.java
