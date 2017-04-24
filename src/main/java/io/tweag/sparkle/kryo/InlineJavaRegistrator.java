@@ -1,7 +1,8 @@
-package io.tweag.sparkle;
+package io.tweag.sparkle.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import org.apache.spark.serializer.KryoRegistrator;
+import io.tweag.sparkle.Sparkle;
 
 /**
  * Register inline-java classes for Kryo serialization. Unlike other
