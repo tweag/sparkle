@@ -10,7 +10,7 @@ See [this blog post][hello-sparkle] for the details.
 **This is an early tech preview, not production ready.**
 
 [spark]: http://spark.apache.org/
-[hello-sparkle]: http://blog.tweag.io/posts/2016-02-25-hello-sparkle.html
+[hello-sparkle]: http://www.tweag.io/posts/2016-02-25-hello-sparkle.html
 
 ## Getting started
 
@@ -122,7 +122,7 @@ the [Databricks hosted platform][databricks] and on
 [spark-submit]: http://spark.apache.org/docs/1.6.2/submitting-applications.html
 [spark-ec2]: http://spark.apache.org/docs/1.6.2/ec2-scripts.html
 [nix]: http://nixos.org/nix
-[tweag-blog-haskell-paas]: http://blog.tweag.io/posts/2016-06-20-haskell-compute-paas-with-sparkle.html
+[tweag-blog-haskell-paas]: http://www.tweag.io/posts/2016-06-20-haskell-compute-paas-with-sparkle.html
 [databricks]: https://databricks.com/
 [aws-emr]: https://aws.amazon.com/emr/
 
