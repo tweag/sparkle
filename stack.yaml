@@ -11,11 +11,6 @@ packages:
 - apps/lda
 - apps/rdd-ops
 
-extra-deps:
-- jni-0.3.0
-- jvm-0.2.1
-- jvm-streaming-0.2
-
 nix:
   # Requires Stack >= 1.2.
   shell-file: shell.nix
