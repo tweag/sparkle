@@ -1,6 +1,6 @@
 require-stack-version: ">= 1.4"
 
-resolver: lts-8.8
+resolver: lts-9.0
 
 packages:
 - .
@@ -15,7 +15,6 @@ extra-deps:
 - jni-0.3.0
 - jvm-0.2.1
 - jvm-streaming-0.2
-- inline-java-0.6.5
 
 nix:
   # Requires Stack >= 1.2.
