@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [0.6] - 2017-07-16
+
+### Added
+
+* Support shipping anonymous objects that appear in inline-java
+  quasiquotes. You'll need to configure your app to use the Kryo
+  serializer for this to work. See FAQ in README. This fixes #104.
+
+### Changed
+
+* Move `parallelize`, `textFile` and `binaryRecords` to `Context`
+  module.
+* Functions such as `sample` now use the [choice][hackage-choice]
+  library to describe the semantics of boolean arguments in their
+  types.
+* Use inline-java for RDD bindings under the hood.
+
 ## [0.5] - 2017-02-21
 
 ### Added
