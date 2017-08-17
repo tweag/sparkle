@@ -75,9 +75,10 @@ schema :: DataFrame -> IO StructType
 schema df = call df "schema" []
 
 select :: DataFrame -> [Column] -> IO DataFrame
-select d1 colexprs = do
-  jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
-  call d1 "select" [coerce jcols]
+select d1 colexprs =
+    toArray (Data.Coerce.coerce colexprs
+               :: [J ('Class "org.apache.spark.sql.Column")])
+      >>= call d1 "select" . (:[]) . coerce
 
 filter :: DataFrame -> Column -> IO DataFrame
 filter d1 colexpr = call d1 "where" [coerce colexpr]
@@ -106,12 +107,14 @@ printSchema :: DataFrame -> IO ()
 printSchema df = call df "printSchema" []
 
 groupBy :: DataFrame -> [Column] -> IO GroupedData
-groupBy d1 colexprs = do
-  jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
-  call d1 "groupBy" [coerce jcols]
+groupBy d1 colexprs =
+    toArray (Data.Coerce.coerce colexprs
+               :: [J ('Class "org.apache.spark.sql.Column")])
+      >>= call d1 "groupBy" . (:[]) . coerce
 
 agg :: GroupedData -> [Column] -> IO DataFrame
 agg _ [] = error "agg: not enough arguments."
-agg df (c:cols) = do
-  jcols <- reflect (Prelude.map Data.Coerce.coerce cols :: [J ('Class "org.apache.spark.sql.Column")])
-  call df "agg" [coerce c, coerce jcols]
+agg df (Column jcol : cols) = do
+    jcols <- toArray (Data.Coerce.coerce cols
+               :: [J ('Class "org.apache.spark.sql.Column")])
+    call df "agg" [coerce jcol, coerce jcols]

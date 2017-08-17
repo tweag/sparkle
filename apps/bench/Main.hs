@@ -4,6 +4,7 @@
 {-# LANGUAGE StaticPointers #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Main where
 
@@ -28,10 +29,10 @@ hincr =
     unsafeUngeneric . unsafePerformIO $
     reflectFun (sing :: Sing 1) (static ((+1) :: Int32 -> Int32))
 
-mapJava :: RDD Int32 -> IO Int32
+mapJava :: RDD Int32 -> IO Int64
 mapJava rdd = reify =<< [java| $rdd.map($jincr).count() |]
 
-mapHaskell :: RDD Int32 -> IO Int32
+mapHaskell :: RDD Int32 -> IO Int64
 mapHaskell rdd = reify =<< [java| $rdd.map($hincr).count() |]
 
 main :: IO ()

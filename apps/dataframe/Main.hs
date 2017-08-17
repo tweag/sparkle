@@ -90,12 +90,9 @@ main = do
        arrCols <- array [col1, col2]
        select df1 [arrCols]
          >>= javaRDD
-         >>= \rdd -> collect
-               (Data.Coerce.coerce rdd
-                  :: RDD (J ('Class "org.apache.spark.sql.Row")))
-         >>= mapM (getList 0 . Data.Coerce.coerce)
-         >>= mapM (mapM (\x -> (reify (unsafeCast x) :: IO Double)))
-         >>= print
+         >>= collectCoercible
+         >>= mapM (getList 0)
+         >>= \xs -> print (xs :: [[Double]])
 
     do redundantDF <- unionAll df1 df1
        distinctDF  <- DataFrame.distinct redundantDF
@@ -156,9 +153,9 @@ main = do
        nowDtCol   <- current_date
 
        jdate <- new [ JLong 0 ] :: IO (J ('Class "java.sql.Date"))
-       epochTsCol <- lit jdate
+       epochTsCol <- litCoercible jdate
        jtimestamp <- new [ JLong 0 ] :: IO (J ('Class "java.sql.Timestamp"))
-       epochDtCol <- lit jtimestamp
+       epochDtCol <- litCoercible jtimestamp
 
        secCol     <- second nowTsCol
        minsCol    <- minute nowTsCol

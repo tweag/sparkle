@@ -28,6 +28,7 @@ module Control.Distributed.Spark.RDD
   , treeAggregate
   , count
   , collect
+  , collectCoercible
   , take
   , distinct
   , intersection
@@ -48,6 +49,7 @@ import qualified Data.Choice as Choice
 import Data.Int
 import qualified Data.Text as Text
 import Data.Typeable (Typeable)
+import Foreign.JNI
 import Language.Java
 import Language.Java.Inline
 -- We don't need this instance. But import to bring it in scope transitively for users.
@@ -178,6 +180,18 @@ collect rdd = do
   res :: J ('Iface "java.util.List") <- [java| $rdd.collect() |]
   arr :: JObjectArray <- [java| $res.toArray() |]
   reify (unsafeCast arr)
+
+-- | Like 'collect' but for values without a Reify instance.
+collectCoercible :: forall a ty. (Coercible a ty, IsReferenceType ty)
+                 => RDD a -> IO [a]
+collectCoercible rdd = do
+    alst <- call rdd "collect" []
+    jxs <- call (alst :: J ('Iface "java.util.List")) "toArray" []
+    n <- getArrayLength (jxs :: JObjectArray)
+    cast <$> mapM (getObjectArrayElement jxs) [0 .. n - 1]
+  where
+    cast :: [JObject] -> [a]
+    cast = fmap (unsafeUncoerce . JObject)
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
 take :: Reify a => Int32 -> RDD a -> IO [a]

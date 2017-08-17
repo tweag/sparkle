@@ -12,6 +12,7 @@
 module Control.Distributed.Spark.SQL.Column where
 
 import Control.Monad (foldM)
+import qualified Data.Coerce
 import Data.Text (Text)
 import qualified Foreign.JNI.String
 import Language.Java
@@ -155,12 +156,14 @@ isnull col = callStaticSqlFun "isnull" [coerce col]
 
 coalesce :: [Column] -> IO Column
 coalesce colexprs = do
-  jcols <- reflect [ j | Column j <- colexprs ]
+  jcols <- toArray (Data.Coerce.coerce colexprs
+             :: [J ('Class "org.apache.spark.sql.Column")])
   callStaticSqlFun "coalesce" [coerce jcols]
 
 array :: [Column] -> IO Column
 array colexprs = do
-  jcols <- reflect [ j | Column j <- colexprs ]
+  jcols <- toArray (Data.Coerce.coerce colexprs
+             :: [J ('Class "org.apache.spark.sql.Column")])
   callStaticSqlFun "array" [coerce jcols]
 
 expr :: Text -> IO Column
