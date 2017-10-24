@@ -158,7 +158,7 @@ treeAggregate seqOp combOp zero depth rdd = do
   reify (unsafeCast res)
 
 count :: RDD a -> IO Int64
-count rdd = [java| $rdd.count() |]
+count rdd = [java| $rdd.count() |] >>= reify
 
 subtract :: RDD a -> RDD a -> IO (RDD a)
 subtract rdd1 rdd2 = [java| $rdd1.subtract($rdd2) |]
