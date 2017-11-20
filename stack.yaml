@@ -14,6 +14,7 @@ packages:
 nix:
   # Requires Stack >= 1.2.
   shell-file: shell.nix
+  path: ["nixpkgs=./nixpkgs.nix"]
 
 docker:
   enable: false
