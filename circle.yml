@@ -23,4 +23,4 @@ test:
   - stack --no-terminal --docker --docker-image sparkle build --pedantic
   # Test that packaging at least one example works fine.
   - stack --no-terminal --docker --docker-image sparkle exec sparkle package sparkle-example-hello
-  - spark-submit --master 'local[1]' sparkle-example-hello.jar
+  - stack --no-terminal --docker --docker-image sparkle exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
