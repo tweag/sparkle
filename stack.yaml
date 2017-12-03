@@ -1,6 +1,6 @@
 require-stack-version: ">= 1.4"
 
-resolver: lts-9.0
+resolver: nightly-2017-12-01
 
 packages:
 - .
@@ -10,6 +10,10 @@ packages:
 - apps/hello
 - apps/lda
 - apps/rdd-ops
+
+extra-deps:
+- mmorph-1.0.9
+- streaming-0.1.4.5
 
 nix:
   # Requires Stack >= 1.2.
