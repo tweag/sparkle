@@ -153,15 +153,19 @@ log1p col = callStaticSqlFun "log1p" [coerce col]
 isnull :: Column -> IO Column
 isnull col = callStaticSqlFun "isnull" [coerce col]
 
-coalesce :: [Column] -> IO Column
-coalesce colexprs = do
-  jcols <- reflect [ j | Column j <- colexprs ]
-  callStaticSqlFun "coalesce" [coerce jcols]
+-- TODO fishy impl
+--
+-- coalesce :: [Column] -> IO Column
+-- coalesce colexprs = do
+--   jcols <- reflect [ j | Column j <- colexprs ]
+--   callStaticSqlFun "coalesce" [coerce jcols]
 
-array :: [Column] -> IO Column
-array colexprs = do
-  jcols <- reflect [ j | Column j <- colexprs ]
-  callStaticSqlFun "array" [coerce jcols]
+-- TODO fishy impl
+--
+-- array :: [Column] -> IO Column
+-- array colexprs = do
+--   jcols <- reflect [ j | Column j <- colexprs ]
+--   callStaticSqlFun "array" [coerce jcols]
 
 expr :: Text -> IO Column
 expr e = do
