@@ -31,8 +31,10 @@ toRDD prdd = do
 
 fromRDD :: RDD (Tuple2 a b) -> IO (PairRDD a b)
 fromRDD rdd =
-  callStatic (sing :: Sing "org.apache.spark.api.java.JavaPairRDD")
-             "fromJavaRDD" [coerce rdd]
+  callStatic
+    "org.apache.spark.api.java.JavaPairRDD"
+    "fromJavaRDD"
+    [coerce rdd]
 
 join :: PairRDD a b -> PairRDD a c -> IO (PairRDD a (Tuple2 b c))
 join prdd0 prdd1 = call prdd0 "join" [coerce prdd1]

@@ -32,7 +32,7 @@ alias c n = do
 
 callStaticSqlFun :: Coercible a ty
                  => Foreign.JNI.String.String -> [JValue] -> IO a
-callStaticSqlFun = callStatic (sing :: Sing "org.apache.spark.sql.functions")
+callStaticSqlFun = callStatic "org.apache.spark.sql.functions"
 
 lit :: Reflect a ty => a -> IO Column
 lit a =  do

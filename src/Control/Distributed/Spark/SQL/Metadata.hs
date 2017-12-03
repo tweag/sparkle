@@ -11,5 +11,4 @@ newtype Metadata = Metadata (J ('Class "org.apache.spark.sql.types.Metadata"))
 instance Coercible Metadata ('Class "org.apache.spark.sql.types.Metadata")
 
 empty :: IO Metadata
-empty =
-    callStatic (sing :: Sing "org.apache.spark.sql.types.Metadata") "empty" []
+empty = callStatic "org.apache.spark.sql.types.Metadata" "empty" []

@@ -19,7 +19,7 @@ newtype Row = Row (J ('Class "org.apache.spark.sql.Row"))
 instance Coercible Row ('Class "org.apache.spark.sql.Row")
 
 toRows :: PairRDD a b -> IO (RDD Row)
-toRows prdd = callStatic (sing :: Sing "Helper") "toRows" [coerce prdd]
+toRows prdd = callStatic "Helper" "toRows" [coerce prdd]
 
 schema :: Row -> IO StructType
 schema (Row r) = call r "schema" []

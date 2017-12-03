@@ -23,7 +23,7 @@ newTokenizer icol ocol = do
   jicol <- reflect icol
   jocol <- reflect ocol
   callStatic
-    (sing :: Sing "Helper")
+    "Helper"
     "setupTokenizer"
     [ coerce tok0
     , coerce jicol

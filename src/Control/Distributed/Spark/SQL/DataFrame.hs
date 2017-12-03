@@ -11,7 +11,6 @@ import Control.Distributed.Spark.SQL.Column
 import Control.Distributed.Spark.SQL.Context
 import Control.Distributed.Spark.SQL.Row
 import Control.Distributed.Spark.SQL.StructType
-import qualified Data.Coerce
 import Data.Int
 import Data.Text (Text)
 import Language.Java
@@ -24,7 +23,7 @@ toDF :: SQLContext -> RDD Row -> Text -> Text -> IO DataFrame
 toDF sqlc rdd s1 s2 = do
   col1 <- reflect s1
   col2 <- reflect s2
-  callStatic (sing :: Sing "Helper") "toDF" [coerce sqlc, coerce rdd, coerce col1, coerce col2]
+  callStatic "Helper" "toDF" [coerce sqlc, coerce rdd, coerce col1, coerce col2]
 
 javaRDD :: DataFrame -> IO (RDD Row)
 javaRDD df = call df "javaRDD" []
