@@ -1,6 +1,7 @@
 -- | Foreign exports and instances to deal with 'Closure' in Spark.
 
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,12 +10,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE UndecidableInstances #-} -- For Closure instances
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Control.Distributed.Spark.Closure
-  ( JFun1
+  ( ReifyFun(..)
+  , ReflectFun(..)
+  , JFun1
   , JFun2
   , apply
   ) where
@@ -32,6 +34,7 @@ import Foreign.ForeignPtr (newForeignPtr_)
 import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import Foreign.JNI
 import Foreign.Ptr (Ptr)
+import GHC.TypeLits (Nat)
 import Language.Java
 
 -- | The main entry point for Java code to apply a Haskell 'Closure'. This
@@ -65,33 +68,27 @@ foreign export ccall "sparkle_apply" apply
   -> Ptr JObjectArray
   -> IO (Ptr JObject)
 
-type JFun1 a b = 'Iface "org.apache.spark.api.java.function.Function" <> [a, b]
-type instance Interp ('Fun '[a] b) = JFun1 (Interp a) (Interp b)
-
 pairDict :: Dict c1 -> Dict c2 -> Dict (c1, c2)
 pairDict Dict Dict = Dict
 
 closFun1
-  :: forall a b ty1 ty2.
-     Dict (Reify a ty1, Reflect b ty2)
+  :: forall a b.
+     Dict (Reify a, Reflect b)
   -> (a -> b)
   -> JObjectArray
   -> IO JObject
 closFun1 Dict f args =
     fmap upcast . refl =<< return . f =<< reif . unsafeCast =<< getObjectArrayElement args 0
   where
-    reif = reify :: J ty1 -> IO a
-    refl = reflect :: b -> IO (J ty2)
-
-type JFun2 a b c = 'Iface "org.apache.spark.api.java.function.Function2" <> [a, b, c]
-type instance Interp ('Fun '[a, b] c) = JFun2 (Interp a) (Interp b) (Interp c)
+    reif = reify :: J (Interp a) -> IO a
+    refl = reflect :: b -> IO (J (Interp b))
 
 tripleDict :: Dict c1 -> Dict c2 -> Dict c3 -> Dict (c1, c2, c3)
 tripleDict Dict Dict Dict = Dict
 
 closFun2
-  :: forall a b c ty1 ty2 ty3.
-     Dict (Reify a ty1, Reify b ty2, Reflect c ty3)
+  :: forall a b c.
+     Dict (Reify a, Reify b, Reflect c)
   -> (a -> b -> c)
   -> JObjectArray
   -> IO JObject
@@ -102,9 +99,9 @@ closFun2 Dict f args = do
     b' <- reifB b
     upcast <$> reflC (f a' b')
   where
-    reifA = reify :: J ty1 -> IO a
-    reifB = reify :: J ty2 -> IO b
-    reflC = reflect :: c -> IO (J ty3)
+    reifA = reify :: J (Interp a) -> IO a
+    reifB = reify :: J (Interp b) -> IO b
+    reflC = reflect :: c -> IO (J (Interp c))
 
 clos2bs :: Typeable a => Closure a -> ByteString
 clos2bs = LBS.toStrict . encode
@@ -112,34 +109,35 @@ clos2bs = LBS.toStrict . encode
 bs2clos :: Typeable a => ByteString -> Closure a
 bs2clos = decode . LBS.fromStrict
 
--- TODO No Static (Reify/Reflect (Closure (a -> b)) ty) instances yet.
+-- | Like 'Interp', but parameterized by the target arity of the 'Fun' instance.
+type family InterpWithArity (n :: Nat) (a :: *) :: JType
 
--- Needs UndecidableInstances
-instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
-         , Reflect a ty1
-         , Reify b ty2
+-- | A @ReifyFun n a@ constraint states that @a@ is a function type of arity
+-- @n@. That is, a value of this function type can be made from a @JFun{n}@.
+class ReifyFun n a where
+  -- | Like 'reify', but specialized to reifying functions at a given arity.
+  reifyFun :: Sing n -> J (InterpWithArity n a) -> IO a
+
+-- TODO define instances for 'ReifyFun'.
+
+-- | A @ReflectFun n a@ constraint states that @a@ is a function type of arity
+-- @n@. That is, a @JFun{n}@ can be made from any value of this function type.
+class ReflectFun n a where
+  -- | Like 'reflect', but specialized to reflecting functions at a given arity.
+  reflectFun :: Sing n -> Closure a -> IO (J (InterpWithArity n a))
+
+-- TODO No Static (Fun (a -> b)) instances yet.
+
+type instance InterpWithArity 1 (a -> b) = JFun1 (Interp a) (Interp b)
+type JFun1 a b = 'Iface "org.apache.spark.api.java.function.Function" <> [a, b]
+
+instance ( Static (Reify a)
+         , Static (Reflect b)
          , Typeable a
          , Typeable b
          ) =>
-         Reify (Closure (a -> b)) (JFun1 ty1 ty2) where
-  reify jobj = do
-      klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
-      field <- getFieldID klass "clos" "[B"
-      jpayload <- getObjectField jobj field
-      payload <- reify (unsafeCast jpayload)
-      return (bs2clos payload)
-
--- Needs UndecidableInstances
-instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
-         , Static (Reify a ty1)
-         , Static (Reflect b ty2)
-         , Typeable a
-         , Typeable b
-         , Typeable ty1
-         , Typeable ty2
-         ) =>
-         Reflect (Closure (a -> b)) (JFun1 ty1 ty2) where
-  reflect f = do
+         ReflectFun 1 (a -> b) where
+  reflectFun _ f = do
       jpayload <- reflect (clos2bs wrap)
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new [coerce jpayload]
       return (generic (unsafeCast obj))
@@ -149,35 +147,18 @@ instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
              ($(cstatic 'pairDict) `cap` closureDict `cap` closureDict) `cap`
              f
 
-instance ( JFun2 ty1 ty2 ty3 ~ Interp (Uncurry (Closure (a -> b -> c)))
-         , Reflect a ty1
-         , Reflect b ty2
-         , Reify   c ty3
-         , Typeable a
-         , Typeable b
-         , Typeable c
-         ) =>
-         Reify (Closure (a -> b -> c)) (JFun2 ty1 ty2 ty3) where
-  reify jobj = do
-      klass <- findClass "io/tweag/sparkle/function/HaskellFunction2"
-      field <- getFieldID klass "clos" "[B"
-      jpayload <- getObjectField jobj field
-      payload <- reify (unsafeCast jpayload)
-      return (bs2clos payload)
+type instance InterpWithArity 2 (a -> b -> c) = JFun2 (Interp a) (Interp b) (Interp c)
+type JFun2 a b c = 'Iface "org.apache.spark.api.java.function.Function2" <> [a, b, c]
 
-instance ( JFun2 ty1 ty2 ty3 ~ Interp (Uncurry (Closure (a -> b -> c)))
-         , Static (Reify a ty1)
-         , Static (Reify b ty2)
-         , Static (Reflect c ty3)
+instance ( Static (Reify a)
+         , Static (Reify b)
+         , Static (Reflect c)
          , Typeable a
          , Typeable b
          , Typeable c
-         , Typeable ty1
-         , Typeable ty2
-         , Typeable ty3
          ) =>
-         Reflect (Closure (a -> b -> c)) (JFun2 ty1 ty2 ty3) where
-  reflect f = do
+         ReflectFun 2 (a -> b -> c) where
+  reflectFun _ f = do
       jpayload <- reflect (clos2bs wrap)
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new [coerce jpayload]
       return (generic (unsafeCast obj))

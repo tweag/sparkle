@@ -8,7 +8,6 @@
 module Main where
 
 import Control.Monad (forM_)
-import Control.Distributed.Closure
 import Control.Distributed.Spark as RDD
 import Data.Int
 import Language.Java
@@ -27,7 +26,7 @@ jincr = unsafePerformIO $
 hincr :: J ('Iface "org.apache.spark.api.java.function.Function")
 hincr =
     unsafeUngeneric . unsafePerformIO $
-    reflect (static (+1) :: Closure (Int32 -> Int32))
+    reflectFun (sing :: Sing 1) (static ((+1) :: Int32 -> Int32))
 
 mapJava :: RDD Int32 -> IO Int32
 mapJava rdd = reify =<< [java| $rdd.map($jincr).count() |]

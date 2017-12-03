@@ -100,7 +100,7 @@ binaryRecords sc fp recordLength = do
   [java| $sc.binaryRecords($jpath, $recordLength) |]
 
 parallelize
-  :: Reflect a ty
+  :: Reflect a
   => SparkContext
   -> [a]
   -> IO (RDD a)

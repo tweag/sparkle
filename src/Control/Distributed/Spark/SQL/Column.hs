@@ -34,7 +34,7 @@ callStaticSqlFun :: Coercible a ty
                  => Foreign.JNI.String.String -> [JValue] -> IO a
 callStaticSqlFun = callStatic "org.apache.spark.sql.functions"
 
-lit :: Reflect a ty => a -> IO Column
+lit :: Reflect a => a -> IO Column
 lit a =  do
   c <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
   callStaticSqlFun "lit" [coerce c]
