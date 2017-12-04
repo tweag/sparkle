@@ -9,6 +9,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Control.Distributed.Spark.Context
   ( -- * Spark configurations
@@ -100,7 +101,7 @@ binaryRecords sc fp recordLength = do
   [java| $sc.binaryRecords($jpath, $recordLength) |]
 
 parallelize
-  :: Reflect a ty
+  :: Reflect a
   => SparkContext
   -> [a]
   -> IO (RDD a)

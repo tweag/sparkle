@@ -12,6 +12,7 @@
 module Control.Distributed.Spark.SQL.Column where
 
 import Control.Monad (foldM)
+import qualified Data.Coerce
 import Data.Text (Text)
 import qualified Foreign.JNI.String
 import Language.Java
@@ -32,12 +33,15 @@ alias c n = do
 
 callStaticSqlFun :: Coercible a ty
                  => Foreign.JNI.String.String -> [JValue] -> IO a
-callStaticSqlFun = callStatic (sing :: Sing "org.apache.spark.sql.functions")
+callStaticSqlFun = callStatic "org.apache.spark.sql.functions"
 
-lit :: Reflect a ty => a -> IO Column
-lit a =  do
-  c <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
-  callStaticSqlFun "lit" [coerce c]
+lit :: Reflect a => a -> IO Column
+lit a = reflect a >>= litCoercible
+
+litCoercible :: (Coercible a ty, IsReferenceType ty) => a -> IO Column
+litCoercible a = case coerce a of
+    JObject j -> callStaticSqlFun "lit" [JObject (upcast j)]
+    _ -> error "unexpected argument"
 
 plus :: Column -> Column -> IO Column
 plus col1 (Column col2) = call col1 "plus" [coerce $ upcast col2]
@@ -155,12 +159,14 @@ isnull col = callStaticSqlFun "isnull" [coerce col]
 
 coalesce :: [Column] -> IO Column
 coalesce colexprs = do
-  jcols <- reflect [ j | Column j <- colexprs ]
+  jcols <- toArray (Data.Coerce.coerce colexprs
+             :: [J ('Class "org.apache.spark.sql.Column")])
   callStaticSqlFun "coalesce" [coerce jcols]
 
 array :: [Column] -> IO Column
 array colexprs = do
-  jcols <- reflect [ j | Column j <- colexprs ]
+  jcols <- toArray (Data.Coerce.coerce colexprs
+             :: [J ('Class "org.apache.spark.sql.Column")])
   callStaticSqlFun "array" [coerce jcols]
 
 expr :: Text -> IO Column

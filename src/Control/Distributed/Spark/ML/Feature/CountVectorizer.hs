@@ -40,5 +40,5 @@ toTokenCounts cvModel df col1 col2 = do
   jcol1 <- reflect col1
   jcol2 <- reflect col2
   df' :: DataFrame <- call cvModel "transform" [coerce df]
-  rdd :: RDD a <- callStatic (sing :: Sing "Helper") "fromDF" [coerce df', coerce jcol1, coerce jcol2]
-  callStatic (sing :: Sing "Helper") "fromRows" [coerce rdd]
+  rdd :: RDD a <- callStatic "Helper" "fromDF" [coerce df', coerce jcol1, coerce jcol2]
+  callStatic "Helper" "fromRows" [coerce rdd]

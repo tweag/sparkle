@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -19,7 +20,7 @@ newtype Row = Row (J ('Class "org.apache.spark.sql.Row"))
 instance Coercible Row ('Class "org.apache.spark.sql.Row")
 
 toRows :: PairRDD a b -> IO (RDD Row)
-toRows prdd = callStatic (sing :: Sing "Helper") "toRows" [coerce prdd]
+toRows prdd = callStatic "Helper" "toRows" [coerce prdd]
 
 schema :: Row -> IO StructType
 schema (Row r) = call r "schema" []
@@ -45,14 +46,19 @@ getLong i r = call r "getLong" [coerce i]
 getString :: Int32 -> Row -> IO Text
 getString i r = call r "getString" [coerce i] >>= reify
 
-getList :: Int32 -> Row -> IO [JObject]
-getList i r = do
-    jarraylist <- call r "getList" [coerce i]
-    call (jarraylist :: J ('Class "java.util.List")) "toArray" [] >>= reify
+getList :: forall a. Reify a => Int32 -> Row -> IO [a]
+getList i r =
+    call r "getList" [coerce i] >>= listToArray >>= reify
+  where
+    listToArray :: J ('Iface "java.util.List") -> IO (J ('Array (Interp a)))
+    listToArray jlist = cast <$> call jlist "toArray" []
 
-create :: [JObject] -> IO Row
-create vs = do
-    jvs <- reflect vs
-    callStatic (sing :: Sing "org.apache.spark.sql.RowFactory")
+    cast :: J ('Array ('Class "java.lang.Object")) -> J ('Array (Interp a))
+    cast = unsafeCast
+
+createRow :: [JObject] -> IO Row
+createRow vs = do
+    jvs <- toArray vs
+    callStatic "org.apache.spark.sql.RowFactory"
                "create"
                [coerce jvs]

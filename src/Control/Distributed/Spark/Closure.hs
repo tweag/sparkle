@@ -1,6 +1,7 @@
 -- | Foreign exports and instances to deal with 'Closure' in Spark.
 
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -9,12 +10,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE UndecidableInstances #-} -- For Closure instances
-
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Control.Distributed.Spark.Closure
-  ( JFun1
+  ( Function(..)
+  , Function2(..)
+  , JFun1
   , JFun2
   , apply
   ) where
@@ -66,32 +66,36 @@ foreign export ccall "sparkle_apply" apply
   -> IO (Ptr JObject)
 
 type JFun1 a b = 'Iface "org.apache.spark.api.java.function.Function" <> [a, b]
-type instance Interp ('Fun '[a] b) = JFun1 (Interp a) (Interp b)
+
+newtype Function a b = Function (Closure (a -> b))
+type instance Interp (Function a b) = JFun1 (Interp a) (Interp b)
 
 pairDict :: Dict c1 -> Dict c2 -> Dict (c1, c2)
 pairDict Dict Dict = Dict
 
 closFun1
-  :: forall a b ty1 ty2.
-     Dict (Reify a ty1, Reflect b ty2)
+  :: forall a b.
+     Dict (Reify a, Reflect b)
   -> (a -> b)
   -> JObjectArray
   -> IO JObject
 closFun1 Dict f args =
     fmap upcast . refl =<< return . f =<< reif . unsafeCast =<< getObjectArrayElement args 0
   where
-    reif = reify :: J ty1 -> IO a
-    refl = reflect :: b -> IO (J ty2)
+    reif = reify :: J (Interp a) -> IO a
+    refl = reflect :: b -> IO (J (Interp b))
 
 type JFun2 a b c = 'Iface "org.apache.spark.api.java.function.Function2" <> [a, b, c]
-type instance Interp ('Fun '[a, b] c) = JFun2 (Interp a) (Interp b) (Interp c)
+
+newtype Function2 a b c = Function2 (Closure (a -> b -> c))
+type instance Interp (Function2 a b c) = JFun2 (Interp a) (Interp b) (Interp c)
 
 tripleDict :: Dict c1 -> Dict c2 -> Dict c3 -> Dict (c1, c2, c3)
 tripleDict Dict Dict Dict = Dict
 
 closFun2
-  :: forall a b c ty1 ty2 ty3.
-     Dict (Reify a ty1, Reify b ty2, Reflect c ty3)
+  :: forall a b c.
+     Dict (Reify a, Reify b, Reflect c)
   -> (a -> b -> c)
   -> JObjectArray
   -> IO JObject
@@ -102,9 +106,9 @@ closFun2 Dict f args = do
     b' <- reifB b
     upcast <$> reflC (f a' b')
   where
-    reifA = reify :: J ty1 -> IO a
-    reifB = reify :: J ty2 -> IO b
-    reflC = reflect :: c -> IO (J ty3)
+    reifA = reify :: J (Interp a) -> IO a
+    reifB = reify :: J (Interp b) -> IO b
+    reflC = reflect :: c -> IO (J (Interp c))
 
 clos2bs :: Typeable a => Closure a -> ByteString
 clos2bs = LBS.toStrict . encode
@@ -114,32 +118,28 @@ bs2clos = decode . LBS.fromStrict
 
 -- TODO No Static (Reify/Reflect (Closure (a -> b)) ty) instances yet.
 
--- Needs UndecidableInstances
-instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
-         , Reflect a ty1
-         , Reify b ty2
+instance ( Reflect a
+         , Reify b
          , Typeable a
          , Typeable b
          ) =>
-         Reify (Closure (a -> b)) (JFun1 ty1 ty2) where
+         Reify (Function a b) where
   reify jobj = do
-      klass <- findClass "io/tweag/sparkle/function/HaskellFunction"
-      field <- getFieldID klass "clos" "[B"
+      klass <- findClass $
+        referenceTypeName (SClass "io.tweag.sparkle.function.HaskellFunction")
+      field <- getFieldID klass "clos" (signature $ SArray (SPrim "byte"))
       jpayload <- getObjectField jobj field
       payload <- reify (unsafeCast jpayload)
-      return (bs2clos payload)
+      return $ Function (bs2clos payload)
 
 -- Needs UndecidableInstances
-instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
-         , Static (Reify a ty1)
-         , Static (Reflect b ty2)
+instance ( Static (Reify a)
+         , Static (Reflect b)
          , Typeable a
          , Typeable b
-         , Typeable ty1
-         , Typeable ty2
          ) =>
-         Reflect (Closure (a -> b)) (JFun1 ty1 ty2) where
-  reflect f = do
+         Reflect (Function a b) where
+  reflect (Function f) = do
       jpayload <- reflect (clos2bs wrap)
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new [coerce jpayload]
       return (generic (unsafeCast obj))
@@ -149,35 +149,31 @@ instance ( JFun1 ty1 ty2 ~ Interp (Uncurry (Closure (a -> b)))
              ($(cstatic 'pairDict) `cap` closureDict `cap` closureDict) `cap`
              f
 
-instance ( JFun2 ty1 ty2 ty3 ~ Interp (Uncurry (Closure (a -> b -> c)))
-         , Reflect a ty1
-         , Reflect b ty2
-         , Reify   c ty3
+instance ( Reflect a
+         , Reflect b
+         , Reify   c
          , Typeable a
          , Typeable b
          , Typeable c
          ) =>
-         Reify (Closure (a -> b -> c)) (JFun2 ty1 ty2 ty3) where
+         Reify (Function2 a b c) where
   reify jobj = do
-      klass <- findClass "io/tweag/sparkle/function/HaskellFunction2"
-      field <- getFieldID klass "clos" "[B"
+      klass <- findClass $
+        referenceTypeName (SClass "io.tweag.sparkle.function.HaskellFunction2")
+      field <- getFieldID klass "clos" (signature $ SArray (SPrim "byte"))
       jpayload <- getObjectField jobj field
       payload <- reify (unsafeCast jpayload)
-      return (bs2clos payload)
+      return $ Function2 (bs2clos payload)
 
-instance ( JFun2 ty1 ty2 ty3 ~ Interp (Uncurry (Closure (a -> b -> c)))
-         , Static (Reify a ty1)
-         , Static (Reify b ty2)
-         , Static (Reflect c ty3)
+instance ( Static (Reify a)
+         , Static (Reify b)
+         , Static (Reflect c)
          , Typeable a
          , Typeable b
          , Typeable c
-         , Typeable ty1
-         , Typeable ty2
-         , Typeable ty3
          ) =>
-         Reflect (Closure (a -> b -> c)) (JFun2 ty1 ty2 ty3) where
-  reflect f = do
+         Reflect (Function2 a b c) where
+  reflect (Function2 f) = do
       jpayload <- reflect (clos2bs wrap)
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new [coerce jpayload]
       return (generic (unsafeCast obj))

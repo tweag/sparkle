@@ -36,11 +36,11 @@ newtype LDAModel = LDAModel (J ('Class "org.apache.spark.mllib.clustering.LDAMod
 instance Coercible LDAModel ('Class "org.apache.spark.mllib.clustering.LDAModel")
 
 runLDA :: LDA -> PairRDD CLong SparkVector -> IO LDAModel
-runLDA lda rdd = callStatic (sing :: Sing "Helper") "runLDA" [coerce lda, coerce rdd]
+runLDA lda rdd = callStatic "Helper" "runLDA" [coerce lda, coerce rdd]
 
 describeResults :: LDAModel -> CountVectorizerModel -> Int32 -> IO ()
 describeResults lm cvm maxTerms =
     callStatic
-      (sing :: Sing "Helper")
+      "Helper"
       "describeResults"
       [coerce lm, coerce cvm, JInt maxTerms]
