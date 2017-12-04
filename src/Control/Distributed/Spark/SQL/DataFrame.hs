@@ -74,12 +74,10 @@ writeParquet fp dfw = do
 schema :: DataFrame -> IO StructType
 schema df = call df "schema" []
 
--- TODO fishy impl
---
--- select :: DataFrame -> [Column] -> IO DataFrame
--- select d1 colexprs = do
---   jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
---   call d1 "select" [coerce jcols]
+select :: DataFrame -> [Column] -> IO DataFrame
+select d1 colexprs = do
+  jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
+  call d1 "select" [coerce jcols]
 
 filter :: DataFrame -> Column -> IO DataFrame
 filter d1 colexpr = call d1 "where" [coerce colexpr]
@@ -107,17 +105,13 @@ columns df = call df "columns" [] >>= reify
 printSchema :: DataFrame -> IO ()
 printSchema df = call df "printSchema" []
 
--- TODO fishy impl
---
--- groupBy :: DataFrame -> [Column] -> IO GroupedData
--- groupBy d1 colexprs = do
---   jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
---   call d1 "groupBy" [coerce jcols]
+groupBy :: DataFrame -> [Column] -> IO GroupedData
+groupBy d1 colexprs = do
+  jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
+  call d1 "groupBy" [coerce jcols]
 
--- TODO fishy impl
---
--- agg :: GroupedData -> [Column] -> IO DataFrame
--- agg _ [] = error "agg: not enough arguments."
--- agg df (c:cols) = do
---   jcols <- reflect (Prelude.map Data.Coerce.coerce cols :: [J ('Class "org.apache.spark.sql.Column")])
---   call df "agg" [coerce c, coerce jcols]
+agg :: GroupedData -> [Column] -> IO DataFrame
+agg _ [] = error "agg: not enough arguments."
+agg df (c:cols) = do
+  jcols <- reflect (Prelude.map Data.Coerce.coerce cols :: [J ('Class "org.apache.spark.sql.Column")])
+  call df "agg" [coerce c, coerce jcols]

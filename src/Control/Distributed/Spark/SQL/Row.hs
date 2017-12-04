@@ -45,19 +45,14 @@ getLong i r = call r "getLong" [coerce i]
 getString :: Int32 -> Row -> IO Text
 getString i r = call r "getString" [coerce i] >>= reify
 
--- TODO fishy impl
---
--- getList :: Int32 -> Row -> IO [JObject]
--- getList i r = do
---     jarraylist <- call r "getList" [coerce i]
---     call (jarraylist :: J ('Class "java.util.List")) "toArray" [] >>= reify
+getList :: Int32 -> Row -> IO [JObject]
+getList i r = do
+    jarraylist <- call r "getList" [coerce i]
+    call (jarraylist :: J ('Class "java.util.List")) "toArray" [] >>= reify
 
--- TODO fishy impl
---
--- create :: [JObject] -> IO Row
--- create vs = do
---     jvs <- reflect vs
---     callStatic
---       "org.apache.spark.sql.RowFactory"
---       "create"
---       [coerce jvs]
+create :: [JObject] -> IO Row
+create vs = do
+    jvs <- reflect vs
+    callStatic (sing :: Sing "org.apache.spark.sql.RowFactory")
+               "create"
+               [coerce jvs]
