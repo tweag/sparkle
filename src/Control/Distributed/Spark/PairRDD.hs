@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -20,7 +21,7 @@ import Data.Typeable (Typeable)
 import Language.Java
 
 newtype PairRDD a b = PairRDD (J ('Class "org.apache.spark.api.java.JavaPairRDD"))
-instance Coercible (PairRDD a b) ('Class "org.apache.spark.api.java.JavaPairRDD")
+  deriving Coercible
 
 zipWithIndex :: RDD a -> IO (PairRDD a Int64)
 zipWithIndex rdd = call rdd "zipWithIndex" []

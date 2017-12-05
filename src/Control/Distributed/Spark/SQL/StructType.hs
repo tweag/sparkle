@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.SQL.StructType where
 
@@ -12,9 +14,8 @@ import qualified Data.Coerce
 import Foreign.JNI
 import Language.Java as Java
 
-newtype StructType =
-    StructType (J ('Class "org.apache.spark.sql.types.StructType"))
-instance Coercible StructType ('Class "org.apache.spark.sql.types.StructType")
+newtype StructType = StructType (J ('Class "org.apache.spark.sql.types.StructType"))
+  deriving Coercible
 
 new :: [StructField] -> IO StructType
 new fs =

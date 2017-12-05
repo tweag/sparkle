@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.SQL.StructField where
 
@@ -10,10 +12,8 @@ import Control.Distributed.Spark.SQL.Metadata
 import Data.Text (Text)
 import Language.Java as Java
 
-newtype StructField =
-    StructField (J ('Class "org.apache.spark.sql.types.StructField"))
-instance Coercible StructField
-                   ('Class "org.apache.spark.sql.types.StructField")
+newtype StructField = StructField (J ('Class "org.apache.spark.sql.types.StructField"))
+  deriving Coercible
 
 new :: Text -> DataType -> Bool -> Metadata -> IO StructField
 new sname dt n md = do

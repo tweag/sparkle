@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.SQL.DataFrame where
 
@@ -11,13 +13,14 @@ import Control.Distributed.Spark.SQL.Column
 import Control.Distributed.Spark.SQL.Context
 import Control.Distributed.Spark.SQL.Row
 import Control.Distributed.Spark.SQL.StructType
+import qualified Data.Coerce
 import Data.Int
 import Data.Text (Text)
 import Language.Java
 import Prelude hiding (filter)
 
 newtype DataFrame = DataFrame (J ('Class "org.apache.spark.sql.DataFrame"))
-instance Coercible DataFrame ('Class "org.apache.spark.sql.DataFrame")
+  deriving Coercible
 
 toDF :: SQLContext -> RDD Row -> Text -> Text -> IO DataFrame
 toDF sqlc rdd s1 s2 = do
@@ -45,15 +48,11 @@ join d1 d2 = call d1 "join" [coerce d2]
 joinOn :: DataFrame -> DataFrame -> Column -> IO DataFrame
 joinOn d1 d2 colexpr = call d1 "join" [coerce d2, coerce colexpr]
 
-newtype DataFrameReader =
-    DataFrameReader (J ('Class "org.apache.spark.sql.DataFrameReader"))
-instance Coercible DataFrameReader
-                   ('Class "org.apache.spark.sql.DataFrameReader")
+newtype DataFrameReader = DataFrameReader (J ('Class "org.apache.spark.sql.DataFrameReader"))
+  deriving Coercible
 
-newtype DataFrameWriter =
-    DataFrameWriter (J ('Class "org.apache.spark.sql.DataFrameWriter"))
-instance Coercible DataFrameWriter
-                   ('Class "org.apache.spark.sql.DataFrameWriter")
+newtype DataFrameWriter = DataFrameWriter (J ('Class "org.apache.spark.sql.DataFrameWriter"))
+  deriving Coercible
 
 read :: SQLContext -> IO DataFrameReader
 read sc = call sc "read" []

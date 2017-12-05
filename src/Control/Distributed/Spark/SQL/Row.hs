@@ -1,11 +1,13 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.SQL.Row where
 
@@ -17,7 +19,7 @@ import Data.Text
 import Language.Java
 
 newtype Row = Row (J ('Class "org.apache.spark.sql.Row"))
-instance Coercible Row ('Class "org.apache.spark.sql.Row")
+  deriving Coercible
 
 toRows :: PairRDD a b -> IO (RDD Row)
 toRows prdd = callStatic "Helper" "toRows" [coerce prdd]

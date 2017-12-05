@@ -5,10 +5,12 @@
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Control.Distributed.Spark.Context
@@ -38,7 +40,7 @@ import Language.Java
 import Language.Java.Inline
 
 newtype SparkConf = SparkConf (J ('Class "org.apache.spark.SparkConf"))
-instance Coercible SparkConf ('Class "org.apache.spark.SparkConf")
+  deriving Coercible
 
 newSparkConf :: Text -> IO SparkConf
 newSparkConf appname = do
@@ -54,7 +56,7 @@ confSet conf key value = do
   return ()
 
 newtype SparkContext = SparkContext (J ('Class "org.apache.spark.api.java.JavaSparkContext"))
-instance Coercible SparkContext ('Class "org.apache.spark.api.java.JavaSparkContext")
+  deriving Coercible
 
 newSparkContext :: SparkConf -> IO SparkContext
 newSparkContext conf = new [coerce conf]

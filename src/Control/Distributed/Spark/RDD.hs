@@ -5,6 +5,7 @@
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -13,6 +14,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StaticPointers #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
@@ -59,7 +61,7 @@ import Language.Java.Streaming ()
 import Streaming (Stream, Of)
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
-instance Coercible (RDD a) ('Class "org.apache.spark.api.java.JavaRDD")
+  deriving Coercible
 
 repartition :: Int32 -> RDD a -> IO (RDD a)
 repartition n rdd = [java| $rdd.repartition($n) |]

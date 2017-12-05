@@ -6,7 +6,6 @@ module Main where
 import Control.Distributed.Spark as Spark
 import Control.Distributed.Spark.SQL.DataFrame as DataFrame
 import qualified Control.Distributed.Spark.SQL.Column as Column
-import qualified Data.Coerce
 import Data.Int (Int32, Int64)
 import qualified Data.Text as Text
 import Language.Java

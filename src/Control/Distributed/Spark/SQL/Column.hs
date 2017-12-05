@@ -5,9 +5,11 @@
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.SQL.Column where
 
@@ -19,20 +21,17 @@ import Language.Java
 import Prelude hiding (min, max, mod, and, or, otherwise)
 
 newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
-instance Coercible Column ('Class "org.apache.spark.sql.Column")
-
-type instance Interp Column = 'Class "org.apache.spark.sql.Column"
+  deriving Coercible
 
 newtype GroupedData = GroupedData (J ('Class "org.apache.spark.sql.GroupedData"))
-instance Coercible GroupedData ('Class "org.apache.spark.sql.GroupedData")
+  deriving Coercible
 
 alias :: Column -> Text -> IO Column
 alias c n = do
   colName <- reflect n
   call c "alias" [coerce colName]
 
-callStaticSqlFun :: Coercible a ty
-                 => Foreign.JNI.String.String -> [JValue] -> IO a
+callStaticSqlFun :: Coercible a => Foreign.JNI.String.String -> [JValue] -> IO a
 callStaticSqlFun = callStatic "org.apache.spark.sql.functions"
 
 lit :: Reflect a => a -> IO Column
