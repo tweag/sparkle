@@ -16,7 +16,7 @@ main = do
     print =<< collect rdd
     print =<< RDD.reduce (closure $ static (\a b -> b <> " " <> a)) rdd
     print =<< collect =<< RDD.map (closure $ static Text.reverse) rdd
-    print =<< RDD.take rdd 3
+    print =<< RDD.take 3 rdd
     print =<< collect =<< RDD.distinct rdd
     print =<< RDD.fold (closure $ static (||)) False
           =<< RDD.map (closure $ static (=="dog")) rdd

@@ -187,10 +187,9 @@ collect rdd = do
   reify (unsafeCast arr)
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
-take :: Reify a ty => RDD a -> Int32 -> IO [a]
-take rdd n = do
-  res :: J ('Class "java.util.List") <- [java| $rdd.take($n) |]
-  arr :: JObjectArray <- [java| $res.toArray() |]
+take :: Reify a ty => Int32 -> RDD a -> IO [a]
+take n rdd = do
+  arr :: JObjectArray <- [java| $rdd.take($n).toArray() |]
   reify (unsafeCast arr)
 
 distinct :: RDD a -> IO (RDD a)
