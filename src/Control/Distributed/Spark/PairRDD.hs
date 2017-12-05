@@ -88,7 +88,8 @@ data Tuple2 a b = Tuple2 a b
 
 withStatic [d|
 
-  type instance Interp (Tuple2 a b) = 'Class "scala.Tuple2"
+  instance Interpretation (Tuple2 a b) where
+    type Interp (Tuple2 a b) = 'Class "scala.Tuple2"
 
   instance (Reify a, Reify b) =>
            Reify (Tuple2 a b) where

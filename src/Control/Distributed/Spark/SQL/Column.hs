@@ -21,10 +21,10 @@ import Language.Java
 import Prelude hiding (min, max, mod, and, or, otherwise)
 
 newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
-  deriving Coercible
+  deriving (Coercible, Interpretation, Reflect, Reify)
 
 newtype GroupedData = GroupedData (J ('Class "org.apache.spark.sql.GroupedData"))
-  deriving Coercible
+  deriving (Coercible, Interpretation, Reflect, Reify)
 
 alias :: Column -> Text -> IO Column
 alias c n = do
@@ -35,8 +35,8 @@ callStaticSqlFun :: Coercible a => Foreign.JNI.String.String -> [JValue] -> IO a
 callStaticSqlFun = callStatic "org.apache.spark.sql.functions"
 
 lit :: Reflect a => a -> IO Column
-lit a =  do
-  c <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
+lit x =  do
+  c <- upcast <$> reflect x  -- @upcast@ needed to land in java Object
   callStaticSqlFun "lit" [coerce c]
 
 plus :: Column -> Column -> IO Column

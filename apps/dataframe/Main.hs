@@ -89,7 +89,7 @@ main = do
        arrCols <- array [col1, col2]
        select df1 [arrCols]
          >>= javaRDD
-         >>= collectCoercible
+         >>= collect
          >>= mapM (getList 0)
          >>= \xs -> print (xs :: [[Double]])
 
@@ -152,9 +152,9 @@ main = do
        nowDtCol   <- current_date
 
        jdate <- new [ JLong 0 ] :: IO (J ('Class "java.sql.Date"))
-       epochTsCol <- litCoercible jdate
+       epochTsCol <- lit jdate
        jtimestamp <- new [ JLong 0 ] :: IO (J ('Class "java.sql.Timestamp"))
-       epochDtCol <- litCoercible jtimestamp
+       epochDtCol <- lit jtimestamp
 
        secCol     <- second nowTsCol
        minsCol    <- minute nowTsCol

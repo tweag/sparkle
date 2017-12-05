@@ -20,7 +20,7 @@ import Language.Java
 import Prelude hiding (filter)
 
 newtype DataFrame = DataFrame (J ('Class "org.apache.spark.sql.DataFrame"))
-  deriving Coercible
+  deriving (Coercible, Interpretation, Reify, Reflect)
 
 toDF :: SQLContext -> RDD Row -> Text -> Text -> IO DataFrame
 toDF sqlc rdd s1 s2 = do

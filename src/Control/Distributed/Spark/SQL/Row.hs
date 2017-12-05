@@ -19,7 +19,7 @@ import Data.Text
 import Language.Java
 
 newtype Row = Row (J ('Class "org.apache.spark.sql.Row"))
-  deriving Coercible
+  deriving (Coercible, Interpretation, Reify, Reflect)
 
 toRows :: PairRDD a b -> IO (RDD Row)
 toRows prdd = callStatic "Helper" "toRows" [coerce prdd]
