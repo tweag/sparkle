@@ -55,10 +55,12 @@ jobs:
             - ~/.stack
       - run:
           name: Build project
-          command: stack --no-terminal build --pedantic --test --bench --no-run-tests --no-run-benchmarks
+          command: stack --no-terminal build --pedantic
       - run:
-          name: Test
-          command: stack --no-terminal test
+          name: Smoke test using sparkle-example-hello
+          command: |
+            stack --no-terminal exec -- sparkle package sparkle-example-hello
+            stack --no-terminal exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
 
 workflows:
   version: 2
