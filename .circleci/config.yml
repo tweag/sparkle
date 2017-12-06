@@ -1,0 +1,70 @@
+version: 2
+
+jobs:
+  img:
+    docker:
+      - image: docker
+    working_directory: ~/sparkle
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: System dependencies
+          command: |
+            apk update && apk add curl
+      - run:
+          name: Build Docker image if needed
+          command: |
+            cat Dockerfile *.nix > /docker-id
+            function docker_tag_exists() {
+                curl --silent -f -lSL https://index.docker.io/v1/repositories/$1/tags/$2 > /dev/null
+            }
+
+            TAG=$(sha256sum /docker-id | head -c16)
+            echo Docker image tag: $TAG
+            if ! docker_tag_exists tweag/sparkle $TAG;
+            then
+                if [[ $CIRCLE_PROJECT_NAME = "tweag" ]];
+                then
+                    docker build -t tweag/sparkle:$TAG .
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push tweag/sparkle:$TAG
+                    if [[ $CIRCLE_BRANCH = "master "]];
+                    then
+                      docker tag tweag/sparkle:$TAG tweag/sparkle:latest
+                      docker push tweag/sparkle:latest
+                    fi
+                fi
+            fi
+  build:
+    docker:
+      - image: tweag/sparkle
+    working_directory: ~/sparkle
+    steps:
+      - checkout
+      - restore_cache:
+          key: sparkle-stack-dependencies-{{ arch }}-
+      - run:
+          name: Build dependencies
+          command: |
+            stack --no-terminal build --only-snapshot --prefetch --no-haddock --test --bench
+            find . -name "*.cabal" -o -name "stack.yaml" -type f | sort | xargs cat > /tmp/stack-deps
+      - save_cache:
+          key: sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+          paths:
+            - ~/.stack
+      - run:
+          name: Build project
+          command: stack --no-terminal build --pedantic --test --bench --no-run-tests --no-run-benchmarks
+      - run:
+          name: Test
+          command: stack --no-terminal test
+
+workflows:
+  version: 2
+  sparkle:
+    jobs:
+      - img
+      - build:
+          requires:
+            - img
