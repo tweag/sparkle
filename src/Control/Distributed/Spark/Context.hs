@@ -11,6 +11,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
+
 {-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Control.Distributed.Spark.Context

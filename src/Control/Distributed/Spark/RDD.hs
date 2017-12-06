@@ -16,6 +16,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+{-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
+
 module Control.Distributed.Spark.RDD
   ( RDD(..)
   , repartition
