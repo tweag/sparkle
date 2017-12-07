@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.ML.Feature.RegexTokenizer where
 
@@ -11,7 +13,7 @@ import Data.Text (Text)
 import Language.Java
 
 newtype RegexTokenizer = RegexTokenizer (J ('Class "org.apache.spark.ml.feature.RegexTokenizer"))
-instance Coercible RegexTokenizer ('Class "org.apache.spark.ml.feature.RegexTokenizer")
+  deriving Coercible
 
 newTokenizer :: Text -> Text -> IO RegexTokenizer
 newTokenizer icol ocol = do
@@ -23,7 +25,7 @@ newTokenizer icol ocol = do
   jicol <- reflect icol
   jocol <- reflect ocol
   callStatic
-    (sing :: Sing "Helper")
+    "Helper"
     "setupTokenizer"
     [ coerce tok0
     , coerce jicol

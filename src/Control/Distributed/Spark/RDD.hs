@@ -5,6 +5,7 @@
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -12,6 +13,10 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StaticPointers #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+
+{-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
@@ -41,7 +46,7 @@ module Control.Distributed.Spark.RDD
 
 import Prelude hiding (filter, map, subtract, take)
 import Control.Distributed.Closure
-import Control.Distributed.Spark.Closure (JFun1, JFun2)
+import Control.Distributed.Spark.Closure (reflectFun)
 import Data.Choice (Choice)
 import qualified Data.Choice as Choice
 import Data.Int
@@ -56,31 +61,31 @@ import Language.Java.Streaming ()
 import Streaming (Stream, Of)
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
-instance Coercible (RDD a) ('Class "org.apache.spark.api.java.JavaRDD")
+  deriving Coercible
 
 repartition :: Int32 -> RDD a -> IO (RDD a)
 repartition n rdd = [java| $rdd.repartition($n) |]
 
 filter
-  :: Reflect (Closure (a -> Bool)) ty
+  :: (Static (Reify a), Typeable a)
   => Closure (a -> Bool)
   -> RDD a
   -> IO (RDD a)
 filter clos rdd = do
-    f <- unsafeUngeneric <$> reflect clos
+    f <- unsafeUngeneric <$> reflectFun (sing :: Sing 1) clos
     [java| $rdd.filter($f) |]
 
 map
-  :: Reflect (Closure (a -> b)) (JFun1 ty1 ty2)
+  :: (Static (Reify a), Static (Reflect b), Typeable a, Typeable b)
   => Closure (a -> b)
   -> RDD a
   -> IO (RDD b)
 map clos rdd = do
-    f <- unsafeUngeneric <$> reflect clos
+    f <- unsafeUngeneric <$> reflectFun (sing :: Sing 1) clos
     [java| $rdd.map($f) |]
 
 mapPartitions
-  :: (Reflect (Closure (Int32 -> Stream (Of a) IO () -> Stream (Of b) IO ())) ty, Typeable a, Typeable b)
+  :: (Static (Reify a), Static (Reflect b), Typeable a, Typeable b)
   => Choice "preservePartitions"
   -> Closure (Stream (Of a) IO () -> Stream (Of b) IO ())
   -> RDD a
@@ -89,61 +94,53 @@ mapPartitions preservePartitions clos rdd =
   mapPartitionsWithIndex preservePartitions (closure (static const) `cap` clos) rdd
 
 mapPartitionsWithIndex
-  :: (Reflect (Closure (Int32 -> Stream (Of a) IO () -> Stream (Of b) IO ())) ty)
+  :: (Static (Reify a), Static (Reflect b), Typeable a, Typeable b)
   => Choice "preservePartitions"
   -> Closure (Int32 -> Stream (Of a) IO () -> Stream (Of b) IO ())
   -> RDD a
   -> IO (RDD b)
 mapPartitionsWithIndex preservePartitions clos rdd = do
-  f <- unsafeUngeneric <$> reflect clos
+  f <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) clos
   [java| $rdd.mapPartitionsWithIndex($f, $preservePartitions) |]
 
 fold
-  :: (Reflect (Closure (a -> a -> a)) (JFun2 ty ty ty), Reflect a ty, Reify a ty)
+  :: (Static (Reify a), Static (Reflect a), Typeable a)
   => Closure (a -> a -> a)
   -> a
   -> RDD a
   -> IO a
 fold clos zero rdd = do
-  f <- unsafeUngeneric <$> reflect clos
+  f <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) clos
   jzero <- upcast <$> reflect zero
   res :: JObject <- [java| $rdd.fold($jzero, $f) |]
   reify (unsafeCast res)
 
 reduce
-  :: (Reflect (Closure (a -> a -> a)) (JFun2 ty ty ty), Reify a ty, Reflect a ty)
+  :: (Static (Reify a), Static (Reflect a), Typeable a)
   => Closure (a -> a -> a)
   -> RDD a
   -> IO a
 reduce clos rdd = do
-  f <- unsafeUngeneric <$> reflect clos
+  f <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) clos
   res :: JObject <- [java| $rdd.reduce($f) |]
   reify (unsafeCast res)
 
 aggregate
-  :: ( Reflect (Closure (b -> a -> b)) (JFun2 ty2 ty1 ty2)
-     , Reflect (Closure (b -> b -> b)) (JFun2 ty2 ty2 ty2)
-     , Reify b ty2
-     , Reflect b ty2
-     )
+  :: (Static (Reify a), Static (Reify b), Static (Reflect b), Typeable a, Typeable b)
   => Closure (b -> a -> b)
   -> Closure (b -> b -> b)
   -> b
   -> RDD a
   -> IO b
 aggregate seqOp combOp zero rdd = do
-  jseqOp <- unsafeUngeneric <$> reflect seqOp
-  jcombOp <- unsafeUngeneric <$> reflect combOp
+  jseqOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) seqOp
+  jcombOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) combOp
   jzero <- upcast <$> reflect zero
   res :: JObject <- [java| $rdd.aggregate($jzero, $jseqOp, $jcombOp) |]
   reify (unsafeCast res)
 
 treeAggregate
-  :: ( Reflect (Closure (b -> a -> b)) (JFun2 ty2 ty1 ty2)
-     , Reflect (Closure (b -> b -> b)) (JFun2 ty2 ty2 ty2)
-     , Reflect b ty2
-     , Reify b ty2
-     )
+  :: (Static (Reify a), Static (Reify b), Static (Reflect b), Typeable a, Typeable b)
   => Closure (b -> a -> b)
   -> Closure (b -> b -> b)
   -> b
@@ -151,8 +148,8 @@ treeAggregate
   -> RDD a
   -> IO b
 treeAggregate seqOp combOp zero depth rdd = do
-  jseqOp <- unsafeUngeneric <$> reflect seqOp
-  jcombOp <- unsafeUngeneric <$> reflect combOp
+  jseqOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) seqOp
+  jcombOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) combOp
   jzero <- upcast <$> reflect zero
   res :: JObject <- [java| $rdd.treeAggregate($jzero, $jseqOp, $jcombOp, $depth) |]
   reify (unsafeCast res)
@@ -180,14 +177,13 @@ subtract rdd1 rdd2 = [java| $rdd1.subtract($rdd2) |]
 -- [1] https://issues.apache.org/jira/browse/SPARK-1018
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
-collect :: Reify a ty => RDD a -> IO [a]
+collect :: Reify a => RDD a -> IO [a]
 collect rdd = do
-  res :: J ('Iface "java.util.List") <- [java| $rdd.collect() |]
-  arr :: JObjectArray <- [java| $res.toArray() |]
-  reify (unsafeCast arr)
+    arr :: JObjectArray <- [java| $rdd.collect().toArray() |]
+    reify (unsafeCast arr)
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
-take :: Reify a ty => Int32 -> RDD a -> IO [a]
+take :: Reify a => Int32 -> RDD a -> IO [a]
 take n rdd = do
   arr :: JObjectArray <- [java| $rdd.take($n).toArray() |]
   reify (unsafeCast arr)
@@ -208,7 +204,7 @@ sample
   -> IO (RDD a)
 sample rdd replacement frac = [java| $rdd.sample($replacement, $frac) |]
 
-first :: Reify a ty => RDD a -> IO a
+first :: Reify a => RDD a -> IO a
 first rdd = do
   res :: JObject <- [java| $rdd.first() |]
   reify (unsafeCast res)

@@ -1,5 +1,5 @@
 { nixpkgs ?  import ./nixpkgs.nix {}
-, ghc ? nixpkgs.haskell.compiler.ghc802 # Default needed for Docker build.
+, ghc ? nixpkgs.haskell.compiler.ghc822 # Default needed for Docker build.
 }:
 
 with nixpkgs;

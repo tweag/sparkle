@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.SQL.DataFrame where
 
@@ -18,13 +20,13 @@ import Language.Java
 import Prelude hiding (filter)
 
 newtype DataFrame = DataFrame (J ('Class "org.apache.spark.sql.DataFrame"))
-instance Coercible DataFrame ('Class "org.apache.spark.sql.DataFrame")
+  deriving (Coercible, Interpretation, Reify, Reflect)
 
 toDF :: SQLContext -> RDD Row -> Text -> Text -> IO DataFrame
 toDF sqlc rdd s1 s2 = do
   col1 <- reflect s1
   col2 <- reflect s2
-  callStatic (sing :: Sing "Helper") "toDF" [coerce sqlc, coerce rdd, coerce col1, coerce col2]
+  callStatic "Helper" "toDF" [coerce sqlc, coerce rdd, coerce col1, coerce col2]
 
 javaRDD :: DataFrame -> IO (RDD Row)
 javaRDD df = call df "javaRDD" []
@@ -46,15 +48,11 @@ join d1 d2 = call d1 "join" [coerce d2]
 joinOn :: DataFrame -> DataFrame -> Column -> IO DataFrame
 joinOn d1 d2 colexpr = call d1 "join" [coerce d2, coerce colexpr]
 
-newtype DataFrameReader =
-    DataFrameReader (J ('Class "org.apache.spark.sql.DataFrameReader"))
-instance Coercible DataFrameReader
-                   ('Class "org.apache.spark.sql.DataFrameReader")
+newtype DataFrameReader = DataFrameReader (J ('Class "org.apache.spark.sql.DataFrameReader"))
+  deriving Coercible
 
-newtype DataFrameWriter =
-    DataFrameWriter (J ('Class "org.apache.spark.sql.DataFrameWriter"))
-instance Coercible DataFrameWriter
-                   ('Class "org.apache.spark.sql.DataFrameWriter")
+newtype DataFrameWriter = DataFrameWriter (J ('Class "org.apache.spark.sql.DataFrameWriter"))
+  deriving Coercible
 
 read :: SQLContext -> IO DataFrameReader
 read sc = call sc "read" []
@@ -76,9 +74,10 @@ schema :: DataFrame -> IO StructType
 schema df = call df "schema" []
 
 select :: DataFrame -> [Column] -> IO DataFrame
-select d1 colexprs = do
-  jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
-  call d1 "select" [coerce jcols]
+select d1 colexprs =
+    toArray (Data.Coerce.coerce colexprs
+               :: [J ('Class "org.apache.spark.sql.Column")])
+      >>= call d1 "select" . (:[]) . coerce
 
 filter :: DataFrame -> Column -> IO DataFrame
 filter d1 colexpr = call d1 "where" [coerce colexpr]
@@ -107,12 +106,14 @@ printSchema :: DataFrame -> IO ()
 printSchema df = call df "printSchema" []
 
 groupBy :: DataFrame -> [Column] -> IO GroupedData
-groupBy d1 colexprs = do
-  jcols <- reflect (Prelude.map Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
-  call d1 "groupBy" [coerce jcols]
+groupBy d1 colexprs =
+    toArray (Data.Coerce.coerce colexprs
+               :: [J ('Class "org.apache.spark.sql.Column")])
+      >>= call d1 "groupBy" . (:[]) . coerce
 
 agg :: GroupedData -> [Column] -> IO DataFrame
 agg _ [] = error "agg: not enough arguments."
-agg df (c:cols) = do
-  jcols <- reflect (Prelude.map Data.Coerce.coerce cols :: [J ('Class "org.apache.spark.sql.Column")])
-  call df "agg" [coerce c, coerce jcols]
+agg df (Column jcol : cols) = do
+    jcols <- toArray (Data.Coerce.coerce cols
+               :: [J ('Class "org.apache.spark.sql.Column")])
+    call df "agg" [coerce jcol, coerce jcols]

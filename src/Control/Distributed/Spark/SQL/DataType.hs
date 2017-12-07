@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.SQL.DataType where
 
@@ -11,12 +13,11 @@ import qualified Foreign.JNI.String as JNI
 import Language.Java
 
 newtype DataType = DataType (J ('Class "org.apache.spark.sql.types.DataType"))
-  deriving Eq
-instance Coercible DataType ('Class "org.apache.spark.sql.types.DataType")
+  deriving Coercible
 
 staticDataType :: JNI.String -> IO DataType
 staticDataType dname = do
-    jclass <- findClass "org/apache/spark/sql/types/DataTypes"
+    jclass <- findClass (referenceTypeName (SClass "org.apache.spark.sql.types.DataTypes"))
     jfield <- getStaticFieldID jclass dname
       (signature (sing :: Sing ('Class "org.apache.spark.sql.types.DataType")))
     DataType . unsafeCast <$> getStaticObjectField jclass jfield

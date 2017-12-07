@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.ML.Feature.StopWordsRemover where
 
@@ -11,7 +13,7 @@ import Data.Text (Text)
 import Language.Java
 
 newtype StopWordsRemover = StopWordsRemover (J ('Class "org.apache.spark.ml.feature.StopWordsRemover"))
-instance Coercible StopWordsRemover ('Class "org.apache.spark.ml.feature.StopWordsRemover")
+  deriving Coercible
 
 newStopWordsRemover :: [Text] -> Text -> Text -> IO StopWordsRemover
 newStopWordsRemover stopwords icol ocol = do

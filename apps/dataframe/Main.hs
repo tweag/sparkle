@@ -6,7 +6,6 @@ module Main where
 import Control.Distributed.Spark as Spark
 import Control.Distributed.Spark.SQL.DataFrame as DataFrame
 import qualified Control.Distributed.Spark.SQL.Column as Column
-import qualified Data.Coerce
 import Data.Int (Int32, Int64)
 import qualified Data.Text as Text
 import Language.Java
@@ -90,12 +89,9 @@ main = do
        arrCols <- array [col1, col2]
        select df1 [arrCols]
          >>= javaRDD
-         >>= \rdd -> collect
-               (Data.Coerce.coerce rdd
-                  :: RDD (J ('Class "org.apache.spark.sql.Row")))
-         >>= mapM (getList 0 . Data.Coerce.coerce)
-         >>= mapM (mapM (\x -> (reify (unsafeCast x) :: IO Double)))
-         >>= print
+         >>= collect
+         >>= mapM (getList 0)
+         >>= \xs -> print (xs :: [[Double]])
 
     do redundantDF <- unionAll df1 df1
        distinctDF  <- DataFrame.distinct redundantDF

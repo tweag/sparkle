@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.ML.LDA where
 
@@ -13,10 +15,10 @@ import Foreign.C.Types
 import Language.Java
 
 newtype LDA = LDA (J ('Class "org.apache.spark.mllib.clustering.LDA"))
-instance Coercible LDA ('Class "org.apache.spark.mllib.clustering.LDA")
+  deriving Coercible
 
 newtype OnlineLDAOptimizer = OnlineLDAOptimizer (J ('Class "org.apache.spark.mllib.clustering.OnlineLDAOptimizer"))
-instance Coercible OnlineLDAOptimizer ('Class "org.apache.spark.mllib.clustering.OnlineLDAOptimizer")
+  deriving Coercible
 
 newLDA :: Double                               -- ^ fraction of documents
        -> Int32                                -- ^ number of topics
@@ -33,14 +35,14 @@ newLDA frac numTopics maxIterations = do
   call lda'''' "setTopicConcentration" [JDouble $ negate 1]
 
 newtype LDAModel = LDAModel (J ('Class "org.apache.spark.mllib.clustering.LDAModel"))
-instance Coercible LDAModel ('Class "org.apache.spark.mllib.clustering.LDAModel")
+  deriving Coercible
 
 runLDA :: LDA -> PairRDD CLong SparkVector -> IO LDAModel
-runLDA lda rdd = callStatic (sing :: Sing "Helper") "runLDA" [coerce lda, coerce rdd]
+runLDA lda rdd = callStatic "Helper" "runLDA" [coerce lda, coerce rdd]
 
 describeResults :: LDAModel -> CountVectorizerModel -> Int32 -> IO ()
 describeResults lm cvm maxTerms =
     callStatic
-      (sing :: Sing "Helper")
+      "Helper"
       "describeResults"
       [coerce lm, coerce cvm, JInt maxTerms]

@@ -5,38 +5,38 @@
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.SQL.Column where
 
 import Control.Monad (foldM)
+import qualified Data.Coerce
 import Data.Text (Text)
 import qualified Foreign.JNI.String
 import Language.Java
 import Prelude hiding (min, max, mod, and, or, otherwise)
 
 newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
-instance Coercible Column ('Class "org.apache.spark.sql.Column")
-
-type instance Interp Column = 'Class "org.apache.spark.sql.Column"
+  deriving (Coercible, Interpretation, Reflect, Reify)
 
 newtype GroupedData = GroupedData (J ('Class "org.apache.spark.sql.GroupedData"))
-instance Coercible GroupedData ('Class "org.apache.spark.sql.GroupedData")
+  deriving (Coercible, Interpretation, Reflect, Reify)
 
 alias :: Column -> Text -> IO Column
 alias c n = do
   colName <- reflect n
   call c "alias" [coerce colName]
 
-callStaticSqlFun :: Coercible a ty
-                 => Foreign.JNI.String.String -> [JValue] -> IO a
-callStaticSqlFun = callStatic (sing :: Sing "org.apache.spark.sql.functions")
+callStaticSqlFun :: Coercible a => Foreign.JNI.String.String -> [JValue] -> IO a
+callStaticSqlFun = callStatic "org.apache.spark.sql.functions"
 
-lit :: Reflect a ty => a -> IO Column
-lit a =  do
-  c <- upcast <$> reflect a  -- @upcast@ needed to land in java Object
+lit :: Reflect a => a -> IO Column
+lit x =  do
+  c <- upcast <$> reflect x  -- @upcast@ needed to land in java Object
   callStaticSqlFun "lit" [coerce c]
 
 plus :: Column -> Column -> IO Column
@@ -155,12 +155,14 @@ isnull col = callStaticSqlFun "isnull" [coerce col]
 
 coalesce :: [Column] -> IO Column
 coalesce colexprs = do
-  jcols <- reflect [ j | Column j <- colexprs ]
+  jcols <- toArray (Data.Coerce.coerce colexprs
+             :: [J ('Class "org.apache.spark.sql.Column")])
   callStaticSqlFun "coalesce" [coerce jcols]
 
 array :: [Column] -> IO Column
 array colexprs = do
-  jcols <- reflect [ j | Column j <- colexprs ]
+  jcols <- toArray (Data.Coerce.coerce colexprs
+             :: [J ('Class "org.apache.spark.sql.Column")])
   callStaticSqlFun "array" [coerce jcols]
 
 expr :: Text -> IO Column
