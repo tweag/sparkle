@@ -32,13 +32,18 @@ jobs:
           command: |
             apk update --no-progress && apk --no-progress add ca-certificates bash
             nix-env -f nixpkgs.nix -iA stack
+      - run:
+          name: Compute cache key
+          command: |
+            find . -name "*.cabal" -o -name "stack.yaml" -type f | sort | xargs cat > /tmp/stack-deps
       - restore_cache:
-          key: sparkle-stack-dependencies-{{ arch }}-
+          keys:
+            - sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+            - sparkle-stack-dependencies-{{ arch }}-
       - run:
           name: Build dependencies
           command: |
             stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench
-            find . -name "*.cabal" -o -name "stack.yaml" -type f | sort | xargs cat > /tmp/stack-deps
       - save_cache:
           key: sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
           paths:
