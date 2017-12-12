@@ -12,12 +12,14 @@ jobs:
           command: |
             apk update --no-progress && apk --no-progress add ca-certificates bash
             nix-env -f nixpkgs.nix -iA stack
+            mkdir -p ~/.stack
+            echo "nix: {enable: true}" > ~/.stack/config.yaml
       - restore_cache:
           key: sparkle-stack-dependencies-{{ arch }}-
       - run:
           name: Build dependencies
           command: |
-            stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench
+            stack --no-terminal build --only-snapshot --prefetch --no-haddock --test --bench
             find . -name "*.cabal" -o -name "stack.yaml" -type f | sort | xargs cat > /tmp/stack-deps
       - save_cache:
           key: sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
@@ -25,9 +27,9 @@ jobs:
             - ~/.stack
       - run:
           name: Build project
-          command: stack --no-terminal --nix build --pedantic
+          command: stack --no-terminal build --pedantic
       - run:
           name: Smoke test using sparkle-example-hello
           command: |
-            stack --no-terminal --nix exec -- sparkle package sparkle-example-hello
-            stack --no-terminal --nix exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
+            stack --no-terminal exec -- sparkle package sparkle-example-hello
+            stack --no-terminal exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
