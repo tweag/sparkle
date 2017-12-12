@@ -59,11 +59,3 @@ workflows:
   build:
     jobs:
       - build
-  publish:
-    jobs:
-      - publish
-    filters:
-      branches:
-        ignore: /.*/
-      tags:
-        only: /^v.*/
