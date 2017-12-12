@@ -1,0 +1,35 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: nixos/nix
+    working_directory: ~/sparkle
+    steps:
+      - checkout
+      - run:
+          name: Install Stack
+          command: |
+            apk update --no-progress && apk --no-progress add ca-certificates bash
+            nix-env -f nixpkgs.nix -iA stack
+      - restore_cache:
+          key: sparkle-stack-dependencies-{{ arch }}-
+      - run:
+          name: Build dependencies
+          command: |
+            stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench
+            find . -name "*.cabal" -o -name "stack.yaml" -type f | sort | xargs cat > /tmp/stack-deps
+      - save_cache:
+          key: sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+          paths:
+            - ~/.stack
+      - run:
+          name: Build project
+          command: stack --no-terminal --nix build --pedantic
+      - run:
+          name: Smoke test using sparkle-example-hello
+          command: |
+            stack --no-terminal --nix exec -- sparkle package sparkle-example-hello
+            # XXX --packages flag should not be necessary. Workaround
+            # regression in Spark 2.2 vs 2.1 in Nixpkgs.
+            stack --no-terminal --nix exec -- spark-submit --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.7.4,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:12.0 sparkle-example-hello.jar
