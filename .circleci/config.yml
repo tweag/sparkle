@@ -32,4 +32,6 @@ jobs:
           name: Smoke test using sparkle-example-hello
           command: |
             stack --no-terminal exec -- sparkle package sparkle-example-hello
-            stack --no-terminal exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
+            # XXX --packages flag should not be necessary. Workaround
+            # regression in Spark 2.2 vs 2.1 in Nixpkgs.
+            stack --no-terminal exec -- spark-submit --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.7.4,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:12.0 sparkle-example-hello.jar
