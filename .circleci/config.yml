@@ -10,7 +10,7 @@ jobs:
       - run:
           name: Install Stack
           command: |
-            apk update && apk add ca-certificates bash
+            apk update --no-progress && apk --no-progress add ca-certificates bash
             nix-env -f nixpkgs.nix -iA stack
       - restore_cache:
           key: sparkle-stack-dependencies-{{ arch }}-
