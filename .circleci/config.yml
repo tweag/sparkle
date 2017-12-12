@@ -62,6 +62,7 @@ workflows:
   publish:
     jobs:
       - publish:
+          context: org-global
           filters:
             branches:
               ignore: /.*/
