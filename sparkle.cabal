@@ -1,5 +1,5 @@
 name:                sparkle
-version:             0.7
+version:             0.7.1
 synopsis:            Distributed Apache Spark applications in Haskell
 description:         See https://www.stackage.org/package/sparkle.
 homepage:            http://github.com/tweag/sparkle#readme
