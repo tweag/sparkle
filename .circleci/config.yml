@@ -12,6 +12,7 @@ jobs:
           name: Build Docker image
           command: |
             docker build -t tweag/sparkle .
+      - run:
           name: Publish Docker image
           command: |
             if [[ $CIRCLE_PROJECT_USERNAME = "tweag" ]];
