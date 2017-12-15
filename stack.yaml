@@ -4,6 +4,7 @@ resolver: lts-10.0
 
 packages:
 - .
+- apps/als
 - apps/argv
 - apps/bench
 - apps/dataframe
