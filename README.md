@@ -189,6 +189,16 @@ do conf <- newSparkConf "some spark app"
 See [#104](https://github.com/tweag/sparkle/issues/104) for more
 details.
 
+### java.io.IOException: No FileSystem for scheme: s3n
+
+Spark 2.2 requires explicitly specifying extra JAR files to `spark-submit`
+in order to work with AWS. To work around this, add an additional 'packages'
+argument when submitting the job:
+
+```
+spark-submit --packages com.amazonaws:aws-java-sdk:1.7.4,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:12.0
+```
+
 ## License
 
 Copyright (c) 2015-2016 EURL Tweag.
