@@ -62,7 +62,7 @@ main = do
        coldiv <- col selected "((32 + index) / index)"
        colmin <- Column.min coldiv
        colix <- col selected "index"
-       colmean <- mean colix
+       colmean <- Column.mean colix
        grouped <- Dataset.groupBy selected [colexp2mo]
        aggregated <- agg grouped [colmin, colmean]
        Dataset.show aggregated

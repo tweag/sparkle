@@ -30,6 +30,7 @@ module Control.Distributed.Spark.RDD
   , aggregate
   , treeAggregate
   , count
+  , mean
   , collect
   , take
   , distinct
@@ -172,6 +173,10 @@ treeAggregate seqOp combOp zero depth rdd = do
 
 count :: RDD a -> IO Int64
 count rdd = [java| $rdd.count() |] >>= reify
+
+mean :: RDD Double -> IO Double
+mean rdd =
+  [java| $rdd.mapToDouble(r -> (double)r).mean() |]
 
 subtract :: RDD a -> RDD a -> IO (RDD a)
 subtract rdd1 rdd2 = [java| $rdd1.subtract($rdd2) |]

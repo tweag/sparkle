@@ -8,8 +8,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Added
 
-* More `RDD` method bindings: `randomSplit`, `zipWithUniqueId`,
-  `reduceByKey`, `subtractByKey`.
+* More `RDD` method bindings: `randomSplit`, `mean`,
+  `zipWithUniqueId`, `reduceByKey`, `subtractByKey`.
 
 ### Changed
 
