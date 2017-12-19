@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [Unreleased]
+
+### Added
+
+* More `RDD` method bindings: `sortBy`.
+
 ## [0.6] - 2017-07-16
 
 ### Added

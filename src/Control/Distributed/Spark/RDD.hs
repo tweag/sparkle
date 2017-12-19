@@ -36,6 +36,7 @@ module Control.Distributed.Spark.RDD
   , distinct
   , intersection
   , union
+  , sortBy
   , sample
   , first
   , getNumPartitions
@@ -124,6 +125,18 @@ reduce clos rdd = do
   f <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) clos
   res :: JObject <- [java| $rdd.reduce($f) |]
   reify (unsafeCast res)
+
+sortBy
+  :: (Static (Reify a), Static (Reflect b), Typeable a, Typeable b)
+  => Closure (a -> b)
+  -> Choice "ascending"
+  -> Int32
+  -- ^ Number of partitions.
+  -> RDD a
+  -> IO (RDD a)
+sortBy clos ascending numPartitions rdd = do
+  f <- unsafeUngeneric <$> reflectFun (sing :: Sing 1) clos
+  [java| $rdd.sortBy($f, $ascending, $numPartitions) |]
 
 aggregate
   :: (Static (Reify a), Static (Reify b), Static (Reflect b), Typeable a, Typeable b)
