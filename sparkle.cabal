@@ -1,5 +1,5 @@
 name:                sparkle
-version:             0.7.1
+version:             0.7.2
 synopsis:            Distributed Apache Spark applications in Haskell
 description:         See https://www.stackage.org/package/sparkle.
 homepage:            http://github.com/tweag/sparkle#readme
@@ -26,6 +26,7 @@ extra-source-files:
   src/main/java/Helper.java
   CHANGELOG.md
   README.md
+  build.gradle
 data-dir: build/libs
 data-files: sparkle.jar
 
