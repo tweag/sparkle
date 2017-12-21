@@ -5,13 +5,12 @@ repositories {
 }
 
 dependencies {
-  compile 'org.apache.spark:spark-core_2.10:1.6.0'
-  compile 'org.apache.spark:spark-mllib_2.10:1.6.0'
+  compile 'org.apache.spark:spark-core_2.11:2.2.0'
+  compile 'org.apache.spark:spark-mllib_2.11:2.2.0'
 }
 
-compileJava {
-  sourceCompatibility = 1.7
-  targetCompatibility = 1.7
+dependencies {
+    compile files(buildscript.sourceFile.getParent() + "/build/libs/sparkle.jar")
 }
 
 jar {

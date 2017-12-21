@@ -23,7 +23,8 @@ import Prelude hiding (min, max, mod, and, or, otherwise)
 newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
   deriving (Coercible, Interpretation, Reflect, Reify)
 
-newtype GroupedData = GroupedData (J ('Class "org.apache.spark.sql.GroupedData"))
+newtype GroupedData =
+    GroupedData (J ('Class "org.apache.spark.sql.RelationalGroupedDataset"))
   deriving (Coercible, Interpretation, Reflect, Reify)
 
 alias :: Column -> Text -> IO Column

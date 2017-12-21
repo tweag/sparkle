@@ -1,18 +1,15 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE StaticPointers #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+{-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Control.Distributed.Spark.PairRDD where
 
 import Control.Distributed.Closure
-import Control.Distributed.Closure.TH
 import Control.Distributed.Spark.Closure (reflectFun)
 import Control.Distributed.Spark.Context
 import Control.Distributed.Spark.RDD
@@ -20,6 +17,8 @@ import Data.Int
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Language.Java
+import Language.Java.Inline (java)
+import Language.Scala.Tuple
 
 newtype PairRDD a b = PairRDD (J ('Class "org.apache.spark.api.java.JavaPairRDD"))
   deriving Coercible
@@ -38,6 +37,13 @@ fromRDD rdd =
     "org.apache.spark.api.java.JavaPairRDD"
     "fromJavaRDD"
     [coerce rdd]
+
+fromPairRDD :: PairRDD a b -> IO (RDD (Tuple2 a b))
+fromPairRDD prdd = [java| $prdd.rdd().toJavaRDD() |]
+
+toPairRDD :: RDD (Tuple2 a b) -> IO (PairRDD a b)
+toPairRDD rdd =
+    [java| org.apache.spark.api.java.JavaPairRDD.fromJavaRDD($rdd) |]
 
 join :: PairRDD a b -> PairRDD a c -> IO (PairRDD a (Tuple2 b c))
 join prdd0 prdd1 = call prdd0 "join" [coerce prdd1]
@@ -83,25 +89,3 @@ zip rdda rddb = call rdda "zip" [coerce rddb]
 
 sortByKey :: PairRDD a b -> IO (PairRDD a b)
 sortByKey prdd = call prdd "sortByKey" []
-
-data Tuple2 a b = Tuple2 a b
-  deriving (Show, Eq)
-
-withStatic [d|
-
-  instance Interpretation (Tuple2 a b) where
-    type Interp (Tuple2 a b) = 'Class "scala.Tuple2"
-
-  instance (Reify a, Reify b) =>
-           Reify (Tuple2 a b) where
-    reify jobj =
-      Tuple2 <$> ((call jobj "_1" [] :: IO JObject) >>= reify . unsafeCast)
-             <*> ((call jobj "_2" [] :: IO JObject) >>= reify . unsafeCast)
-
-  instance (Reflect a, Reflect b) =>
-           Reflect (Tuple2 a b) where
-    reflect (Tuple2 a b) = do
-      ja <- reflect a
-      jb <- reflect b
-      new [coerce $ upcast ja, coerce $ upcast jb]
- |]

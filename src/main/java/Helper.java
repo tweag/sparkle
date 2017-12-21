@@ -5,8 +5,9 @@ import org.apache.spark.api.java.*;
 import org.apache.spark.api.java.function.*;
 import org.apache.spark.ml.feature.*;
 import org.apache.spark.mllib.clustering.*;
+import org.apache.spark.mllib.linalg.SparseVector;
 import org.apache.spark.mllib.linalg.Vector;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SQLContext;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
@@ -32,16 +33,7 @@ public class Helper {
 	return res;
     }
 
-    public static DataFrame toDF(SQLContext ctx, JavaRDD<Row> rdd, String col1, String col2) {
-	StructType st =
-	  new StructType().add(col1, DataTypes.LongType)
-	                  .add(col2, DataTypes.StringType);
-
-	DataFrame df = ctx.createDataFrame(rdd, st);
-	return df;
-    }
-
-    public static JavaRDD<Row> fromDF(DataFrame df, String col1, String col2) {
+    public static JavaRDD<Row> fromDF(Dataset<Row> df, String col1, String col2) {
         return df.select(col1, col2).toJavaRDD();
     }
 
@@ -49,7 +41,7 @@ public class Helper {
         JavaPairRDD<Long, Vector> res = rows.mapToPair(
 	    new PairFunction<Row, Long, Vector>() {
 		public Tuple2<Long, Vector> call(Row r) {
-		    return new Tuple2<Long, Vector>((Long) r.get(0), (Vector) r.get(1));
+            return new Tuple2<Long, Vector>((Long) r.get(0), SparseVector.fromML((org.apache.spark.ml.linalg.SparseVector) r.get(1)).compressed());
 		}
 	    });
         return res.cache();

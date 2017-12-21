@@ -5,16 +5,21 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StaticPointers #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Control.Distributed.Spark.Closure
-  ( ReifyFun(..)
+  ( MapPartitionsFunction(..)
+  , ReduceFunction(..)
+  , ReifyFun(..)
   , ReflectFun(..)
   , JFun1
   , JFun2
@@ -36,6 +41,8 @@ import Foreign.JNI
 import Foreign.Ptr (Ptr)
 import GHC.TypeLits (Nat)
 import Language.Java
+import Language.Java.Inline
+import Streaming (Stream, Of)
 
 -- | The main entry point for Java code to apply a Haskell 'Closure'. This
 -- function is foreign exported.
@@ -166,4 +173,75 @@ instance ( Static (Reify a)
       wrap :: Closure (JObjectArray -> IO JObject)
       wrap = $(cstatic 'closFun2) `cap`
              ($(cstatic 'tripleDict) `cap` closureDict `cap` closureDict `cap` closureDict) `cap`
+             f
+
+newtype ReduceFunction a = ReduceFunction (Closure (a -> a -> a))
+
+instance Interpretation a => Interpretation (ReduceFunction a) where
+  type Interp (ReduceFunction a) =
+    'Iface "org.apache.spark.api.java.function.ReduceFunction" <> '[Interp a]
+
+instance (Interpretation (ReduceFunction a), Typeable (a -> a -> a)) =>
+         Reify (ReduceFunction a) where
+  reify jobj0 = do
+      let jobj = cast jobj0
+      ReduceFunction . bs2clos <$> ([java| $jobj.clos |] >>= reify)
+    where
+      cast
+        :: J (Interp (ReduceFunction a))
+        -> J ('Class "io.tweag.sparkle.function.HaskellReduceFunction")
+      cast = unsafeCast
+
+instance ( Static (Reify a)
+         , Static (Reflect a)
+         , Typeable a
+         ) =>
+         Reflect (ReduceFunction a) where
+  reflect (ReduceFunction f) = do
+      jpayload <- reflect (clos2bs wrap)
+      generic <$>
+        [java| new io.tweag.sparkle.function.HaskellReduceFunction($jpayload) |]
+    where
+      wrap :: Closure (JObjectArray -> IO JObject)
+      wrap = closure (static closFun2) `cap`
+             (closure (static tripleDict)
+               `cap` closureDict `cap` closureDict `cap` closureDict
+             ) `cap` f
+
+newtype MapPartitionsFunction a b =
+    MapPartitionsFunction (Closure (Stream (Of a) IO () -> Stream (Of b) IO ()))
+instance (Interpretation a, Interpretation b) =>
+         Interpretation (MapPartitionsFunction a b) where
+  type Interp (MapPartitionsFunction a b) =
+         'Iface "org.apache.spark.api.java.function.MapPartitionsFunction"
+           <> [Interp a, Interp b]
+
+instance ( Interpretation (MapPartitionsFunction a b)
+         , Typeable (Stream (Of a) IO () -> Stream (Of b) IO ())
+         ) =>
+         Reify (MapPartitionsFunction a b) where
+  reify jobj0 = do
+      let jobj = cast jobj0
+      MapPartitionsFunction . bs2clos <$> ([java| $jobj.clos |] >>= reify)
+    where
+      cast
+        :: J (Interp (MapPartitionsFunction a b))
+        -> J ('Class "io.tweag.sparkle.function.HaskellMapPartitionsFunction")
+      cast = unsafeCast
+
+instance ( Static (Reify (Stream (Of a) IO ()))
+         , Static (Reflect (Stream (Of b) IO ()))
+         , Interpretation (MapPartitionsFunction a b)
+         , Typeable (Stream (Of a) IO ())
+         , Typeable (Stream (Of b) IO ())
+         ) =>
+         Reflect (MapPartitionsFunction a b) where
+  reflect (MapPartitionsFunction f) = do
+      jpayload <- reflect (clos2bs wrap)
+      generic <$>
+        [java| new io.tweag.sparkle.function.HaskellMapPartitionsFunction($jpayload) |]
+    where
+      wrap :: Closure (JObjectArray -> IO JObject)
+      wrap = $(cstatic 'closFun1) `cap`
+             ($(cstatic 'pairDict) `cap` closureDict `cap` closureDict) `cap`
              f

@@ -10,7 +10,7 @@ module Control.Distributed.Spark.ML.Feature.CountVectorizer where
 
 import Control.Distributed.Spark.RDD (RDD)
 import Control.Distributed.Spark.PairRDD
-import Control.Distributed.Spark.SQL.DataFrame
+import Control.Distributed.Spark.SQL.Dataset
 import Data.Int
 import Data.Text (Text)
 import Foreign.C.Types

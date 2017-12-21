@@ -8,7 +8,7 @@
 
 module Control.Distributed.Spark.ML.Feature.StopWordsRemover where
 
-import Control.Distributed.Spark.SQL.DataFrame
+import Control.Distributed.Spark.SQL.Dataset
 import Data.Text (Text)
 import Language.Java
 
