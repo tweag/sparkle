@@ -22,9 +22,9 @@ main = do
     sc   <- getOrCreateSparkContext conf
     -- This S3 bucket is located in US East.
     rdd  <- textFile sc "s3n://tweag-sparkle/lorem-ipsum.txt"
-    as   <- RDD.filter (closure (static f1)) rdd
-    bs   <- RDD.filter (closure (static f2)) rdd
-    numAs <- RDD.count as
-    numBs <- RDD.count bs
+    xs   <- RDD.filter (closure (static f1)) rdd
+    ys   <- RDD.filter (closure (static f2)) rdd
+    numAs <- RDD.count xs
+    numBs <- RDD.count ys
     putStrLn $ show numAs ++ " lines with a, "
             ++ show numBs ++ " lines with b."

@@ -4,32 +4,40 @@
 module Main where
 
 import Control.Distributed.Spark as Spark
-import Control.Distributed.Spark.SQL.DataFrame as DataFrame
+import Control.Distributed.Spark.SQL.Dataset as Dataset
 import qualified Control.Distributed.Spark.SQL.Column as Column
 import Data.Int (Int32, Int64)
 import qualified Data.Text as Text
 import Language.Java
+import Language.Scala.Tuple
 import Prelude hiding (sqrt)
 
 main :: IO ()
 main = do
-    conf <- newSparkConf "Sparkle DataFrame demo"
-    sc   <- getOrCreateSparkContext conf
-    sqlc <- getOrCreateSQLContext sc
+    conf <- newSparkConf "Sparkle Dataset demo"
+    session <- builder >>= (`config` conf) >>= getOrCreate
+    sc <- sparkContext session
 
     let exampleData1 = Text.words "why is a mouse when it spins"
         exampleData2 = Text.words "because the higher the fewer"
-    exRows1 <- toRows =<< zipWithIndex =<< parallelize sc exampleData1
-    exRows2 <- toRows =<< zipWithIndex =<< parallelize sc exampleData2
+
+        exampleToDS :: [Text.Text] -> IO (Dataset (Tuple2 Text.Text Int64))
+        exampleToDS ws =
+          parallelize sc ws >>=
+          zipWithIndex >>=
+          fromPairRDD  >>= \rdd ->
+          encoder >>= \enc ->
+          createDataset session enc rdd >>= toDF ["word", "index"] >>= as enc
+
     -- i.e.  [(1,"why"), (2,"is"), ... ] etc
-    df1    <- toDF sqlc exRows1 "index" "word"
-    df2    <- toDF sqlc exRows2 "index" "word"
+    df1 <- exampleToDS exampleData1
+    df2 <- exampleToDS exampleData2
 
-    debugDF df1
-    debugDF df2
+    Dataset.show df1
+    Dataset.show df2
 
-    unionedDF <- unionAll df1 df2
-    debugDF unionedDF
+    unionedDF <- Dataset.union df1 df2
+    Dataset.show unionedDF
 
     do colexp1   <- col unionedDF "index"
        colexp4   <- Column.lit (4 :: Int64)
@@ -45,31 +53,31 @@ main = do
        colexp5   <- Column.lit (3.14 :: Double)
        colexp6   <- Column.lit ("text" :: Text.Text)
        _colexp7   <- alias colexp5 "pi"
-       selected  <- select unionedDF
+       selected  <- Dataset.select unionedDF
           [    colexp1, colexp2, colexp3
           ,    colexp2m, colexp2mu, colexp2d, colexp2mo, colexp2ne
           ,    colexp4, colexp5, colexp6 ]
-       debugDF selected
+       Dataset.show selected
 
        coldiv <- col selected "((32 + index) / index)"
        colmin <- Column.min coldiv
        colix <- col selected "index"
        colmean <- mean colix
-       grouped <- groupBy selected [colexp2mo]
+       grouped <- Dataset.groupBy selected [colexp2mo]
        aggregated <- agg grouped [colmin, colmean]
-       debugDF aggregated
+       Dataset.show aggregated
 
     do colexp1   <- col df2 "index"
        colexp2   <- lit (3 :: Int32)
        colexp3   <- leq colexp1 colexp2
-       filtered  <- DataFrame.filter df2 colexp3 -- index <= 3
-       debugDF filtered
+       filtered  <- Dataset.filterByCol colexp3 df2 -- index <= 3
+       Dataset.show filtered
 
     do colindex1 <- col df1 "index"
        colindex2 <- col df2 "index"
        colexp    <- equalTo colindex1 colindex2
        joined    <- joinOn df1 df2 colexp
-       debugDF joined
+       Dataset.show joined
        -- The joined table has two columns called index and two called word.
 
        -- This makes clear we can get columns from the input tables when those
@@ -78,11 +86,11 @@ main = do
        colwords1 <- col df1 "word"
        colwords2 <- col df2 "word"
        selected <- select joined [colindex, colwords1, colwords2]
-       debugDF selected
+       Dataset.show selected
 
     do wcol <- col df1 "word"
        arrCols <- array [wcol, wcol]
-       select df1 [arrCols] >>= debugDF
+       select df1 [arrCols] >>= Dataset.show
 
     do col1 <- lit (3.14 :: Double)
        col2 <- lit (10.0 :: Double)
@@ -93,9 +101,9 @@ main = do
          >>= mapM (getList 0)
          >>= \xs -> print (xs :: [[Double]])
 
-    do redundantDF <- unionAll df1 df1
-       distinctDF  <- DataFrame.distinct redundantDF
-       debugDF distinctDF
+    do redundantDF <- Dataset.union df1 df1
+       distinctDF  <- Dataset.distinct redundantDF
+       Dataset.show distinctDF
 
     -- implicit and explicit casts
     do longCol         <- col df1 "index" >>= named "long"
@@ -127,7 +135,7 @@ main = do
                   , sqrtBoolIntCol
                   , sqrtBoolDoubleCol
                   ]
-         >>= debugDF
+         >>= Dataset.show
 
     do int2Col   <- lit (2 :: Int32)
        int4Col   <- lit (4 :: Int32)
@@ -146,7 +154,7 @@ main = do
        ex4      <- multiwayIf [(cond1Col, colwords1),
                                (cond2Col, fooCol)]
                               barCol         -- some words, foo, bar
-       select df1 [ex1, ex2, ex3, ex4] >>= debugDF
+       select df1 [ex1, ex2, ex3, ex4] >>= Dataset.show
 
     do nowTsCol   <- current_timestamp
        nowDtCol   <- current_date
@@ -173,7 +181,7 @@ main = do
                   , secCol, minsCol, hrsCol
                   , daysCol, monthsCol, yearsCol
                   , daysCol', monthsCol', yearsCol' ]
-         >>= debugDF
+         >>= Dataset.show
 
     return ()
 

@@ -23,6 +23,8 @@ extra-source-files:
   src/main/java/io/tweag/sparkle/function/HaskellFunction2.java
   src/main/java/io/tweag/sparkle/function/HaskellFunction3.java
   src/main/java/io/tweag/sparkle/function/HaskellFunction4.java
+  src/main/java/io/tweag/sparkle/function/HaskellMapPartitionsFunction.java
+  src/main/java/io/tweag/sparkle/function/HaskellReduceFunction.java
   src/main/java/io/tweag/sparkle/function/HaskellVoidFunction.java
   src/main/java/io/tweag/sparkle/kryo/InlineJavaRegistrator.java
   CHANGELOG.md
@@ -57,18 +59,22 @@ library
     Control.Distributed.Spark.PairRDD
     Control.Distributed.Spark.SQL.Column
     Control.Distributed.Spark.SQL.Context
-    Control.Distributed.Spark.SQL.DataFrame
+    Control.Distributed.Spark.SQL.Dataset
+    Control.Distributed.Spark.SQL.Encoder
     Control.Distributed.Spark.SQL.Row
     Control.Distributed.Spark.SQL.StructType
     Control.Distributed.Spark.SQL.StructField
     Control.Distributed.Spark.SQL.DataType
     Control.Distributed.Spark.SQL.Metadata
+    Control.Distributed.Spark.SQL.SparkSession
     Control.Distributed.Spark.RDD
+    Language.Scala.Tuple
   build-depends:
     base >=4.10.1.0 && <5,
     binary >=0.7,
     bytestring >=0.10,
     choice >= 0.1,
+    constraints,
     distributed-closure >=0.3,
     inline-java >=0.7.0 && <0.8,
     jni >=0.5.0 && <0.6,

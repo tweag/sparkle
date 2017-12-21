@@ -10,7 +10,7 @@ public class HaskellFlatMapFunction<T, R> implements FlatMapFunction<T, R> {
 	this.clos = clos;
     }
 
-    public Iterable<R> call(T value) throws Exception {
+    public java.util.Iterator<R> call(T value) throws Exception {
 	return Sparkle.apply(clos, value);
     }
 }
