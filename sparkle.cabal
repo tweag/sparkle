@@ -13,17 +13,18 @@ build-type:          Custom
 cabal-version:       >=1.10
 extra-source-files:
   cbits/io_tweag_sparkle_Sparkle.h
-  src/main/java/io/tweag/sparkle/Sparkle.java
+  src/main/java/Helper.java
   src/main/java/io/tweag/sparkle/SparkMain.java
-  src/main/java/io/tweag/sparkle/kryo/InlineJavaRegistrator.java
-  src/main/java/io/tweag/sparkle/function/HaskellVoidFunction.java
-  src/main/java/io/tweag/sparkle/function/HaskellFunction4.java
+  src/main/java/io/tweag/sparkle/Sparkle.java
+  src/main/java/io/tweag/sparkle/SparkleBase.java
+  src/main/java/io/tweag/sparkle/function/HaskellFlatMapFunction.java
+  src/main/java/io/tweag/sparkle/function/HaskellFunction.java
   src/main/java/io/tweag/sparkle/function/HaskellFunction0.java
   src/main/java/io/tweag/sparkle/function/HaskellFunction2.java
-  src/main/java/io/tweag/sparkle/function/HaskellFlatMapFunction.java
   src/main/java/io/tweag/sparkle/function/HaskellFunction3.java
-  src/main/java/io/tweag/sparkle/function/HaskellFunction.java
-  src/main/java/Helper.java
+  src/main/java/io/tweag/sparkle/function/HaskellFunction4.java
+  src/main/java/io/tweag/sparkle/function/HaskellVoidFunction.java
+  src/main/java/io/tweag/sparkle/kryo/InlineJavaRegistrator.java
   CHANGELOG.md
   README.md
   build.gradle
