@@ -19,7 +19,7 @@ The tl;dr using the `hello` app as an example on your local machine:
 ```
 $ stack build hello
 $ stack exec -- sparkle package sparkle-example-hello
-$ stack exec -- spark-submit --master 'local[1]' sparkle-example-hello.jar
+$ stack exec -- spark-submit --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.11.253,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:23.0 sparkle-example-hello.jar
 ```
 
 ## How to use
