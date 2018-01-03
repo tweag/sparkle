@@ -36,11 +36,10 @@ jobs:
       - run:
           name: Compute cache key
           command: |
-            find . -name "*.cabal" -o -name "stack.yaml" -type f | sort | xargs cat > /tmp/stack-deps
+            (echo shell.nix; echo nixpkgs.nix; find . -name "*.cabal" -o -name "stack.yaml" -type f) | sort | xargs cat > /tmp/stack-deps
       - restore_cache:
           keys:
             - sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
-            - sparkle-stack-dependencies-{{ arch }}-
       - run:
           name: Build dependencies
           command: |
