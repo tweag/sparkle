@@ -43,7 +43,8 @@ jobs:
       - run:
           name: Build dependencies
           command: |
-            stack --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench
+              # -j2: Limit parallelism to avoid memory exhaustion
+              stack -j2 --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench
       - save_cache:
           key: sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
           paths:
