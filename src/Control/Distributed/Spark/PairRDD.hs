@@ -1,3 +1,6 @@
+-- | Bindings for
+-- <https://spark.apache.org/docs/latest/api/java/org/apache/spark/api/java/JavaPairRDD.html org.apache.spark.api.java.JavaPairRDD>.
+--
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -24,51 +27,57 @@ newtype PairRDD a b = PairRDD (J ('Class "org.apache.spark.api.java.JavaPairRDD"
   deriving Coercible
 
 zipWithIndex :: RDD a -> IO (PairRDD a Int64)
-zipWithIndex rdd = call rdd "zipWithIndex" []
+zipWithIndex rdd = [java| $rdd.zipWithIndex() |]
 
-toRDD :: PairRDD a b -> IO (RDD (Tuple2 a b))
-toRDD prdd = do
-  scalaRDD <- call prdd "rdd" []
-  call (scalaRDD :: J ('Class "org.apache.spark.rdd.RDD")) "toJavaRDD" []
-
-fromRDD :: RDD (Tuple2 a b) -> IO (PairRDD a b)
-fromRDD rdd =
-  callStatic
-    "org.apache.spark.api.java.JavaPairRDD"
-    "fromJavaRDD"
-    [coerce rdd]
-
-fromPairRDD :: PairRDD a b -> IO (RDD (Tuple2 a b))
-fromPairRDD prdd = [java| $prdd.rdd().toJavaRDD() |]
-
-toPairRDD :: RDD (Tuple2 a b) -> IO (PairRDD a b)
-toPairRDD rdd =
+toRDD :: RDD (Tuple2 a b) -> IO (PairRDD a b)
+toRDD rdd =
     [java| org.apache.spark.api.java.JavaPairRDD.fromJavaRDD($rdd) |]
 
+fromRDD :: PairRDD a b -> IO (RDD (Tuple2 a b))
+fromRDD prdd = [java| $prdd.rdd().toJavaRDD() |]
+
 join :: PairRDD a b -> PairRDD a c -> IO (PairRDD a (Tuple2 b c))
-join prdd0 prdd1 = call prdd0 "join" [coerce prdd1]
+join prdd0 prdd1 = [java| $prdd0.join($prdd1) |]
 
 keyBy
   :: (Static (Reify v), Static (Reflect k), Typeable v, Typeable k)
   => Closure (v -> k) -> RDD v -> IO (PairRDD k v)
 keyBy byKeyOp rdd = do
-  jbyKeyOp <- reflectFun (sing :: Sing 1) byKeyOp
-  call rdd "keyBy" [ coerce jbyKeyOp ]
+  jbyKeyOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 1) byKeyOp
+  [java| $rdd.keyBy($jbyKeyOp) |]
 
 mapValues
   :: (Static (Reify a), Static (Reflect b), Typeable a, Typeable b)
   => Closure (a -> b) -> PairRDD k a -> IO (PairRDD k b)
 mapValues f prdd = do
-  jf <- reflectFun (sing :: Sing 1) f
-  call prdd "mapValues" [coerce jf]
+  jf <- unsafeUngeneric <$> reflectFun (sing :: Sing 1) f
+  [java| $prdd.mapValues($jf) |]
+
+zipWithUniqueId :: RDD a -> IO (PairRDD a Int64)
+zipWithUniqueId rdd = [java| $rdd.zipWithUniqueId() |]
+
+reduceByKey
+  :: (Static (Reify v), Static (Reflect v), Typeable v)
+  => Closure (v -> v -> v)
+  -> PairRDD k v
+  -> IO (PairRDD k v)
+reduceByKey clos rdd = do
+  f <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) clos
+  [java| $rdd.reduceByKey($f) |]
+
+subtractByKey
+  :: PairRDD a b
+  -> PairRDD a c
+  -> IO (PairRDD a b)
+subtractByKey prdd0 prdd1 = [java| $prdd0.subtractByKey($prdd1) |]
 
 wholeTextFiles :: SparkContext -> Text -> IO (PairRDD Text Text)
 wholeTextFiles sc uri = do
   juri <- reflect uri
-  call sc "wholeTextFiles" [coerce juri]
+  [java| $sc.wholeTextFiles($juri) |]
 
 justValues :: PairRDD a b -> IO (RDD b)
-justValues prdd = call prdd "values" []
+justValues prdd = [java| $prdd.values() |]
 
 aggregateByKey
   :: (Static (Reify a), Static (Reify b), Static (Reflect b), Typeable a, Typeable b)
@@ -78,14 +87,13 @@ aggregateByKey
   -> PairRDD k a
   -> IO (PairRDD k b)
 aggregateByKey seqOp combOp zero prdd = do
-    jseqOp <- reflectFun (sing :: Sing 2) seqOp
-    jcombOp <- reflectFun (sing :: Sing 2) combOp
+    jseqOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) seqOp
+    jcombOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) combOp
     jzero <- upcast <$> reflect zero
-    call prdd "aggregateByKey"
-      [coerce jzero, coerce jseqOp, coerce jcombOp]
+    [java| $prdd.aggregateByKey($jzero, $jseqOp, $jcombOp) |]
 
 zip :: RDD a -> RDD b -> IO (PairRDD a b)
-zip rdda rddb = call rdda "zip" [coerce rddb]
+zip rdda rddb = [java| $rdda.zip($rddb) |]
 
 sortByKey :: PairRDD a b -> IO (PairRDD a b)
-sortByKey prdd = call prdd "sortByKey" []
+sortByKey prdd = [java| $prdd.sortByKey() |]

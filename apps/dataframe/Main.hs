@@ -25,7 +25,7 @@ main = do
         exampleToDS ws =
           parallelize sc ws >>=
           zipWithIndex >>=
-          fromPairRDD  >>= \rdd ->
+          fromRDD  >>= \rdd ->
           encoder >>= \enc ->
           createDataset session enc rdd >>= toDF ["word", "index"] >>= as enc
 
@@ -62,7 +62,7 @@ main = do
        coldiv <- col selected "((32 + index) / index)"
        colmin <- Column.min coldiv
        colix <- col selected "index"
-       colmean <- mean colix
+       colmean <- Column.mean colix
        grouped <- Dataset.groupBy selected [colexp2mo]
        aggregated <- agg grouped [colmin, colmean]
        Dataset.show aggregated

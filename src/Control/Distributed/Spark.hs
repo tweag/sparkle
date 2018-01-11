@@ -8,7 +8,8 @@ import Control.Distributed.Spark.ML.Feature.RegexTokenizer as S
 import Control.Distributed.Spark.ML.Feature.StopWordsRemover as S
 import Control.Distributed.Spark.ML.LDA as S
 import Control.Distributed.Spark.PairRDD as S
-import Control.Distributed.Spark.SQL.Column as S
+import Control.Distributed.Spark.SQL.Column as S hiding
+  (mean)
 import Control.Distributed.Spark.SQL.Context as S
 import Control.Distributed.Spark.SQL.Encoder as S
 import Control.Distributed.Spark.SQL.Row as S

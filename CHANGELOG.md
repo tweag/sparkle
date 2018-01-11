@@ -8,7 +8,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Added
 
+* More `RDD` method bindings: `randomSplit`, `mean`,
+  `zipWithUniqueId`, `reduceByKey`, `subtractByKey`.
+
+### Changed
+
+* Use inline-java for PairRDD bindings under the hood.
+
+## [0.7.2] - 2017-12-25
+
+### Added
+
 * More `RDD` method bindings: `sortBy`.
+
+## [0.7.1] - 2017-12-13
+
+### Fixed
+
+* Use StaticPointers for `PairRDD` as a workaround for [GHC bug
+  #14204][ghc-14204] occuring when mapping over a PairRDD (see [issue
+  #119][issue-119])
+
+## [0.7] - 2017-12-09
 
 ## [0.6] - 2017-07-16
 
@@ -65,7 +86,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 * Support Template Haskell splices and `ANN` annotations that use
   sparkle code.
 
-### Changed 
+### Changed
 
 ### Fixed
 
@@ -115,3 +136,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 ## [0.1.0] - 2016-04-25
 
 * Initial release
+
+[ghc-14204]: https://ghc.haskell.org/trac/ghc/ticket/14204
+[hackage-choice]: https://hackage.haskell.org/package/choice
+[issue-119]: https://github.com/tweag/sparkle/issues/119

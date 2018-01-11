@@ -9,7 +9,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StaticPointers #-}
@@ -31,6 +30,7 @@ module Control.Distributed.Spark.RDD
   , aggregate
   , treeAggregate
   , count
+  , mean
   , collect
   , take
   , distinct
@@ -38,6 +38,7 @@ module Control.Distributed.Spark.RDD
   , union
   , sortBy
   , sample
+  , randomSplit
   , first
   , getNumPartitions
   , saveAsTextFile
@@ -48,11 +49,14 @@ module Control.Distributed.Spark.RDD
 import Prelude hiding (filter, map, subtract, take)
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Closure (reflectFun)
+import Control.Monad
 import Data.Choice (Choice)
 import qualified Data.Choice as Choice
 import Data.Int
 import qualified Data.Text as Text
 import Data.Typeable (Typeable)
+import Data.Vector.Storable as V (fromList)
+import Foreign.JNI
 import Language.Java
 import Language.Java.Inline
 -- We don't need this instance. But import to bring it in scope transitively for users.
@@ -170,6 +174,10 @@ treeAggregate seqOp combOp zero depth rdd = do
 count :: RDD a -> IO Int64
 count rdd = [java| $rdd.count() |] >>= reify
 
+mean :: RDD Double -> IO Double
+mean rdd =
+  [java| $rdd.mapToDouble(r -> (double)r).mean() |]
+
 subtract :: RDD a -> RDD a -> IO (RDD a)
 subtract rdd1 rdd2 = [java| $rdd1.subtract($rdd2) |]
 
@@ -216,6 +224,16 @@ sample
   -> Double -- ^ fraction of elements to keep
   -> IO (RDD a)
 sample rdd replacement frac = [java| $rdd.sample($replacement, $frac) |]
+
+randomSplit
+  :: RDD a
+  -> [Double] -- ^ Statistical weights of RDD fractions.
+  -> IO [RDD a]
+randomSplit rdd weights = do
+  jweights <- reflect $ V.fromList weights
+  arr :: JObjectArray <- [java| $rdd.randomSplit($jweights) |]
+  n <- getArrayLength arr
+  forM [0 .. n - 1] (getObjectArrayElement arr)
 
 first :: Reify a => RDD a -> IO a
 first rdd = do
