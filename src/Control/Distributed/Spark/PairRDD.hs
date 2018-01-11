@@ -29,12 +29,12 @@ newtype PairRDD a b = PairRDD (J ('Class "org.apache.spark.api.java.JavaPairRDD"
 zipWithIndex :: RDD a -> IO (PairRDD a Int64)
 zipWithIndex rdd = [java| $rdd.zipWithIndex() |]
 
-toRDD :: RDD (Tuple2 a b) -> IO (PairRDD a b)
-toRDD rdd =
+fromRDD :: RDD (Tuple2 a b) -> IO (PairRDD a b)
+fromRDD rdd =
     [java| org.apache.spark.api.java.JavaPairRDD.fromJavaRDD($rdd) |]
 
-fromRDD :: PairRDD a b -> IO (RDD (Tuple2 a b))
-fromRDD prdd = [java| $prdd.rdd().toJavaRDD() |]
+toRDD :: PairRDD a b -> IO (RDD (Tuple2 a b))
+toRDD prdd = [java| $prdd.rdd().toJavaRDD() |]
 
 join :: PairRDD a b -> PairRDD a c -> IO (PairRDD a (Tuple2 b c))
 join prdd0 prdd1 = [java| $prdd0.join($prdd1) |]

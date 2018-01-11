@@ -25,7 +25,7 @@ main = do
         exampleToDS ws =
           parallelize sc ws >>=
           zipWithIndex >>=
-          fromRDD  >>= \rdd ->
+          toRDD >>= \rdd ->
           encoder >>= \enc ->
           createDataset session enc rdd >>= toDF ["word", "index"] >>= as enc
 
