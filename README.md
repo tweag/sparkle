@@ -189,6 +189,17 @@ do conf <- newSparkConf "some spark app"
 See [#104](https://github.com/tweag/sparkle/issues/104) for more
 details.
 
+### java.lang.UnsatisfiedLinkError: /tmp/sparkle-app...: failed to map segment from shared object
+
+Sparkle unzips the Haskell binary program in a temporary location on
+the filesystem and then loads it from there. For loading to succeed, the
+temporary location must not be mounted with the `noexec` option.
+Alternatively, the temporary location can be changed with
+```
+spark-submit --driver-java-options="-Djava.io.tmpdir=..." \
+             --conf "spark.executor.extraJavaOptions=-Djava.io.tmpdir=..."
+```
+
 ### java.io.IOException: No FileSystem for scheme: s3n
 
 Spark 2.2 requires explicitly specifying extra JAR files to `spark-submit`
