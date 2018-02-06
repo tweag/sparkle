@@ -8,12 +8,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Added
 
+### Changed
+
+## [0.7.3] - 2018-02-06
+
+### Added
+
 * More `RDD` method bindings: `randomSplit`, `mean`,
   `zipWithUniqueId`, `reduceByKey`, `subtractByKey`.
 
 ### Changed
 
 * Use inline-java for PairRDD bindings under the hood.
+* Updated sparkle to build with distributed-closure-0.4.0.
 
 ## [0.7.2] - 2017-12-25
 
