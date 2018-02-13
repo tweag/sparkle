@@ -25,7 +25,10 @@ public class SparkleBase {
                 StandardCopyOption.REPLACE_EXISTING);
             in.close();
             try {
-              loadApplication(sparkleAppZipFile, "hsapp");
+              if (System.getProperty("os.name").startsWith("Mac "))
+                loadApplication(sparkleAppZipFile, "hsapp");
+              else
+                loadApplication(sparkleAppZipFile, "libhsapp.so");
             } finally {
               sparkleAppZipFile.delete();
             }
