@@ -3,8 +3,8 @@ module Main where
 import Codec.Archive.Zip
 import Data.Text (pack, strip, unpack)
 import Data.List (isInfixOf)
-import qualified Data.ByteString as SBS
-import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
 import Paths_sparkle
 import System.Environment (getArgs)
 import System.Exit (ExitCode(..))
@@ -25,7 +25,7 @@ import Text.Regex.TDFA
 doPackage :: FilePath -> IO ()
 doPackage cmd = do
     dir <- getDataDir
-    jarbytes <- BS.readFile (dir </> "sparkle.jar")
+    jarbytes <- LBS.readFile (dir </> "sparkle.jar")
     cmdpath <- unpack . strip . pack <$> readProcess "which" [cmd] ""
     ldd <- case os of
       "darwin" -> do
@@ -43,20 +43,20 @@ doPackage cmd = do
       else do
         libhsapp <- makeHsTopLibrary cmdpath libs
         return $ toEntry "libhsapp.so" 0 libhsapp : libentries0
-    cmdentry <- toEntry "hsapp" 0 <$> BS.readFile cmdpath
+    cmdentry <- toEntry "hsapp" 0 <$> LBS.readFile cmdpath
     let appzip =
           toEntry "sparkle-app.zip" 0 $
           fromArchive $
           foldr addEntryToArchive emptyArchive (cmdentry : libentries)
         newjarbytes = fromArchive $ addEntryToArchive appzip (toArchive jarbytes)
-    BS.writeFile ("." </> takeBaseName cmd <.> "jar") newjarbytes
+    LBS.writeFile ("." </> takeBaseName cmd <.> "jar") newjarbytes
   where
-    mkEntry file = toEntry (takeFileName file) 0 <$> BS.readFile file
+    mkEntry file = toEntry (takeFileName file) 0 <$> LBS.readFile file
 
 -- We make a library which depends on all the libraries that go into the jar.
 -- This removes the need to fiddle with the rpaths of the various libraries
 -- and the application executable.
-makeHsTopLibrary :: FilePath -> [FilePath] -> IO BS.ByteString
+makeHsTopLibrary :: FilePath -> [FilePath] -> IO LBS.ByteString
 makeHsTopLibrary hsapp libs = withSystemTempDirectory "libhsapp" $ \d -> do
     let f = d </> "libhsapp.so"
     createSymbolicLink hsapp (d </> "hsapp")
@@ -66,7 +66,7 @@ makeHsTopLibrary hsapp libs = withSystemTempDirectory "libhsapp" $ \d -> do
     callProcessCwd d "gcc" $
       [ "-shared", "-Wl,-z,origin", "-Wl,-rpath=$ORIGIN", "hsapp"
       , "-o", f] ++ libs
-    BS.fromStrict <$> SBS.readFile f
+    LBS.fromStrict <$> BS.readFile f
 
 -- This is a variant of 'callProcess' which takes a working directory.
 callProcessCwd :: FilePath -> FilePath -> [String] -> IO ()
