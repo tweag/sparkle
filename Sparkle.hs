@@ -25,7 +25,7 @@ import Text.Regex.TDFA
 doPackage :: FilePath -> IO ()
 doPackage cmd = do
     dir <- getDataDir
-    jarbytes <- LBS.readFile (dir </> "sparkle.jar")
+    jarbytes <- LBS.readFile (dir </> "build/libs/sparkle.jar")
     cmdpath <- unpack . strip . pack <$> readProcess "which" [cmd] ""
     ldd <- case os of
       "darwin" -> do

@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 * Fixed dynamic linking of sparkle when library dependencies don't set
   the `RPATH` to `$ORIGIN`. PR #139
 * Linker flags `-rpath` and `-z origin` are no longer necessary.
+* Build with `jvm-batching`.
 
 ## [0.7.3] - 2018-02-06
 

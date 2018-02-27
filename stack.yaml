@@ -12,9 +12,12 @@ packages:
 - apps/rdd-ops
 
 extra-deps:
-- jni-0.5.1
-- jvm-0.4.1
-- jvm-streaming-0.2.2
+- inline-java-0.8.1
+- jni-0.6.0
+- jvm-0.4.2
+- jvm-batching-0.1.1
+- jvm-streaming-0.3
+- distributed-closure-0.4.0
 
 nix:
   # Requires Stack >= 1.2.

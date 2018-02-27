@@ -90,7 +90,11 @@ map clos rdd = do
     [java| $rdd.map($f) |]
 
 mapPartitions
-  :: (Static (Reify a), Static (Reflect b), Typeable a, Typeable b)
+  :: ( Static (Reify (Stream (Of a) IO ()))
+     , Static (Reflect (Stream (Of b) IO ()))
+     , Typeable a
+     , Typeable b
+     )
   => Choice "preservePartitions"
   -> Closure (Stream (Of a) IO () -> Stream (Of b) IO ())
   -> RDD a
@@ -99,7 +103,11 @@ mapPartitions preservePartitions clos rdd =
   mapPartitionsWithIndex preservePartitions (closure (static const) `cap` clos) rdd
 
 mapPartitionsWithIndex
-  :: (Static (Reify a), Static (Reflect b), Typeable a, Typeable b)
+  :: ( Static (Reify (Stream (Of a) IO ()))
+     , Static (Reflect (Stream (Of b) IO ()))
+     , Typeable a
+     , Typeable b
+     )
   => Choice "preservePartitions"
   -> Closure (Int32 -> Stream (Of a) IO () -> Stream (Of b) IO ())
   -> RDD a
