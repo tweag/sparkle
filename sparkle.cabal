@@ -30,8 +30,6 @@ extra-source-files:
   CHANGELOG.md
   README.md
   build.gradle
-data-dir: build/libs
-data-files: sparkle.jar
 
 source-repository head
   type:     git
@@ -42,7 +40,8 @@ custom-setup
   setup-depends:
     base,
     Cabal >= 1.24,
-    inline-java >= 0.6.3
+    inline-java >= 0.6.3,
+    jvm-streaming >= 0.3
 
 library
   include-dirs: cbits
@@ -52,6 +51,7 @@ library
     Control.Distributed.Spark
     Control.Distributed.Spark.Closure
     Control.Distributed.Spark.Context
+    Control.Distributed.Spark.Jars
     Control.Distributed.Spark.ML.Feature.CountVectorizer
     Control.Distributed.Spark.ML.Feature.RegexTokenizer
     Control.Distributed.Spark.ML.Feature.StopWordsRemover
@@ -69,6 +69,8 @@ library
     Control.Distributed.Spark.SQL.SparkSession
     Control.Distributed.Spark.RDD
     Language.Scala.Tuple
+  other-modules:
+    Paths_sparkle
   build-depends:
     base >=4.10.1.0 && <5,
     binary >=0.7,
@@ -76,8 +78,8 @@ library
     choice >= 0.1,
     constraints,
     distributed-closure >=0.3,
-    inline-java >=0.7.0 && <0.8,
-    jni >=0.5.0 && <0.6,
+    inline-java >=0.7.0 && <0.9,
+    jni >=0.5.0 && <0.7,
     jvm >=0.4.0.1 && <0.5,
     jvm-streaming >= 0.2,
     singletons >= 2.0,
