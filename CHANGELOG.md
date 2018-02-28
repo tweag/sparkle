@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Changed
 
+## [0.7.4] - 2018-02-28
+
+### Changed
+
 * Fixed dynamic linking of sparkle when library dependencies don't set
   the `RPATH` to `$ORIGIN`. PR #139
 * Linker flags `-rpath` and `-z origin` are no longer necessary.
