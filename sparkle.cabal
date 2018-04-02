@@ -51,10 +51,12 @@ library
     Control.Distributed.Spark
     Control.Distributed.Spark.Closure
     Control.Distributed.Spark.Context
+    Control.Distributed.Spark.ML.ALS
     Control.Distributed.Spark.ML.Feature.CountVectorizer
     Control.Distributed.Spark.ML.Feature.RegexTokenizer
     Control.Distributed.Spark.ML.Feature.StopWordsRemover
     Control.Distributed.Spark.ML.LDA
+    Control.Distributed.Spark.ML.Rating
     Control.Distributed.Spark.PairRDD
     Control.Distributed.Spark.SQL.Column
     Control.Distributed.Spark.SQL.Context
