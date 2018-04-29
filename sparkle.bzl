@@ -1,53 +1,28 @@
 """Helpers for sparkle packaging."""
 
-def _get_file_from_target(ctx, trgt, fname):
-  for f in trgt.files:
-    if f.basename == fname:
-      return f
-  fail("Could not find {0} in outputs of {1}".format(fname, trgt.label.name))
+load("@io_tweag_clodl//:clodl/clodl.bzl", "library_closure")
 
-def _wrap_sparkle_impl(ctx):
-  sparkle_jar = _get_file_from_target(
-    ctx,
-    ctx.attr.sparkle_jar_rule,
-    "{0}.jar".format(ctx.attr.sparkle_jar_rule.label.name),
-  )
-  sparkle_hs = _get_file_from_target(
-    ctx,
-    ctx.attr.sparkle_hs_rule,
-    ctx.attr.sparkle_hs_rule.label.name,
-  )
-  ctx.actions.write(
-    output=ctx.outputs.executable,
-    content=" ".join([
-      sparkle_hs.path,
-      "--sparkle-jar",
-      sparkle_jar.path,
-      '"$@"',
-    ]),
-    is_executable=True,
+def sparkle_package(name, src, **kwargs):
+  libclosure = "libclosure-%s" % name
+  
+  library_closure(
+    name = libclosure,
+    srcs = [src],
+    outzip = "sparkle-app.zip",
+    excludes = [
+      "ld-linux-x86-64\.so.*",
+      "libgcc_s\.so.*",
+      "libc\.so.*",
+      "libdl\.so.*",
+      "libm\.so.*",
+      "libpthread\.so.*",
+    ],
+    **kwargs
   )
 
-  return [DefaultInfo(
-    runfiles=ctx.runfiles(files=[sparkle_hs, sparkle_jar])
-  )]
-
-# Apply --sparkle-jar for the user ensuring that it's available in
-# environment. I don't know if it does anything though because bazel
-# run still doesn't like it
-#
-# https://github.com/bazelbuild/examples/blob/master/rules/runfiles/execute.bzl
-wrap_sparkle_hs = rule(
-  _wrap_sparkle_impl,
-  executable = True,
-  attrs = {
-    "sparkle_hs_rule": attr.label(
-      mandatory=True,
-      doc="Haskell sparkle binary rule.",
-    ),
-    "sparkle_jar_rule": attr.label(
-      mandatory=True,
-      doc="Sparkle Java rule.",
-    ),
-  },
-)
+  native.java_binary(
+    name = name,
+    main_class = "io.tweag.sparkle.SparkMain",
+    classpath_resources = [libclosure],
+    resource_jars = [native.repository_name() + "//:sparkle-jar"],
+  )

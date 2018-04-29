@@ -1,0 +1,28 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@io_tweag_rules_haskell//haskell:haskell.bzl",
+  "haskell_binary",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_binary(
+  name = "hello-hs",
+  srcs = ["HelloSpark.hs"],
+  main_file = "HelloSpark.hs",
+  deps = [
+    "//:sparkle-lib",
+  ],
+  prebuilt_dependencies = [
+    "base",
+    "distributed-closure",
+    "text",
+  ],
+  compiler_flags = ["-threaded", "-dynamic", "-pie"],
+)
+
+sparkle_package(
+  name = "sparkle-example-hello",
+  src = ":hello-hs",
+)

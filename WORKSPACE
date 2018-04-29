@@ -2,8 +2,14 @@ workspace(name = "io_tweag_sparkle")
 
 http_archive(
   name = "io_tweag_rules_haskell",
-  strip_prefix = "rules_haskell-7136d1eced6e335feb90f0adb23db96fad0925ff",
-  urls = ["https://github.com/tweag/rules_haskell/archive/7136d1eced6e335feb90f0adb23db96fad0925ff.tar.gz"]
+  strip_prefix = "rules_haskell-730d42c225f008a13e48bf5e9c13010174324b8c",
+  urls = ["https://github.com/tweag/rules_haskell/archive/730d42c225f008a13e48bf5e9c13010174324b8c.tar.gz"]
+)
+
+http_archive(
+  name = "io_tweag_clodl",
+  strip_prefix = "clodl-5dafc670c24b4e9965b9ef6d66e2d65122be93e6",
+  urls = ["https://github.com/tweag/clodl/archive/5dafc670c24b4e9965b9ef6d66e2d65122be93e6.tar.gz"]
 )
 
 http_archive(
@@ -21,8 +27,8 @@ http_archive(
 
 http_archive(
   name = "io_tweag_inline_java",
-  strip_prefix = "inline-java-50bbcc2c4d833b261aaacb7b5033123e8f0c6373",
-  urls = ["https://github.com/tweag/inline-java/archive/50bbcc2c4d833b261aaacb7b5033123e8f0c6373.tar.gz"],
+  strip_prefix = "inline-java-e67c8ebad4d362236eeeb6403c21c33c21ac6324",
+  urls = ["https://github.com/tweag/inline-java/archive/e67c8ebad4d362236eeeb6403c21c33c21ac6324.tar.gz"],
 )
 
 load("@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
@@ -33,7 +39,7 @@ load("@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
 nixpkgs_git_repository(
   name = "nixpkgs",
   # Keep consistent with ./nixpkgs.nix.
-  revision = "4026ea9c8afd09b60896b861a04cc5748fdcdfb4",
+  revision = "1c3b6d509d06af14b1858ffa2d27f3c902f549bd",
 )
 
 # Maven dependencies from 'gradle dependencies' + grep on compile
@@ -114,16 +120,36 @@ in pkgs.buildEnv {
     openjdk
   ];
 }
-"""
+""",
+  build_file_content = """ 
+package(default_visibility = [ "//visibility:public" ]) 
+ 
+filegroup(
+  name = "bin",
+  srcs = glob(["nix/bin/*"]),
+)
+
+cc_library( 
+  name = "include", 
+  hdrs = glob(["nix/lib/ghc-*/include/**/*.h"]), 
+  strip_include_prefix = glob(["nix/lib/ghc-*/include"], exclude_directories=0)[0],
+)
+""",
 )
 
 nixpkgs_package(
   name = "openjdk",
   repository = "@nixpkgs",
   build_file_content = """
+package(default_visibility = [ "//visibility:public" ])
 filegroup (
   name = "lib",
   srcs = ["nix/lib/openjdk/jre/lib/amd64/server/libjvm.so"],
+  visibility = ["//visibility:public"],
+)
+filegroup (
+  name = "bin",
+  srcs = ["nix/bin/javac"],
   visibility = ["//visibility:public"],
 )
 filegroup (
@@ -135,7 +161,13 @@ filegroup (
   name = "jni_md_header",
   srcs = ["nix/include/jni_md.h"],
   visibility = ["//visibility:public"],
-)"""
+)
+cc_library(
+  name = "include",
+  hdrs = glob(["nix/include/*.h"]),
+  strip_include_prefix = "nix/include",
+)
+"""
 )
 
 register_toolchains("//:sparkle-toolchain")

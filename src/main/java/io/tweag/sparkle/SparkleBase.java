@@ -59,9 +59,21 @@ public class SparkleBase {
           }
           zip.close();
 
+          // Discover the name of the library wrapper to load.
+          Path appPath = null;
+          for (Path p : pathsList) {
+            if (p.toFile().getName().endsWith("_wrapper"))
+              appPath = p;
+          }
+
           // Dynamically load the app.
           //
-          System.load(sparkleAppTmpDir.resolve(appName).toString());
+          if (appPath != null)
+            // Built with bazel.
+            System.load(appPath.toString());
+          else
+            // Built with sparkle package.
+            System.load(sparkleAppTmpDir.resolve(appName).toString());
         } finally {
           // Delete the app binary and its libraries, now that they are loaded.
           //

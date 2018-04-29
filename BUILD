@@ -8,19 +8,23 @@ load(
   "haskell_cc_import",
 )
 
-load(":sparkle.bzl", "wrap_sparkle_hs")
-
 _sparkle_java_deps = [
   "@org_apache_spark_spark_core//jar",
   "@com_esotericsoftware_kryo_shaded//jar",
 ]
 
-java_binary(
+java_library(
   name = "sparkle-jar",
   deps = _sparkle_java_deps,
   srcs = glob(["src/main/java/io/tweag/sparkle/**/*.java"]),
-  main_class = "io.tweag.sparkle.SparkMain",
 )
+
+cc_library(
+  name = "sparkle-bootstrap-cc",
+  srcs = ["cbits/bootstrap.c", "cbits/io_tweag_sparkle_Sparkle.h"],
+  deps = ["@openjdk//:include", "@sparkle-toolchain//:include"],
+  copts = ["-std=c99"],
+) 
 
 haskell_library(
   name = "sparkle-lib",
@@ -36,6 +40,7 @@ haskell_library(
     "@org_scala_lang_scala_library//jar",
     "@org_scala_lang_scala_reflect//jar",
     ":sparkle-jar",
+    ":sparkle-bootstrap-cc",
   ] + _sparkle_java_deps,
   prebuilt_dependencies = [
     "base",
@@ -51,33 +56,9 @@ haskell_library(
   ],
 )
 
-haskell_binary(
-  name = "sparkle-hs",
-  srcs = ["Sparkle_run.hs"],
-  main = "Sparkle_run.main",
-  deps = [
-    ":sparkle-lib",
-  ],
-  prebuilt_dependencies = [
-    "base",
-    "bytestring",
-    "filepath",
-    "process",
-    "regex-tdfa",
-    "text",
-    "zip-archive",
-  ],
-  compiler_flags = ["-threaded"],
-)
-
-wrap_sparkle_hs(
-  name = "sparkle",
-  sparkle_hs_rule = ":sparkle-hs",
-  sparkle_jar_rule = ":sparkle-jar",
-)
-
 haskell_toolchain(
   name = "sparkle-toolchain",
   version = "8.2.2",
   tools = "@sparkle-toolchain//:bin",
+  extra_binaries = ["@openjdk//:bin"],
 )
