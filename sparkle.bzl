@@ -10,12 +10,23 @@ def sparkle_package(name, src, **kwargs):
     srcs = [src],
     outzip = "sparkle-app.zip",
     excludes = [
+      "ld\.so.*",
+      "ld-linux\.so.*",
       "ld-linux-x86-64\.so.*",
       "libgcc_s\.so.*",
       "libc\.so.*",
+      "libcrypt\.so.*",
       "libdl\.so.*",
+      "libjava\.so.*",
+      "libjli\.so.*",
+      "libjvm\.so.*",
       "libm\.so.*",
       "libpthread\.so.*",
+      "librt\.so.*",
+      "libresolv\.so.*",
+      "libstdc++\.so.*",
+      "libutil\.so.*",
+      "libz\.so.*",
     ],
     **kwargs
   )
