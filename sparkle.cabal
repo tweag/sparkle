@@ -92,7 +92,6 @@ library
 executable sparkle
   main-is: Sparkle.hs
   other-modules: Paths_sparkle
-                 Sparkle_run
   build-depends:
     base >= 4.8 && < 5,
     bytestring >= 0.10,
