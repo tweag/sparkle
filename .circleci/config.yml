@@ -22,7 +22,7 @@ jobs:
                 docker tag tweag/sparkle tweag/sparkle:$CIRCLE_TAG
                 docker push tweag/sparkle:$CIRCLE_TAG
             fi
-  build:
+  build-stack:
     docker:
       - image: nixos/nix
     working_directory: ~/sparkle
@@ -41,7 +41,7 @@ jobs:
           keys:
             - sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
       - run:
-          name: Build dependencies
+          name: Build dependencies with stack
           command: |
               # -j2: Limit parallelism to avoid memory exhaustion
               stack -j2 --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench
@@ -59,12 +59,34 @@ jobs:
             # XXX --packages flag should not be necessary. Workaround
             # regression in Spark 2.2 vs 2.1 in Nixpkgs.
             stack --no-terminal --nix exec -- spark-submit --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.7.4,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:12.0 sparkle-example-hello.jar
+  build-bazel:
+    docker:
+      - image: nixos/nix
+    working_directory: ~/sparkle
+    environment:
+      - NIXRUN: nix-shell -I nixpkgs=./nixpkgs.nix -p gcc bazel --run
+    steps:
+      - checkout
+      - run:
+          name: Install system dependencies
+          command: |
+            apk update --no-progress && apk --no-progress add ca-certificates bash binutils zip
+            $NIXRUN "echo nix dependencies installed"
+      - run:
+          name: Build project
+          command: $NIXRUN "bazel build //..."
+      - run:
+          name: Smoke test using sparkle-example-hello
+          command: |
+            $NIXRUN "bazel build //apps/hello:sparkle-example-hello_deploy.jar"
+            $NIXRUN "bazel run spark-submit -- --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.11.253,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:23.0 $(pwd)/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar"
 
 workflows:
   version: 2
   build:
     jobs:
-      - build
+      - build-stack
+      - build-bazel
   publish:
     jobs:
       - publish:

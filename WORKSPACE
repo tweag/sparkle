@@ -8,14 +8,14 @@ http_archive(
 
 http_archive(
   name = "io_tweag_clodl",
-  strip_prefix = "clodl-5dafc670c24b4e9965b9ef6d66e2d65122be93e6",
-  urls = ["https://github.com/tweag/clodl/archive/5dafc670c24b4e9965b9ef6d66e2d65122be93e6.tar.gz"]
+  strip_prefix = "clodl-6cc7349a792ea39f2059ab3f0c4ed53839dbffba",
+  urls = ["https://github.com/tweag/clodl/archive/6cc7349a792ea39f2059ab3f0c4ed53839dbffba.tar.gz"]
 )
 
 http_archive(
   name = "io_tweag_rules_nixpkgs",
-  strip_prefix = "rules_nixpkgs-53700e429928530f1566cfff3ec00283a123f17f",
-  urls = ["https://github.com/tweag/rules_nixpkgs/archive/53700e429928530f1566cfff3ec00283a123f17f.tar.gz"],
+  strip_prefix = "rules_nixpkgs-d9df5c834f07c72be1b9e320eb742796557612f8",
+  urls = ["https://github.com/tweag/rules_nixpkgs/archive/d9df5c834f07c72be1b9e320eb742796557612f8.tar.gz"],
 )
 
 # Required due to rules_haskell use of skylib.
@@ -39,7 +39,7 @@ load("@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
 nixpkgs_git_repository(
   name = "nixpkgs",
   # Keep consistent with ./nixpkgs.nix.
-  revision = "1c3b6d509d06af14b1858ffa2d27f3c902f549bd",
+  revision = "1fa2503f9dba814eb23726a25642d2180ce791c3",
 )
 
 # Maven dependencies from 'gradle dependencies' + grep on compile
