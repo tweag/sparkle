@@ -62,3 +62,9 @@ haskell_toolchain(
   tools = "@sparkle-toolchain//:bin",
   extra_binaries = ["@openjdk//:bin"],
 )
+
+# Provided for convenience to run sparkle applications.
+sh_binary(
+    name = "spark-submit",
+    srcs = ["@spark//:spark-submit"],
+)

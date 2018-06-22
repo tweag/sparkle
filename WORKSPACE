@@ -170,4 +170,17 @@ cc_library(
 """
 )
 
+nixpkgs_package(
+  name = "spark",
+  repository = "@nixpkgs",
+  build_file_content = """
+package(default_visibility = [ "//visibility:public" ])
+filegroup (
+  name = "spark-submit",
+  srcs = ["nix/bin/spark-submit"],
+  visibility = ["//visibility:public"],
+)
+"""
+)
+
 register_toolchains("//:sparkle-toolchain")
