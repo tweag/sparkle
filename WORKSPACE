@@ -27,8 +27,8 @@ http_archive(
 
 http_archive(
   name = "io_tweag_inline_java",
-  strip_prefix = "inline-java-e67c8ebad4d362236eeeb6403c21c33c21ac6324",
-  urls = ["https://github.com/tweag/inline-java/archive/e67c8ebad4d362236eeeb6403c21c33c21ac6324.tar.gz"],
+  strip_prefix = "inline-java-3a68626c27ed9c3315dc44ff500a1bf3568c982d",
+  urls = ["https://github.com/tweag/inline-java/archive/3a68626c27ed9c3315dc44ff500a1bf3568c982d.tar.gz"],
 )
 
 load("@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
@@ -126,13 +126,13 @@ package(default_visibility = [ "//visibility:public" ])
  
 filegroup(
   name = "bin",
-  srcs = glob(["nix/bin/*"]),
+  srcs = glob(["bin/*"]),
 )
 
 cc_library( 
   name = "include", 
-  hdrs = glob(["nix/lib/ghc-*/include/**/*.h"]), 
-  strip_include_prefix = glob(["nix/lib/ghc-*/include"], exclude_directories=0)[0],
+  hdrs = glob(["lib/ghc-*/include/**/*.h"]),
+  strip_include_prefix = glob(["lib/ghc-*/include"], exclude_directories=0)[0],
 )
 """,
 )
@@ -144,28 +144,28 @@ nixpkgs_package(
 package(default_visibility = [ "//visibility:public" ])
 filegroup (
   name = "lib",
-  srcs = ["nix/lib/openjdk/jre/lib/amd64/server/libjvm.so"],
+  srcs = ["lib/openjdk/jre/lib/amd64/server/libjvm.so"],
   visibility = ["//visibility:public"],
 )
 filegroup (
   name = "bin",
-  srcs = ["nix/bin/javac"],
+  srcs = ["bin/javac"],
   visibility = ["//visibility:public"],
 )
 filegroup (
   name = "jni_header",
-  srcs = ["nix/include/jni.h"],
+  srcs = ["include/jni.h"],
   visibility = ["//visibility:public"],
 )
 filegroup (
   name = "jni_md_header",
-  srcs = ["nix/include/jni_md.h"],
+  srcs = ["include/jni_md.h"],
   visibility = ["//visibility:public"],
 )
 cc_library(
   name = "include",
-  hdrs = glob(["nix/include/*.h"]),
-  strip_include_prefix = "nix/include",
+  hdrs = glob(["include/*.h"]),
+  strip_include_prefix = "include",
 )
 """
 )
@@ -177,7 +177,7 @@ nixpkgs_package(
 package(default_visibility = [ "//visibility:public" ])
 filegroup (
   name = "spark-submit",
-  srcs = ["nix/bin/spark-submit"],
+  srcs = ["bin/spark-submit"],
   visibility = ["//visibility:public"],
 )
 """
