@@ -12,7 +12,7 @@ packages:
 - apps/rdd-ops
 
 extra-deps:
-- inline-java-0.8.1
+- inline-java-0.8.3
 - jni-0.6.0
 - jvm-0.4.2
 - jvm-batching-0.1.1

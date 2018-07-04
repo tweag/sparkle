@@ -22,6 +22,18 @@ $ stack exec -- sparkle package sparkle-example-hello
 $ stack exec -- spark-submit --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.11.253,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:23.0 sparkle-example-hello.jar
 ```
 
+### Using bazel
+
+There is experimental support for [bazel]. This mechanism doesn't require
+executing `sparkle package`.
+
+```
+$ bazel build //apps/hello:sparkle-example-hello_deploy.jar
+$ bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.253,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:23.0 $(pwd)/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+```
+
+[bazel]: https://bazel.build
+
 ## How to use
 
 To run a Spark application the process is as follows:
