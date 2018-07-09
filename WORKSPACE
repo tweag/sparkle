@@ -8,8 +8,8 @@ http_archive(
 
 http_archive(
   name = "io_tweag_clodl",
-  strip_prefix = "clodl-6cc7349a792ea39f2059ab3f0c4ed53839dbffba",
-  urls = ["https://github.com/tweag/clodl/archive/6cc7349a792ea39f2059ab3f0c4ed53839dbffba.tar.gz"]
+  strip_prefix = "clodl-52cf5b82b431de8ea6cc7e3d9cc920184d8b7a48",
+  urls = ["https://github.com/tweag/clodl/archive/52cf5b82b431de8ea6cc7e3d9cc920184d8b7a48.tar.gz"]
 )
 
 http_archive(
