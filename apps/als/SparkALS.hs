@@ -51,34 +51,12 @@ rmse rdd1 rdd2 = do
     mapSnd pairRdd =
       Spark.map (closure $ static (\(Tuple2 _ v) -> v)) =<< toRDD pairRdd
 
--- | Produce a list of ratings for each user/product pair. Every
--- product will have the same rating from all users (everyone in this
--- crowd has exactly the same tastes).
-mkCrowdRatings :: [User] -> [Product] -> IO [Rating]
-mkCrowdRatings users products = do
-  ratings <- evalRandIO $ mapM (const $ liftRand (randomR (0, 5))) products
-  return $ zipWith (\(u, p) r -> Rating (u, p, r))
-    [(u, p) | u <- users, p <- products]
-    (cycle ratings)
-
 main :: IO ()
 main = do
   conf <- newSparkConf "Spark Alternating Least Squares in Haskell"
   sc   <- getOrCreateSparkContext conf
 
-  -- Generate a sparse dataset of ratings
-  let products :: [Product]
-      products = [1 .. 100]
-      crowdSize = 500
-      numCrowds = 50
-      users :: [[User]]
-      users =
-        [ [crowdLeader * crowdSize + 1 .. (crowdLeader + 1) * crowdSize]
-        | crowdLeader <- [0 .. numCrowds - 1]
-        ]
-  rdd <- parallelize sc =<<
-         (concat <$> mapM (`mkCrowdRatings` products) users)
-  observedRatings <- sample rdd (Without #replacement) 0.05
+  observedRatings <- textFile sc "u.data"
 
   cnt <- Spark.count observedRatings
   let splitWeights = [0.7, 0.3]
