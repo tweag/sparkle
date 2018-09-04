@@ -50,6 +50,11 @@ maven_jar(
 )
 
 maven_jar(
+  name = "org_apache_spark_spark_mllib",
+  artifact = "org.apache.spark:spark-mllib_2.11:2.2.0",
+)
+
+maven_jar(
   name = "org_apache_spark_spark_sql",
   artifact = "org.apache.spark:spark-sql_2.11:2.2.0",
 )
