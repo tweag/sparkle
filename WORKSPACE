@@ -126,16 +126,16 @@ in pkgs.buildEnv {
   ];
 }
 """,
-  build_file_content = """ 
-package(default_visibility = [ "//visibility:public" ]) 
- 
+  build_file_content = """
+package(default_visibility = [ "//visibility:public" ])
+
 filegroup(
   name = "bin",
   srcs = glob(["bin/*"]),
 )
 
-cc_library( 
-  name = "include", 
+cc_library(
+  name = "include",
   hdrs = glob(["lib/ghc-*/include/**/*.h"]),
   strip_include_prefix = glob(["lib/ghc-*/include"], exclude_directories=0)[0],
 )
