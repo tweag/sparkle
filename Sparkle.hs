@@ -63,8 +63,12 @@ makeHsTopLibrary hsapp libs = withSystemTempDirectory "libhsapp" $ \d -> do
     -- Changing the directory is necessary for gcc to link hsapp with a
     -- relative path. "-L d -l:hsapp" doesn't work in centos 6 where the
     -- path to hsapp in the output library ends up being absolute.
+    --
+    -- --no-as-needed is necessary for linking in some systems. Otherwise
+    -- the output binary would be missing DT_NEEDED entries. See #149.
     callProcessCwd d "gcc" $
-      [ "-shared", "-Wl,-z,origin", "-Wl,-rpath=$ORIGIN", "hsapp"
+      [ "-shared", "-Wl,-z,origin", "-Wl,-rpath=$ORIGIN", "-Wl,--no-as-needed"
+      , "hsapp"
       , "-o", f] ++ libs
     LBS.fromStrict <$> BS.readFile f
 
