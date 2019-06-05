@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Changed
 
+* Fixed sparkle packaging in some ubuntus. (#149)
+
 ## [0.7.4] - 2018-02-28
 
 ### Changed
