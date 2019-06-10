@@ -100,6 +100,23 @@ test Docker image, which includes everything that Nix does as in the
 Linux section. See the [Stack manual][stack-docker] for how to modify
 the Docker settings.
 
+#### Integrating `sparkle` in another project
+
+As `sparkle` interacts with the JVM, you need to tell `ghc`
+where JVM-specific headers and libraries are. It needs to be able to
+locate `jni.h`, `jni_md.h` and `libjvm.so`. Doing this with `stack`
+is explained in the Troubleshooting section below.
+
+`sparkle` uses `inline-java` to embed fragments of Java code in Haskell
+modules, which requires running the `javac` compiler, which must be
+available in the `PATH` of the shell. Moreover, `javac` needs to find
+the Spark classes that `inline-java` quotations refer to. Therefore,
+these classes need to be added to the `CLASSPATH` when building sparkle.
+Dependending on your build system, how to do this might vary. In this
+repo, we use `gradle` to install Spark, and we query `gradle` to get
+the paths we need to add to the `CLASSPATH`. This is done with Cabal
+hooks (see [./Setup.hs](./Setup.hs)).
+
 ### Package
 
 To package your app as a JAR directly consumable by Spark:
