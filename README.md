@@ -23,7 +23,8 @@ $ stack exec -- spark-submit --master 'local[1]' --packages com.amazonaws:aws-ja
 ### Using bazel
 
 There is experimental support for [bazel]. This mechanism doesn't require
-executing `sparkle package`.
+executing `sparkle package`. Note however, that `bazel` evolves quickly and
+you'll need an old version (0.13.0) to use the following instructions.
 
 ```
 $ bazel build //apps/hello:sparkle-example-hello_deploy.jar
