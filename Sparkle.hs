@@ -22,6 +22,14 @@ import System.Process
   )
 import Text.Regex.TDFA
 
+
+main :: IO ()
+main = do
+    argv <- getArgs
+    case argv of
+      ["package", cmd] -> doPackage cmd
+      _ -> fail "Usage: sparkle package <command>"
+
 doPackage :: FilePath -> IO ()
 doPackage cmd = do
     dir <- getDataDir
@@ -84,10 +92,3 @@ callProcessCwd wd cmd args = do
     case exit_code of
       ExitSuccess   -> return ()
       ExitFailure r -> error $ "callProcessCwd: " ++ show (cmd, args, r)
-
-main :: IO ()
-main = do
-    argv <- getArgs
-    case argv of
-      ["package", cmd] -> doPackage cmd
-      _ -> fail "Usage: sparkle package <command>"
