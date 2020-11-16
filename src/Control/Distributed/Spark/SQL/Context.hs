@@ -15,11 +15,11 @@ newtype SQLContext = SQLContext (J ('Class "org.apache.spark.sql.SQLContext"))
   deriving Coercible
 
 newSQLContext :: SparkContext -> IO SQLContext
-newSQLContext sc = new [coerce sc]
+newSQLContext = new
 
 getOrCreateSQLContext :: SparkContext -> IO SQLContext
 getOrCreateSQLContext jsc = do
-  sc :: J ('Class "org.apache.spark.SparkContext") <- call jsc "sc" []
+  sc :: J ('Class "org.apache.spark.SparkContext") <- call jsc "sc"
   callStatic (classOf (undefined :: SQLContext))
              "getOrCreate"
-             [coerce sc]
+             sc

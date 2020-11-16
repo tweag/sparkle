@@ -3,7 +3,6 @@
 --
 -- Please refer to that documentation for the meaning of each binding.
 
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -14,8 +13,6 @@
 {-# LANGUAGE StaticPointers #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-
-{-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
@@ -60,9 +57,7 @@ import Foreign.JNI
 import Language.Java
 import Language.Java.Inline
 -- We don't need this instance. But import to bring it in scope transitively for users.
-#if MIN_VERSION_base(4,9,1)
 import Language.Java.Streaming ()
-#endif
 import Streaming (Stream, Of)
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))

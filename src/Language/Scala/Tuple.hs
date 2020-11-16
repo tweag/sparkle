@@ -28,8 +28,8 @@ withStatic [d|
   instance (Reify a, Reify b) =>
            Reify (Tuple2 a b) where
     reify jobj = do
-      ja <- call jobj "_1" []
-      jb <- call jobj "_2" []
+      ja <- call jobj "_1"
+      jb <- call jobj "_2"
       Tuple2 <$> (reify $ unsafeCast (ja :: JObject))
              <*> (reify $ unsafeCast (jb :: JObject))
 
@@ -38,5 +38,5 @@ withStatic [d|
     reflect (Tuple2 a b) = do
       ja <- reflect a
       jb <- reflect b
-      generic <$> new [coerce $ upcast ja, coerce $ upcast jb]
+      generic <$> new (upcast ja) (upcast jb)
  |]

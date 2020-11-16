@@ -25,24 +25,24 @@ newLDA :: Double                               -- ^ fraction of documents
        -> Int32                                -- ^ maximum number of iterations
        -> IO LDA
 newLDA frac numTopics maxIterations = do
-  lda :: LDA <- new []
-  opti :: OnlineLDAOptimizer <- new []
-  OnlineLDAOptimizer opti' <- call opti "setMiniBatchFraction" [JDouble frac]
-  lda' :: LDA <- call lda "setOptimizer" [coerce (unsafeCast opti' :: J ('Iface "org.apache.spark.mllib.clustering.LDAOptimizer"))]
-  lda'' :: LDA <- call lda' "setK" [JInt numTopics]
-  lda''' :: LDA <- call lda'' "setMaxIterations" [JInt maxIterations]
-  lda'''' :: LDA <- call lda''' "setDocConcentration" [JDouble $ negate 1]
-  call lda'''' "setTopicConcentration" [JDouble $ negate 1]
+  lda :: LDA <- new
+  opti :: OnlineLDAOptimizer <- new
+  OnlineLDAOptimizer opti' <- call opti "setMiniBatchFraction" frac
+  lda' :: LDA <- call lda "setOptimizer" (unsafeCast opti' :: J ('Iface "org.apache.spark.mllib.clustering.LDAOptimizer"))
+  lda'' :: LDA <- call lda' "setK" numTopics
+  lda''' :: LDA <- call lda'' "setMaxIterations" maxIterations
+  lda'''' :: LDA <- call lda''' "setDocConcentration" (negate 1 :: Double)
+  call lda'''' "setTopicConcentration" (negate 1 :: Double)
 
 newtype LDAModel = LDAModel (J ('Class "org.apache.spark.mllib.clustering.LDAModel"))
   deriving Coercible
 
 runLDA :: LDA -> PairRDD CLong SparkVector -> IO LDAModel
-runLDA lda rdd = callStatic "Helper" "runLDA" [coerce lda, coerce rdd]
+runLDA = callStatic "Helper" "runLDA"
 
 describeResults :: LDAModel -> CountVectorizerModel -> Int32 -> IO ()
 describeResults lm cvm maxTerms =
     callStatic
       "Helper"
       "describeResults"
-      [coerce lm, coerce cvm, JInt maxTerms]
+      lm cvm maxTerms

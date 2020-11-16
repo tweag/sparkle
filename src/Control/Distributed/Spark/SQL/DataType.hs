@@ -35,4 +35,4 @@ stringType :: IO DataType
 stringType = staticDataType "StringType"
 
 typeName :: DataType -> IO Text
-typeName dt = call dt "typeName" [] >>= reify
+typeName dt = call dt "typeName" >>= reify

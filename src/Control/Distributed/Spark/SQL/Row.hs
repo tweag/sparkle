@@ -22,38 +22,38 @@ newtype Row = Row (J ('Class "org.apache.spark.sql.Row"))
   deriving (Coercible, Interpretation, Reify, Reflect)
 
 toRows :: PairRDD a b -> IO (RDD Row)
-toRows prdd = callStatic "Helper" "toRows" [coerce prdd]
+toRows = callStatic "Helper" "toRows"
 
 schema :: Row -> IO StructType
-schema (Row r) = call r "schema" []
+schema (Row r) = call r "schema"
 
 get :: Int32 -> Row -> IO JObject
-get i r = call r "get" [coerce i]
+get i r = call r "get" i
 
 size :: Row -> IO Int32
-size r = call r "size" []
+size r = call r "size"
 
 isNullAt :: Int32 -> Row -> IO Bool
-isNullAt i (Row r) = call r "isNullAt" [coerce i]
+isNullAt i (Row r) = call r "isNullAt" i
 
 getBoolean :: Int32 -> Row -> IO Bool
-getBoolean i r = call r "getBoolean" [coerce i]
+getBoolean i r = call r "getBoolean" i
 
 getDouble :: Int32 -> Row -> IO Double
-getDouble i r = call r "getDouble" [coerce i]
+getDouble i r = call r "getDouble" i
 
 getLong :: Int32 -> Row -> IO Int64
-getLong i r = call r "getLong" [coerce i]
+getLong i r = call r "getLong" i
 
 getString :: Int32 -> Row -> IO Text
-getString i r = call r "getString" [coerce i] >>= reify
+getString i r = call r "getString" i >>= reify
 
 getList :: forall a. Reify a => Int32 -> Row -> IO [a]
 getList i r =
-    call r "getList" [coerce i] >>= listToArray >>= reify
+    call r "getList" i >>= listToArray >>= reify
   where
     listToArray :: J ('Iface "java.util.List") -> IO (J ('Array (Interp a)))
-    listToArray jlist = cast <$> call jlist "toArray" []
+    listToArray jlist = cast <$> call jlist "toArray"
 
     cast :: J ('Array ('Class "java.lang.Object")) -> J ('Array (Interp a))
     cast = unsafeCast
@@ -63,4 +63,4 @@ createRow vs = do
     jvs <- toArray vs
     callStatic "org.apache.spark.sql.RowFactory"
                "create"
-               [coerce jvs]
+               jvs

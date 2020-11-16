@@ -1,6 +1,6 @@
 require-stack-version: ">= 1.4"
 
-resolver: lts-10.0
+resolver: nightly-2020-11-11
 
 packages:
 - .
@@ -12,12 +12,12 @@ packages:
 - apps/rdd-ops
 
 extra-deps:
-- inline-java-0.8.3
-- jni-0.6.0
-- jvm-0.4.2
-- jvm-batching-0.1.1
-- jvm-streaming-0.3
-- distributed-closure-0.4.0
+- inline-java-0.9.1
+- jni-0.7.0
+- jvm-0.5.0
+- jvm-batching-0.1.2
+- jvm-streaming-0.3.2
+- distributed-closure-0.4.2.0
 
 nix:
   # Requires Stack >= 1.2.

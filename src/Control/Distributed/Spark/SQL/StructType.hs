@@ -21,14 +21,14 @@ new :: [StructField] -> IO StructType
 new fs =
     toArray (Data.Coerce.coerce fs
               :: [J ('Class "org.apache.spark.sql.types.StructField")])
-      >>= Java.new . (:[]) . coerce
+      >>= Java.new
 
 add :: StructField -> StructType -> IO StructType
-add sf st = call st "add" [coerce sf]
+add sf st = call st "add" sf
 
 fields :: StructType -> IO [StructField]
 fields st = do
-    jfields <- call st "fields" []
+    jfields <- call st "fields"
     n <- getArrayLength
       (jfields :: J ('Array ('Class "org.apache.spark.sql.types.StructField")))
     forM [0 .. n - 1] $ \i ->

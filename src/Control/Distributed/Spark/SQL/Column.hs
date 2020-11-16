@@ -30,146 +30,147 @@ newtype GroupedData =
 alias :: Column -> Text -> IO Column
 alias c n = do
   colName <- reflect n
-  call c "alias" [coerce colName]
+  call c "alias" colName
 
-callStaticSqlFun :: Coercible a => Foreign.JNI.String.String -> [JValue] -> IO a
+callStaticSqlFun
+  :: (Coercible a, VariadicIO f a) => Foreign.JNI.String.String -> f
 callStaticSqlFun = callStatic "org.apache.spark.sql.functions"
 
 lit :: Reflect a => a -> IO Column
 lit x =  do
   c <- upcast <$> reflect x  -- @upcast@ needed to land in java Object
-  callStaticSqlFun "lit" [coerce c]
+  callStaticSqlFun "lit" c
 
 plus :: Column -> Column -> IO Column
-plus col1 (Column col2) = call col1 "plus" [coerce $ upcast col2]
+plus col1 (Column col2) = call col1 "plus" (upcast col2)
 
 minus :: Column -> Column -> IO Column
-minus col1 (Column col2) = call col1 "minus" [coerce $ upcast col2]
+minus col1 (Column col2) = call col1 "minus" (upcast col2)
 
 multiply :: Column -> Column -> IO Column
-multiply col1 (Column col2) = call col1 "multiply" [coerce $ upcast col2]
+multiply col1 (Column col2) = call col1 "multiply" (upcast col2)
 
 divide :: Column -> Column -> IO Column
-divide col1 (Column col2) = call col1 "divide" [coerce $ upcast col2]
+divide col1 (Column col2) = call col1 "divide" (upcast col2)
 
 mod :: Column -> Column -> IO Column
-mod col1 (Column col2) = call col1 "mod" [coerce $ upcast col2]
+mod col1 (Column col2) = call col1 "mod" (upcast col2)
 
 equalTo :: Column -> Column -> IO Column
-equalTo col1 (Column col2) = call col1 "equalTo" [coerce $ upcast col2]
+equalTo col1 (Column col2) = call col1 "equalTo" (upcast col2)
 
 notEqual :: Column -> Column -> IO Column
-notEqual col1 (Column col2) = call col1 "notEqual" [coerce $ upcast col2]
+notEqual col1 (Column col2) = call col1 "notEqual" (upcast col2)
 
 leq :: Column -> Column -> IO Column
-leq col1 (Column col2) = call col1 "leq" [coerce $ upcast col2]
+leq col1 (Column col2) = call col1 "leq" (upcast col2)
 
 lt :: Column -> Column -> IO Column
-lt col1 (Column col2) = call col1 "lt" [coerce $ upcast col2]
+lt col1 (Column col2) = call col1 "lt" (upcast col2)
 
 geq :: Column -> Column -> IO Column
-geq col1 (Column col2) = call col1 "geq" [coerce $ upcast col2]
+geq col1 (Column col2) = call col1 "geq" (upcast col2)
 
 gt :: Column -> Column -> IO Column
-gt col1 (Column col2) = call col1 "gt" [coerce $ upcast col2]
+gt col1 (Column col2) = call col1 "gt" (upcast col2)
 
 and :: Column -> Column -> IO Column
-and col1 (Column col2) = call col1 "and" [coerce col2]
+and col1 (Column col2) = call col1 "and" col2
 
 or :: Column -> Column -> IO Column
-or col1 (Column col2) = call col1 "or" [coerce col2]
+or col1 = call col1 "or"
 
 min :: Column -> IO Column
-min c = callStaticSqlFun "min" [coerce c]
+min = callStaticSqlFun "min"
 
 mean :: Column -> IO Column
-mean c = callStaticSqlFun "mean" [coerce c]
+mean = callStaticSqlFun "mean"
 
 max :: Column -> IO Column
-max c = callStaticSqlFun "max" [coerce c]
+max = callStaticSqlFun "max"
 
 not :: Column -> IO Column
-not col = callStaticSqlFun "not" [coerce col]
+not = callStaticSqlFun "not"
 
 negate :: Column -> IO Column
-negate col = callStaticSqlFun "negate" [coerce col]
+negate = callStaticSqlFun "negate"
 
 signum :: Column -> IO Column
-signum col = callStaticSqlFun "signum" [coerce col]
+signum = callStaticSqlFun "signum"
 
 abs :: Column -> IO Column
-abs col = callStaticSqlFun "abs" [coerce col]
+abs = callStaticSqlFun "abs"
 
 sqrt :: Column -> IO Column
-sqrt col = callStaticSqlFun "sqrt" [coerce col]
+sqrt = callStaticSqlFun "sqrt"
 
 floor :: Column -> IO Column
-floor col = callStaticSqlFun "floor" [coerce col]
+floor = callStaticSqlFun "floor"
 
 ceil :: Column -> IO Column
-ceil col = callStaticSqlFun "ceil" [coerce col]
+ceil = callStaticSqlFun "ceil"
 
 round :: Column -> IO Column
-round col = callStaticSqlFun "round" [coerce col]
+round = callStaticSqlFun "round"
 
 second :: Column -> IO Column
-second col = callStaticSqlFun "second" [coerce col]
+second = callStaticSqlFun "second"
 
 minute :: Column -> IO Column
-minute col = callStaticSqlFun "minute" [coerce col]
+minute = callStaticSqlFun "minute"
 
 hour :: Column -> IO Column
-hour col = callStaticSqlFun "hour" [coerce col]
+hour = callStaticSqlFun "hour"
 
 dayofmonth :: Column -> IO Column
-dayofmonth col = callStaticSqlFun "dayofmonth" [coerce col]
+dayofmonth = callStaticSqlFun "dayofmonth"
 
 month :: Column -> IO Column
-month col = callStaticSqlFun "month" [coerce col]
+month = callStaticSqlFun "month"
 
 year :: Column -> IO Column
-year col = callStaticSqlFun "year" [coerce col]
+year = callStaticSqlFun "year"
 
 current_timestamp :: IO Column
-current_timestamp = callStaticSqlFun "current_timestamp" []
+current_timestamp = callStaticSqlFun "current_timestamp"
 
 current_date :: IO Column
-current_date = callStaticSqlFun "current_date" []
+current_date = callStaticSqlFun "current_date"
 
 pow :: Column -> Column -> IO Column
-pow col1 col2 = callStaticSqlFun "pow" [coerce col1, coerce col2]
+pow = callStaticSqlFun "pow"
 
 exp :: Column -> IO Column
-exp col1 = callStaticSqlFun "exp" [coerce col1]
+exp = callStaticSqlFun "exp"
 
 expm1 :: Column -> IO Column
-expm1 col = callStaticSqlFun "expm1" [coerce col]
+expm1 = callStaticSqlFun "expm1"
 
 log :: Column -> IO Column
-log col = callStaticSqlFun "log" [coerce col]
+log = callStaticSqlFun "log"
 
 log1p :: Column -> IO Column
-log1p col = callStaticSqlFun "log1p" [coerce col]
+log1p = callStaticSqlFun "log1p"
 
 isnull :: Column -> IO Column
-isnull col = callStaticSqlFun "isnull" [coerce col]
+isnull = callStaticSqlFun "isnull"
 
 coalesce :: [Column] -> IO Column
 coalesce colexprs = do
   jcols <- toArray (Data.Coerce.coerce colexprs
              :: [J ('Class "org.apache.spark.sql.Column")])
-  callStaticSqlFun "coalesce" [coerce jcols]
+  callStaticSqlFun "coalesce" jcols
 
 array :: [Column] -> IO Column
 array colexprs = do
   jcols <- toArray (Data.Coerce.coerce colexprs
              :: [J ('Class "org.apache.spark.sql.Column")])
-  callStaticSqlFun "array" [coerce jcols]
+  callStaticSqlFun "array" jcols
 
 expr :: Text -> IO Column
 expr e = do
   jexpr <- reflect e
-  callStaticSqlFun "expr" [coerce jexpr]
+  callStaticSqlFun "expr" jexpr
 
 -- | From the Spark docs:
 --
@@ -181,7 +182,7 @@ expr e = do
 cast :: Column -> Text -> IO Column
 cast col destType = do
   jdestType <- reflect destType
-  call col "cast" [coerce jdestType]
+  call col "cast" jdestType
 
 -- | 'when', 'orWhen' and 'otherwise' are designed to be used
 -- together to make if-then-else and more generally mutli-way if branches:
@@ -192,15 +193,15 @@ cast col destType = do
 -- value is not specified with 'otherwise'.
 when :: Column -> Column -> IO Column
 when cond (Column val) =
-  callStaticSqlFun "when" [coerce cond, coerce (upcast val)]
+  callStaticSqlFun "when" cond (upcast val)
 
 orWhen :: Column -> Column -> Column -> IO Column
 orWhen chain cond (Column val) =
-  call chain "when" [coerce cond, coerce (upcast val)]
+  call chain "when" cond (upcast val)
 
 otherwise :: Column -> Column -> IO Column
 otherwise chain (Column val) =
-  call chain "otherwise" [coerce (upcast val)]
+  call chain "otherwise" (upcast val)
 
 -- | @if c then e1 else e2@
 --

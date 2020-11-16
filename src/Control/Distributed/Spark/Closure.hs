@@ -30,6 +30,7 @@ import Control.Exception (fromException, catch)
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
 import Data.Binary (encode, decode)
+import Data.Kind (Type)
 import qualified Data.Coerce as Coerce
 import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
@@ -65,7 +66,7 @@ apply bytes args = do
             -- send other exceptions in string form
             Nothing -> do
               jt <- reflect (Text.pack $ show e)
-              je <- new [coerce jt]
+              je <- new jt
               Foreign.JNI.throw (je :: J ('Class "java/lang/RuntimeException"))
               return jnull
       )
@@ -117,7 +118,7 @@ bs2clos :: Typeable a => ByteString -> Closure a
 bs2clos = decode . LBS.fromStrict
 
 -- | Like 'Interp', but parameterized by the target arity of the 'Fun' instance.
-type family InterpWithArity (n :: Nat) (a :: *) :: JType
+type family InterpWithArity (n :: Nat) (a :: Type) :: JType
 
 -- | A @ReifyFun n a@ constraint states that @a@ is a function type of arity
 -- @n@. That is, a value of this function type can be made from a @JFun{n}@.
@@ -146,7 +147,7 @@ instance ( Static (Reify a)
          ReflectFun 1 (a -> b) where
   reflectFun _ f = do
       jpayload <- reflect (clos2bs wrap)
-      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new [coerce jpayload]
+      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new jpayload
       return (generic (unsafeCast obj))
     where
       wrap :: Closure (JObjectArray -> IO JObject)
@@ -167,7 +168,7 @@ instance ( Static (Reify a)
          ReflectFun 2 (a -> b -> c) where
   reflectFun _ f = do
       jpayload <- reflect (clos2bs wrap)
-      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new [coerce jpayload]
+      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new jpayload
       return (generic (unsafeCast obj))
     where
       wrap :: Closure (JObjectArray -> IO JObject)

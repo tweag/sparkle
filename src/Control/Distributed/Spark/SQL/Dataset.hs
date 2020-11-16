@@ -172,17 +172,17 @@ read :: SparkSession -> IO DataFrameReader
 read ss = [java| $ss.read() |]
 
 write :: Dataset a -> IO DataFrameWriter
-write df = call df "write" []
+write df = call df "write"
 
 readParquet :: [Text] -> DataFrameReader -> IO DataFrame
 readParquet fps dfr = do
     jfps <- reflect fps
-    call dfr "parquet" [coerce jfps]
+    call dfr "parquet" jfps
 
 writeParquet :: Text -> DataFrameWriter -> IO ()
 writeParquet fp dfw = do
     jfp <- reflect fp
-    call dfw "parquet" [coerce jfp]
+    call dfw "parquet" jfp
 
 formatReader :: Text -> DataFrameReader -> IO DataFrameReader
 formatReader source dfr = do

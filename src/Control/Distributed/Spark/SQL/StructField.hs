@@ -18,13 +18,13 @@ newtype StructField = StructField (J ('Class "org.apache.spark.sql.types.StructF
 new :: Text -> DataType -> Bool -> Metadata -> IO StructField
 new sname dt n md = do
     jname <- reflect sname
-    Java.new [coerce jname, coerce dt, coerce n, coerce md]
+    Java.new jname dt n md
 
 name :: StructField -> IO Text
-name sf = call sf "name" [] >>= reify
+name sf = call sf "name" >>= reify
 
 nullable :: StructField -> IO Bool
-nullable sf = call sf "nullable" []
+nullable sf = call sf "nullable"
 
 dataType :: StructField -> IO DataType
-dataType sf = call sf "dataType" []
+dataType sf = call sf "dataType"

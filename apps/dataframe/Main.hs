@@ -159,9 +159,9 @@ main = do
     do nowTsCol   <- current_timestamp
        nowDtCol   <- current_date
 
-       jdate <- new [ JLong 0 ] :: IO (J ('Class "java.sql.Date"))
+       jdate <- new (0 :: Int64) :: IO (J ('Class "java.sql.Date"))
        epochTsCol <- lit jdate
-       jtimestamp <- new [ JLong 0 ] :: IO (J ('Class "java.sql.Timestamp"))
+       jtimestamp <- new (0 :: Int64) :: IO (J ('Class "java.sql.Timestamp"))
        epochDtCol <- lit jtimestamp
 
        secCol     <- second nowTsCol

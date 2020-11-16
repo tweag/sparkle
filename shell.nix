@@ -1,11 +1,10 @@
 { nixpkgs ?  import ./nixpkgs.nix {}
-, ghc ? nixpkgs.haskell.compiler.ghc822 # Default needed for Docker build.
+, ghc ? nixpkgs.haskell.compiler.ghc884 # Default needed for Docker build.
 }:
 
 with nixpkgs;
 
 let
-  spark = nixpkgs.spark.override { mesosSupport = false; };
   openjdk = openjdk8;
   jvmlibdir =
     if stdenv.isLinux

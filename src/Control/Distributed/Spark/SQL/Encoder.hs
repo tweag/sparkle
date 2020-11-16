@@ -12,7 +12,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans -Wno-redundant-constraints #-}
 {-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Control.Distributed.Spark.SQL.Encoder

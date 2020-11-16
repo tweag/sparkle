@@ -46,7 +46,7 @@ newtype SparkConf = SparkConf (J ('Class "org.apache.spark.SparkConf"))
 newSparkConf :: Text -> IO SparkConf
 newSparkConf appname = do
   jname <- reflect appname
-  conf :: SparkConf <- new []
+  conf :: SparkConf <- new
   [java| $conf.setAppName($jname) |]
 
 confSet :: SparkConf -> Text -> Text -> IO ()
@@ -60,7 +60,7 @@ newtype SparkContext = SparkContext (J ('Class "org.apache.spark.api.java.JavaSp
   deriving Coercible
 
 newSparkContext :: SparkConf -> IO SparkContext
-newSparkContext conf = new [coerce conf]
+newSparkContext = new
 
 getOrCreateSparkContext :: SparkConf -> IO SparkContext
 getOrCreateSparkContext conf = do

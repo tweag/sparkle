@@ -20,11 +20,11 @@ newStopWordsRemover stopwords icol ocol = do
   jstopwords <- reflect stopwords
   jicol <- reflect icol
   jocol <- reflect ocol
-  swr0 :: StopWordsRemover <- new []
-  swr1 :: StopWordsRemover <- call swr0 "setStopWords" [coerce jstopwords]
-  swr2 :: StopWordsRemover <- call swr1 "setCaseSensitive" [JBoolean 0]
-  swr3 :: StopWordsRemover <- call swr2 "setInputCol" [coerce jicol]
-  call swr3 "setOutputCol" [coerce jocol]
+  swr0 :: StopWordsRemover <- new
+  swr1 :: StopWordsRemover <- call swr0 "setStopWords" jstopwords
+  swr2 :: StopWordsRemover <- call swr1 "setCaseSensitive" False
+  swr3 :: StopWordsRemover <- call swr2 "setInputCol" jicol
+  call swr3 "setOutputCol" jocol
 
 removeStopWords :: StopWordsRemover -> DataFrame -> IO DataFrame
-removeStopWords sw df = call sw "transform" [coerce df]
+removeStopWords sw = call sw "transform"
