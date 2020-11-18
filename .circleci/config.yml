@@ -26,6 +26,8 @@ jobs:
     docker:
       - image: nixos/nix
     working_directory: ~/sparkle
+    environment:
+      - NIXPKGS_ALLOW_INSECURE: 1
     steps:
       - checkout
       - run:
@@ -64,7 +66,7 @@ jobs:
       - image: nixos/nix
     working_directory: ~/sparkle
     environment:
-      - NIXRUN: nix-shell -I nixpkgs=./nixpkgs.nix -p gcc bazel --run
+      - NIXRUN: nix-shell -I nixpkgs=./nixpkgs.nix -p gcc bazel openjdk11 --run
     steps:
       - checkout
       - run:

@@ -5,8 +5,8 @@ repositories {
 }
 
 dependencies {
-  compile 'org.apache.spark:spark-core_2.11:2.2.0'
-  compile 'org.apache.spark:spark-mllib_2.11:2.2.0'
+  compile 'org.apache.spark:spark-core_2.11:2.4.4'
+  compile 'org.apache.spark:spark-mllib_2.11:2.4.4'
 }
 
 dependencies {

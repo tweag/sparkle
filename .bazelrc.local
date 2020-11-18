@@ -1,0 +1,1 @@
+build --host_platform=@io_tweag_rules_nixpkgs//nixpkgs/platforms:host

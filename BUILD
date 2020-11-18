@@ -1,16 +1,15 @@
 package(default_visibility = ["//visibility:public"])
 
 load(
-  "@io_tweag_rules_haskell//haskell:haskell.bzl",
+  "@rules_haskell//haskell:defs.bzl",
   "haskell_binary",
   "haskell_library",
   "haskell_toolchain",
-  "haskell_cc_import",
 )
 
 _sparkle_java_deps = [
-  "@org_apache_spark_spark_core//jar",
-  "@com_esotericsoftware_kryo_shaded//jar",
+  "@maven//:org_apache_spark_spark_core_2_11",
+  "@maven//:com_esotericsoftware_kryo_shaded",
 ]
 
 java_library(
@@ -22,45 +21,40 @@ java_library(
 cc_library(
   name = "sparkle-bootstrap-cc",
   srcs = ["cbits/bootstrap.c", "cbits/io_tweag_sparkle_Sparkle.h"],
-  deps = ["@openjdk//:include", "@sparkle-toolchain//:include"],
+  deps = ["@openjdk//:lib", "@rules_haskell_ghc_nixpkgs//:include"],
+  linkopts = ["-Wl,-z,lazy"],
   copts = ["-std=c99"],
 ) 
 
 haskell_library(
   name = "sparkle-lib",
   src_strip_prefix = "src",
-  srcs = glob(['src/**/*.hs']),
+  srcs = glob(['src/**/*.hs']) + ["cbits/io_tweag_sparkle_Sparkle.h"],
+  extra_srcs = ["cbits/bootstrap.c"],
   deps = [
+    "@openjdk//:lib", "@rules_haskell_ghc_nixpkgs//:include",
     "@io_tweag_inline_java//jni",
     "@io_tweag_inline_java//jvm",
     "@io_tweag_inline_java//jvm-streaming",
     "@io_tweag_inline_java//:inline-java",
-    "@org_apache_spark_spark_catalyst//jar",
-    "@org_apache_spark_spark_sql//jar",
-    "@org_scala_lang_scala_library//jar",
-    "@org_scala_lang_scala_reflect//jar",
+    "@maven//:org_apache_spark_spark_catalyst_2_11",
+    "@maven//:org_apache_spark_spark_sql_2_11",
+    "@maven//:org_scala_lang_scala_library",
+    "@maven//:org_scala_lang_scala_reflect",
     ":sparkle-jar",
     ":sparkle-bootstrap-cc",
+	"@stackage//:base",
+	"@stackage//:binary",
+	"@stackage//:bytestring",
+	"@stackage//:choice",
+	"@stackage//:constraints",
+	"@stackage//:distributed-closure",
+	"@stackage//:singletons",
+	"@stackage//:streaming",
+	"@stackage//:text",
+	"@stackage//:vector",
   ] + _sparkle_java_deps,
-  prebuilt_dependencies = [
-    "base",
-    "binary",
-    "bytestring",
-    "choice",
-    "constraints",
-    "distributed-closure",
-    "singletons",
-    "streaming",
-    "text",
-    "vector",
-  ],
-)
-
-haskell_toolchain(
-  name = "sparkle-toolchain",
-  version = "8.2.2",
-  tools = "@sparkle-toolchain//:bin",
-  extra_binaries = ["@openjdk//:bin"],
+  plugins = ["@io_tweag_inline_java//:inline-java-plugin"],
 )
 
 # Provided for convenience to run sparkle applications.

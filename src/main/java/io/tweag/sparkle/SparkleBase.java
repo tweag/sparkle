@@ -59,16 +59,9 @@ public class SparkleBase {
           }
           zip.close();
 
-          // Discover the name of the library wrapper to load.
-          Path appPath = null;
-          for (Path p : pathsList) {
-            if (p.toFile().getName().endsWith("_wrapper"))
-              appPath = p;
-          }
-
           // Dynamically load the app.
-          //
-          if (appPath != null)
+          Path appPath = sparkleAppTmpDir.resolve("libclodl-top.so");
+          if (Files.exists(appPath))
             // Built with bazel.
             System.load(appPath.toString());
           else
@@ -76,7 +69,6 @@ public class SparkleBase {
             System.load(sparkleAppTmpDir.resolve(appName).toString());
         } finally {
           // Delete the app binary and its libraries, now that they are loaded.
-          //
           for (Path p : pathsList)
             p.toFile().delete();
         }

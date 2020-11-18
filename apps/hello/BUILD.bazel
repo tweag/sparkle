@@ -1,7 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
 load(
-  "@io_tweag_rules_haskell//haskell:haskell.bzl",
+  "@rules_haskell//haskell:defs.bzl",
   "haskell_binary",
 )
 
@@ -9,17 +9,15 @@ load("@//:sparkle.bzl", "sparkle_package")
 
 haskell_binary(
   name = "hello-hs",
+  linkstatic = False,
   srcs = ["HelloSpark.hs"],
-  main_file = "HelloSpark.hs",
   deps = [
     "//:sparkle-lib",
+	"@stackage//:base",
+	"@stackage//:distributed-closure",
+	"@stackage//:text",
   ],
-  prebuilt_dependencies = [
-    "base",
-    "distributed-closure",
-    "text",
-  ],
-  compiler_flags = ["-threaded", "-dynamic", "-pie"],
+  compiler_flags = ["-threaded", "-pie"],
 )
 
 sparkle_package(

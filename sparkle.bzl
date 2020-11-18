@@ -1,6 +1,15 @@
 """Helpers for sparkle packaging."""
 
-load("@io_tweag_clodl//:clodl/clodl.bzl", "library_closure")
+load("@io_tweag_clodl//clodl:clodl.bzl", "library_closure")
+
+def _mangle_dir(name):
+    """Creates a unique directory name from the repo name and package
+      name of the package being evaluated, and a given name.
+    """
+    components = [native.repository_name(), native.package_name(), name]
+    components = [c.replace("@", "") for c in components]
+    components = [c for c in components if c]
+    return "/".join(components).replace("_", "_U").replace("/", "_S")
 
 def sparkle_package(name, src, **kwargs):
   libclosure = "libclosure-%s" % name
@@ -8,7 +17,6 @@ def sparkle_package(name, src, **kwargs):
   library_closure(
     name = libclosure,
     srcs = [src],
-    outzip = "sparkle-app.zip",
     excludes = [
       "ld\.so.*",
       "ld-linux\.so.*",
@@ -31,9 +39,18 @@ def sparkle_package(name, src, **kwargs):
     **kwargs
   )
 
+  libclosure_renamed = "libclosure-%s-renamed"
+  native.genrule(
+    name = libclosure_renamed,
+    srcs = [libclosure],
+    outs = [_mangle_dir(libclosure) + "/sparkle-app.zip"],
+    cmd = "cp $< $@",
+  )
+
   native.java_binary(
     name = name,
-    main_class = "io.tweag.sparkle.SparkMain",
-    classpath_resources = [libclosure],
-    resource_jars = [native.repository_name() + "//:sparkle-jar"],
+    create_executable = False,
+    classpath_resources = [libclosure_renamed],
+    resource_jars = ["@io_tweag_sparkle//:sparkle-jar"],
+    deploy_manifest_lines = ["Main-Class: io.tweag.sparkle.SparkMain"]
   )
