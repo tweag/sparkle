@@ -21,7 +21,7 @@ extra-deps:
 
 nix:
   # Requires Stack >= 1.2.
-  shell-file: shell.nix
+  shell-file: shell-stack.nix
   path: ["nixpkgs=./nixpkgs.nix"]
 
 docker:
