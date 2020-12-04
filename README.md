@@ -17,7 +17,7 @@ The tl;dr using the `hello` app as an example on your local machine:
 ```
 $ stack build hello
 $ stack exec -- sparkle package sparkle-example-hello
-$ stack exec -- spark-submit --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.11.253,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:23.0 sparkle-example-hello.jar
+$ stack exec -- spark-submit sparkle-example-hello.jar apps/hello/lorem-ipsum.txt
 ```
 
 ### Using bazel
@@ -28,7 +28,9 @@ you'll need an old version (0.13.0) to use the following instructions.
 
 ```
 $ bazel build //apps/hello:sparkle-example-hello_deploy.jar
-$ bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.253,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:23.0 $(pwd)/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+$ bazel run spark-submit -- \
+    $(pwd)/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar \
+	$(pwd)/apps/hello/lorem-ipsum.txt
 ```
 
 [bazel]: https://bazel.build
