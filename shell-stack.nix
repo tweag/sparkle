@@ -10,6 +10,9 @@ let
     if stdenv.isLinux
     then "${openjdk}/lib/openjdk/jre/lib/amd64/server"
     else "${openjdk}/jre/lib/server";
+  # spark 2.4.4 is build with openjdk14 by default,
+  # which causes the rddops example to fail. 
+  spark-jdk8 = spark.override { jre = openjdk; };
 in
 haskell.lib.buildStackProject {
   name = "sparkle";
@@ -18,7 +21,7 @@ haskell.lib.buildStackProject {
       gradle
       ncurses5 # For intero
       openjdk
-      spark
+      spark-jdk8
       which
       zlib
       zip
