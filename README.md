@@ -1,5 +1,6 @@
 # sparkle: Apache Spark applications in Haskell
 
+[![Build status](https://badge.buildkite.com/79871bedbeeb63a3ac46ad57ad7e2da54255b39abcc09ec85f.svg?branch=master)](https://buildkite.com/tweag-1/sparkle)
 [![CircleCI](https://circleci.com/gh/tweag/sparkle.svg?style=svg)](https://circleci.com/gh/tweag/sparkle)
 
 *sparkle [spär′kəl]:* a library for writing resilient analytics
