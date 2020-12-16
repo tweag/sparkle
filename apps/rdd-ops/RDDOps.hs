@@ -5,7 +5,6 @@ module Main where
 
 import Control.Distributed.Closure
 import Control.Distributed.Spark as RDD
-import Data.Monoid
 import qualified Data.Text as Text
 
 main :: IO ()
