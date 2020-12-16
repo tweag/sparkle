@@ -6,7 +6,6 @@ steps:
       - nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
       - nix-shell --pure --run 'bazel run spark-submit -- $PWD/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar $PWD/apps/hello/lorem-ipsum.txt'
     timeout: 60
-    depends_on: "build-packages-bazel"
   - label: "Build and test with stack"
     command:
       - nix-shell --pure --run 'stack --no-terminal --nix build --pedantic'
