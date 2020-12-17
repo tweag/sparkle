@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StaticPointers #-}
 
@@ -8,7 +7,6 @@ import Control.Distributed.Closure
 import Control.Distributed.Spark as RDD
 import qualified Data.Text as Text
 import Data.Text (Text)
-import System.Environment (getArgs)
 
 f1 :: Text -> Bool
 f1 s = "a" `Text.isInfixOf` s
@@ -18,12 +16,12 @@ f2 s = "b" `Text.isInfixOf` s
 
 main :: IO ()
 main = do
-    inputFile <- getArgs >>= \case
-      [f] -> return f
-      _ -> error "Must specify an input file on the command line."
     conf <- newSparkConf "Hello sparkle!"
+    confSet conf "spark.hadoop.fs.s3n.awsAccessKeyId" "AKIAIKSKH5DRWT5OPMSA"
+    confSet conf "spark.hadoop.fs.s3n.awsSecretAccessKey" "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"
     sc   <- getOrCreateSparkContext conf
-    rdd  <- textFile sc inputFile
+    -- This S3 bucket is located in US East.
+    rdd  <- textFile sc "s3n://tweag-sparkle/lorem-ipsum.txt"
     xs   <- RDD.filter (closure (static f1)) rdd
     ys   <- RDD.filter (closure (static f2)) rdd
     numAs <- RDD.count xs
