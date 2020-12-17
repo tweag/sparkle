@@ -16,6 +16,8 @@ let
     # TODO: Some part/dependency of spark is unable to cope with newer
     # jdks. The apps/rdd-ops example would fail. Needs further investigation.
     jre = openjdk;
+    # hadoop_2_8 allows spark to access s3 resources anonymously
+    hadoop = hadoop_2_8;
   };
 in
 haskell.lib.buildStackProject {
