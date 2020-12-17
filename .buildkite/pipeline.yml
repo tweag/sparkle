@@ -4,11 +4,11 @@ steps:
       - echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
       - nix-shell --pure --run 'bazel build //...'
       - nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
-      - nix-shell --pure --run 'bazel run spark-submit -- $PWD/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar $PWD/apps/hello/lorem-ipsum.txt'
+      - nix-shell --pure --run 'bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $PWD/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar'
     timeout: 60
   - label: "Build and test with stack"
     command:
       - nix-shell --pure --run 'stack --no-terminal --nix build --pedantic'
       - nix-shell --pure --run 'stack --no-terminal --nix exec -- sparkle package sparkle-example-hello'
-      - nix-shell --pure --run 'stack --no-terminal --nix exec -- spark-submit sparkle-example-hello.jar apps/hello/lorem-ipsum.txt'
+      - nix-shell --pure --run 'stack --no-terminal --nix exec -- spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 sparkle-example-hello.jar'
     timeout: 120

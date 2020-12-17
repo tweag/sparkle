@@ -18,7 +18,7 @@ The tl;dr using the `hello` app as an example on your local machine:
 ```
 $ stack build hello
 $ stack exec -- sparkle package sparkle-example-hello
-$ stack exec -- spark-submit --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.11.253,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:23.0 sparkle-example-hello.jar
+$ stack exec -- spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 sparkle-example-hello.jar
 ```
 
 ### Using bazel
@@ -29,7 +29,7 @@ you'll need an old version (0.13.0) to use the following instructions.
 
 ```
 $ bazel build //apps/hello:sparkle-example-hello_deploy.jar
-$ bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.253,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:23.0 $(pwd)/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+$ bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $(pwd)/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
 ```
 
 [bazel]: https://bazel.build
@@ -231,12 +231,12 @@ spark-submit --driver-java-options="-Djava.io.tmpdir=..." \
 
 ### java.io.IOException: No FileSystem for scheme: s3n
 
-Spark 2.2 requires explicitly specifying extra JAR files to `spark-submit`
+Spark 2.4 requires explicitly specifying extra JAR files to `spark-submit`
 in order to work with AWS. To work around this, add an additional 'packages'
 argument when submitting the job:
 
 ```
-spark-submit --packages com.amazonaws:aws-java-sdk:1.7.4,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:12.0
+spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4
 ```
 
 ## License
