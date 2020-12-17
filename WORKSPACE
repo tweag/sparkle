@@ -27,15 +27,14 @@ load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
 haskell_repositories()
 
 load("@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
-  "nixpkgs_git_repository",
+  "nixpkgs_local_repository",
   "nixpkgs_package",
   "nixpkgs_python_configure",
 )
 
-nixpkgs_git_repository(
-  name = "nixpkgs",
-  # Keep consistent with ./nixpkgs.nix.
-  revision = "e7ebd6be80d80000ea9efb62c589a827ba4c22dc",
+nixpkgs_local_repository(
+    name = "nixpkgs",
+    nix_file = "//:nixpkgs.nix",
 )
 
 nixpkgs_python_configure(
@@ -171,7 +170,7 @@ nixpkgs_package(
 
 nixpkgs_package(
     name = "openjdk",
-    attribute_path = "openjdk11",
+    attribute_path = "openjdk8",
     repository = "@nixpkgs",
     build_file_content = """
 filegroup(
@@ -182,7 +181,7 @@ filegroup(
 
 filegroup(
     name = "libjvm",
-    srcs = ["lib/openjdk/lib/server/libjvm.so"],
+    srcs = ["lib/openjdk/jre/lib/amd64/server/libjvm.so"],
     visibility = ["//visibility:public"],
 )
 

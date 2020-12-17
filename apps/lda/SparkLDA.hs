@@ -12,13 +12,13 @@ import qualified Control.Distributed.Spark.SQL.StructType as StructType
 main :: IO ()
 main = do
     conf <- newSparkConf "Spark Online Latent Dirichlet Allocation in Haskell!"
-    confSet conf "spark.hadoop.fs.s3n.awsAccessKeyId" "AKIAIKSKH5DRWT5OPMSA"
-    confSet conf "spark.hadoop.fs.s3n.awsSecretAccessKey" "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"
+    confSet conf "spark.hadoop.fs.s3a.aws.credentials.provider"
+                 "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider"
     ss <- builder >>= (`config` conf) >>= getOrCreate
     sc <- sparkContext ss
     -- This S3 bucket is located in US East.
-    stopwords <- textFile sc "s3n://tweag-sparkle/stopwords.txt" >>= collect
-    docs <- wholeTextFiles sc "s3n://tweag-sparkle/nyt/"
+    stopwords <- textFile sc "s3a://tweag-sparkle/stopwords.txt" >>= collect
+    docs <- wholeTextFiles sc "s3a://tweag-sparkle/nyt/"
         >>= justValues
         >>= zipWithIndex
     docsRows <- toRows docs
