@@ -10,7 +10,7 @@ mkShell {
     gcc
     git
     nix
-    openjdk11
+    openjdk8
     python3
     pax-utils
     stack

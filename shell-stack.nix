@@ -12,13 +12,6 @@ let
     else "${openjdk}/jre/lib/server";
   # spark 2.4.4 is build with openjdk14 by default,
   # which causes the rddops example to fail. 
-  spark-jdk8 = spark.override {
-    # TODO: Some part/dependency of spark is unable to cope with newer
-    # jdks. The apps/rdd-ops example would fail. Needs further investigation.
-    jre = openjdk;
-    # hadoop_2_8 allows spark to access s3 resources anonymously
-    hadoop = hadoop_2_8;
-  };
 in
 haskell.lib.buildStackProject {
   name = "sparkle";
@@ -27,7 +20,7 @@ haskell.lib.buildStackProject {
       gradle
       ncurses5 # For intero
       openjdk
-      spark-jdk8
+      spark
       which
       zlib
       zip
