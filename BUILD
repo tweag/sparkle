@@ -22,7 +22,10 @@ cc_library(
   name = "sparkle-bootstrap-cc",
   srcs = ["cbits/bootstrap.c", "cbits/io_tweag_sparkle_Sparkle.h"],
   deps = ["@openjdk//:lib", "@rules_haskell_ghc_nixpkgs//:include"],
-  linkopts = ["-Wl,-z,lazy"],
+  linkopts = select({
+    "@bazel_tools//src/conditions:darwin": [],
+    "//conditions:default": ["-Wl,-z,lazy"],
+  }),
   copts = ["-std=c99"],
 ) 
 

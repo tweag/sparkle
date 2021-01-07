@@ -190,13 +190,20 @@ filegroup(
 
 filegroup(
     name = "libjvm",
-    srcs = ["lib/openjdk/jre/lib/amd64/server/libjvm.so"],
+    srcs = select({
+        "@bazel_tools//src/conditions:darwin": ["jre/lib/server/libjvm.dylib"],
+        "//conditions:default": ["lib/openjdk/jre/lib/amd64/server/libjvm.so"],
+    }),
     visibility = ["//visibility:public"],
 )
 
 cc_library(
     name = "lib",
-    srcs = [":libjvm"],
+    # Don't link libjvm in osx, otherwise sparkle will try to load it a second time
+    srcs = select({
+      "@bazel_tools//src/conditions:darwin": [],
+      "//conditions:default": [":libjvm"],
+    }),
     hdrs = ["include/jni.h", "include/jni_md.h"],
     strip_include_prefix = "include",
     linkstatic = 1,

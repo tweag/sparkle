@@ -18,6 +18,8 @@ def sparkle_package(name, src, resource_jars=[], **kwargs):
     name = libclosure,
     srcs = [src],
     excludes = [
+      "^/System/",
+      "^/usr/lib/",
       "ld\.so.*",
       "ld-linux\.so.*",
       "ld-linux-x86-64\.so.*",
