@@ -15,9 +15,9 @@ extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
 // Because of this we make main a weak symbol. The man page of nm [1]
 // says:
 //
-//   When a weak undefined symbol is linked and the symbol is not
-//   defined, the value of the symbol is determined in a system-specific
-//   manner without error.
+//	 When a weak undefined symbol is linked and the symbol is not
+//	 defined, the value of the symbol is determined in a system-specific
+//	 manner without error.
 //
 // [1] https://linux.die.net/man/1/nm
 // [2] https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-g_t_0040code_007bweak_007d-function-attribute-3369
@@ -27,15 +27,46 @@ static int sparkle_argc = 1;
 static char** sparkle_argv = (char*[]){ "sparkle-worker", NULL };
 // static int sparkle_argc = 4;
 // static char* sparkle_argv[] =
-//     (char*[]){ "sparkle-dummy", "+RTS", "-A1G", "-H1G", NULL };
+//	   (char*[]){ "sparkle-dummy", "+RTS", "-A1G", "-H1G", NULL };
 
+// Enumeration describing the status of the GHC RTS in the current process.
+typedef enum
+  { RTS_DOWN		/* GHC's RTS has not been initialized yet */
+  , RTS_UP_DRIVER	/* GHC's RTS has been initialized through invokeMain
+					 * and we therefore are running in a spark driver process
+					 */
+  , RTS_UP_EXECUTOR /* GHC's RTS has been initialized through initializeHaskellRTS
+					 * and we therefore are running in a spark executor process
+					 */
+  } rts_status_t;
+
+// The RTS is down initially but can be brought up by invokeMain
+// or initializeHaskellRTS.
+static rts_status_t rts_status = RTS_DOWN;
+
+// Initialize the RTS on the executors
+//
+// This function is a no-op when executed on the drivers, as invokeMain will set
+// rts_status to RTS_UP_DRIVER before this functions is executed. See the
+// comments in Sparkle.java.
+//
+// Termination of the RTS for the executors is currently an open problem, there
+// is therefore no matching 'hs_exit' call for the
+// hs_init_with_rtsopts performed below at the moment.
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
   (JNIEnv * env, jclass klass)
 {
-	// TODO: accept values for argc, argv via Java properties.
-	hs_init(&sparkle_argc, &sparkle_argv);
-	if (!rtsSupportsBoundThreads())
-	    (*env)->FatalError(env,"Sparkle.initializeHaskellRTS: Haskell RTS is not threaded.");
+	if(rts_status == RTS_DOWN) {
+		// TODO: accept values for argc, argv via Java properties.
+		hs_init(&sparkle_argc, &sparkle_argv);
+		if (!rtsSupportsBoundThreads())
+			(*env)->FatalError(env,"Sparkle.initializeHaskellRTS: Haskell RTS is not threaded.");
+
+		if ((*env)->ExceptionOccurred(env))
+			return;
+
+		rts_status = RTS_UP_EXECUTOR;
+	}
 }
 
 JNIEXPORT jobject JNICALL Java_io_tweag_sparkle_Sparkle_apply
@@ -61,6 +92,12 @@ static void bypass_exit(int rc)
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
 (JNIEnv * env, jclass klass, jobjectArray stringArr)
 {
+
+	// We should never run this function with a GHC RTS already up and running.
+	// This should never happen, so let's error out loudly if that's ever the case.
+	if (rts_status != RTS_DOWN)
+		(*env)->FatalError(env,"SparkMain.invokeMain: Haskell RTS is already initialized.");
+
 	/* Set a control prompt just before calling main. If main()
 	 * calls longjmp(), then the exit code of the call to main()
 	 * below must have been zero, so just return without further
@@ -154,6 +191,8 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
 	// `argv` always has a NULL pointer in its argc-th position. We allocated
 	// enough positions in new_argv for this, in the malloc(), above.
 	new_argv[sparkle_argc] = NULL;
+
+	rts_status = RTS_UP_DRIVER;
 
 	// Call the Haskell main() function.
 	main(sparkle_argc, sparkle_argv);
