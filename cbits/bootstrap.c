@@ -44,6 +44,109 @@ typedef enum
 // or initializeHaskellRTS.
 static rts_status_t rts_status = RTS_DOWN;
 
+// Converts an array of strings (java.lang.String[]) to a buffer
+// of null-terminated C strings.
+//
+// Returns the length of the array or -1 if there are failures.
+jsize c_strings_of_string_array(JNIEnv* env, jobjectArray stringArr, char** cstrings[])
+{
+	int success = 1;
+	jsize numStrs = 0;
+
+	// Obtain jargc, the number of argument strings, from `jstringArr`.
+	const jsize jargc = (*env)->GetArrayLength(env, stringArr);
+	if ((*env)->ExceptionOccurred(env)) {
+		return -1;
+	}
+
+	// Allocate enough room for C representation of the Java strings
+	// to be stored in our own array.
+	*cstrings = malloc(jargc * sizeof(char*));
+	if (!(*cstrings)) {
+		return -1;
+	}
+
+	for (jsize i = 0; i < jargc; i++) {
+		// Obtain a representation of the Java string in the array.
+		jstring jstr = (*env)->GetObjectArrayElement(env, stringArr, i);
+		if ((*env)->ExceptionOccurred(env) || !jstr) {
+			success = 0;
+			break;
+		}
+
+		// Obtain a C-string representation of the Java string.
+		const char* str = (*env)->GetStringUTFChars(env, jstr, 0);
+		if ((*env)->ExceptionOccurred(env) || !str) {
+			success = 0;
+			break;
+		}
+		// Allocate our own space for the string, and copy it.
+		const jsize strLen = (*env)->GetStringUTFLength(env, jstr);
+		char * myStr = malloc(strLen + 1);
+		if (!myStr) {
+			success = 0;
+			break;
+		}
+		numStrs++;
+		memcpy(myStr, str, strLen);
+		myStr[strLen] = 0;
+
+		// Deallocate the JNI's C-string representation.
+		(*env)->ReleaseStringUTFChars(env, jstr, str);
+		if ((*env)->ExceptionOccurred(env)) {
+			success = 0;
+			break;
+		}
+
+		// Deallocate the now unused local reference, `jstr`.
+		(*env)->DeleteLocalRef(env, jstr);
+		if ((*env)->ExceptionOccurred(env)) {
+			success = 0;
+			break;
+		}
+
+		(*cstrings)[i] = myStr;
+	}
+
+	if (!success) {
+		while (numStrs > 0) {
+			// Free resources allocated above: new_argv entries with index in
+			// range 1..numStrs.
+			free((*cstrings)[1 + numStrs--]);
+		}
+		return -1;
+	}
+
+	return jargc;
+}
+
+// This functions puts prog_name and all the strings from cargs in a single
+// NULL-terminated buffer of C strings ready to be passed to hs_init_with_rtsopts.
+//
+// Returns the length of the buffer without including the terminating NULL, or
+// -1 if there is a failure.
+jsize prepare_hs_args
+	( JNIEnv* env, char* prog_name, char** hs_argv[], jsize cargs_sz, char* cargs[])
+{
+	// We need room for the program name and the terminating NULL
+	*hs_argv = malloc((cargs_sz + 2) * sizeof(char*));
+	if(!(*hs_argv)) {
+			return -1;
+	}
+
+	// Start with the program name.
+	(*hs_argv)[0] = prog_name;
+
+	// Then copy the content of cargs
+	memcpy(*hs_argv + 1, cargs, cargs_sz * sizeof(char*));
+
+	// `argv` always has a NULL pointer in its argc-th position. We allocated
+	// enough positions in hs_argv for this, in the malloc(), above.
+	(*hs_argv)[cargs_sz+1] = NULL;
+
+	return cargs_sz+1;
+}
+
 // Initialize the RTS on the executors
 //
 // This function is a no-op when executed on the drivers, as invokeMain will set
@@ -90,7 +193,7 @@ static void bypass_exit(int rc)
 }
 
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
-(JNIEnv * env, jclass klass, jobjectArray stringArr)
+(JNIEnv * env, jclass klass, jobjectArray jargs)
 {
 
 	// We should never run this function with a GHC RTS already up and running.
@@ -106,100 +209,25 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
 	exitFn = bypass_exit;
 	if(setjmp(bootstrap_env)) return;
 
-	// Obtain jargc, the number of argument strings, from `stringArr`.
-	const jsize jargc = (*env)->GetArrayLength(env, stringArr);
-	if ((*env)->ExceptionOccurred(env)) {
+	char** cargs;
+	jsize jargc = c_strings_of_string_array(env, jargs, &cargs);
+	if(jargc < 0)
 		return;
-	}
 
-	// Allocate memory for `argv`. It requires (jargc + sparkle_argc + 1)
-	// pointers in it. The '+ 1' is for the extra NULL pointer that is
-	// required by `argv` arrays.
-	char** new_argv = malloc((jargc + sparkle_argc + 1) * sizeof(char*));
-	if (!new_argv) {
-		return;
-	}
-
-	// Retain the 0th value (program name) from the existing argv.
-	new_argv[0] = sparkle_argv[0];
-
-	int success = 1;
-	jsize numStrs = 0;
-	for (jsize i = 1; i <= jargc; i++) {
-
-		// Obtain a representation of the Java string in the array.
-		jstring jstr = (*env)->GetObjectArrayElement(env, stringArr, i - 1);
-		if ((*env)->ExceptionOccurred(env) || !jstr) {
-			success = 0;
-			break;
-		}
-
-		// Obtain a C-string representation of the Java string.
-		const char* str = (*env)->GetStringUTFChars(env, jstr, 0);
-		if ((*env)->ExceptionOccurred(env) || !str) {
-			success = 0;
-			break;
-		}
-
-		// Allocate our own space for the string, and copy it.
-		const jsize strLen = (*env)->GetStringUTFLength(env, jstr);
-		char * myStr = malloc(strLen + 1);
-		if (!myStr) {
-			success = 0;
-			break;
-		}
-		numStrs++;
-		memcpy(myStr, str, strLen);
-		myStr[strLen] = 0;
-
-		// Deallocate the JNI's C-string representation.
-		(*env)->ReleaseStringUTFChars(env, jstr, str);
-		if ((*env)->ExceptionOccurred(env)) {
-			success = 0;
-			break;
-		}
-
-		// Deallocate the now unused local reference, `jstr`.
-		(*env)->DeleteLocalRef(env, jstr);
-		if ((*env)->ExceptionOccurred(env)) {
-			success = 0;
-			break;
-		}
-
-		new_argv[i] = myStr;
-	}
-
-	if (!success) {
-		while (numStrs > 0) {
-			// Free resources allocated above: new_argv entries with index in
-			// range 1..numStrs.
-			free(new_argv[1 + numStrs--]);
-		}
-		free(new_argv);
-		return;
-	}
-
-	// Put the remaining sparkle_argv elements into new_argv.
-	for (jsize i = 1; i < sparkle_argc; i++) {
-		new_argv[jargc + i] = sparkle_argv[i];
-	}
-
-	// Make sure that Haskell code finds these new values for argc, argv.
-	sparkle_argc += jargc;
-	sparkle_argv = new_argv;
-
-	// `argv` always has a NULL pointer in its argc-th position. We allocated
-	// enough positions in new_argv for this, in the malloc(), above.
-	new_argv[sparkle_argc] = NULL;
+	char** hs_argv;
+	jsize hs_argc = prepare_hs_args(env, "sparkle-worker", &hs_argv, jargc, cargs);
+	if(hs_argc < 0)
+		goto cleanup_cargs;
 
 	rts_status = RTS_UP_DRIVER;
 
 	// Call the Haskell main() function.
-	main(sparkle_argc, sparkle_argv);
+	main(hs_argc, hs_argv);
 
 	// Deallocate resources from above.
-	for (jsize i = 1; i <= jargc; i++) {
-		free(new_argv[i]);
-	}
-	free(new_argv);
+	free(*hs_argv);
+cleanup_cargs:
+	for (jsize i = 0; i < jargc; i++)
+		free(cargs[i]);
+	free(cargs);
 }
