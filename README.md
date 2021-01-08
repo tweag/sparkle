@@ -138,6 +138,15 @@ The `<app-executable-name>` is any executable name as given in the
 `.cabal` file for your app. See apps in the [apps/](apps/) folder for
 examples.
 
+RTS options can be passed as a java property
+```
+$ stack exec -- spark-submit --driver-java-options=-Dghc_rts_opts='+RTS\ -s\ -RTS' <app-executable-name>.jar
+```
+or as command line arguments
+```
+$ stack exec -- spark-submit <app-executable-name>.jar +RTS -s -RTS
+```
+
 See [here][spark-submit] for other options, including launching
 a [whole cluster from scratch on EC2][spark-ec2]. This
 [blog post][tweag-blog-haskell-paas] shows you how to get started on

@@ -6,10 +6,15 @@ package io.tweag.sparkle;
  */
 public class Sparkle extends SparkleBase {
     static {
-        initializeHaskellRTS();
+       String rtsOptsStr = System.getProperty("ghc_rts_opts", "");
+       String rtsOpts[]  = {};
+       if(!rtsOptsStr.isEmpty()) {
+           rtsOpts = rtsOptsStr.split("\\s+");
+       }
+       initializeHaskellRTS(rtsOpts);
     }
 
     public static native <R> R apply(byte[] cos, Object... args);
-    private static native void initializeHaskellRTS();
+    private static native void initializeHaskellRTS(String[] args);
     public static native void loadJavaWrappers();
 }

@@ -23,12 +23,6 @@ extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
 // [2] https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-g_t_0040code_007bweak_007d-function-attribute-3369
 extern int main(int argc, char *argv[]) __attribute__((weak));
 
-static int sparkle_argc = 1;
-static char** sparkle_argv = (char*[]){ "sparkle-worker", NULL };
-// static int sparkle_argc = 4;
-// static char* sparkle_argv[] =
-//	   (char*[]){ "sparkle-dummy", "+RTS", "-A1G", "-H1G", NULL };
-
 // Enumeration describing the status of the GHC RTS in the current process.
 typedef enum
   { RTS_DOWN		/* GHC's RTS has not been initialized yet */
@@ -157,11 +151,21 @@ jsize prepare_hs_args
 // is therefore no matching 'hs_exit' call for the
 // hs_init_with_rtsopts performed below at the moment.
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
-  (JNIEnv * env, jclass klass)
+  (JNIEnv * env, jclass klass, jobjectArray jargs)
 {
 	if(rts_status == RTS_DOWN) {
-		// TODO: accept values for argc, argv via Java properties.
-		hs_init(&sparkle_argc, &sparkle_argv);
+
+		char** cargs;
+		jsize jargc = c_strings_of_string_array(env, jargs, &cargs);
+		if(jargc < 0)
+			return;
+
+		char** hs_argv;
+		jsize hs_argc = prepare_hs_args(env, "sparkle-worker", &hs_argv, jargc, cargs);
+		if(hs_argc < 0)
+			goto cleanup_initializeHaskellRTS;
+
+		hs_init(&hs_argc, &hs_argv);
 		if (!rtsSupportsBoundThreads())
 			(*env)->FatalError(env,"Sparkle.initializeHaskellRTS: Haskell RTS is not threaded.");
 
@@ -169,6 +173,13 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
 			return;
 
 		rts_status = RTS_UP_EXECUTOR;
+
+		// Deallocate resources from above.
+		free(*hs_argv);
+cleanup_initializeHaskellRTS:
+		for (jsize i = 0; i < jargc; i++)
+			free(cargs[i]);
+		free(cargs);
 	}
 }
 

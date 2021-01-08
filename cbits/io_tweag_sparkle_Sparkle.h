@@ -15,7 +15,7 @@ extern "C" {
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
-  (JNIEnv *, jclass);
+  (JNIEnv *, jclass, jobjectArray jargs);
 
 /*
  * Class:     io_tweag_sparkle_Sparkle
