@@ -5,8 +5,13 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Control.Distributed.Spark (module S) where
+module Control.Distributed.Spark
+  ( module S
+  , initializeSparkThread
+  , runInSparkThread
+  ) where
 
+import Control.Concurrent (runInBoundThread)
 import Control.Distributed.Closure as S
 import Control.Distributed.Spark.Closure as S
 import Control.Distributed.Spark.Context as S
@@ -23,6 +28,7 @@ import Control.Distributed.Spark.SQL.Row as S
 import Control.Distributed.Spark.SQL.SparkSession as S
 import Control.Distributed.Spark.RDD as S
 import Control.Exception (SomeException, handle)
+import Data.IORef
 import Data.Singletons (SomeSing(..))
 import qualified Data.Text as Text
 import qualified Data.Text.Foreign as Text
@@ -30,6 +36,7 @@ import Foreign.JNI
 import Language.Java
 import Language.Java.Inline
 import System.IO
+import System.IO.Unsafe (unsafePerformIO)
 
 
 -- This function will be called before running main or any user code in
@@ -45,6 +52,7 @@ sparkle_hs_init = do
         cl <- [java| Thread.currentThread().getContextClassLoader() |]
         newGlobalRef cl <* deleteLocalRef cl
 
+      writeIORef contextClassLoaderRef loader
       setGetClass loader
       loadJavaWrappers
 
@@ -104,3 +112,20 @@ foreign export ccall sparkle_hs_fini :: IO ()
 {-# ANN sparkle_hs_fini ("HLint: ignore Use camelCase" :: String) #-}
 sparkle_hs_fini :: IO ()
 sparkle_hs_fini = stopFinalizerThread
+
+{-# NOINLINE contextClassLoaderRef #-}
+contextClassLoaderRef :: IORef (J ('Class "java.lang.ClassLoader"))
+contextClassLoaderRef =
+  unsafePerformIO $ newIORef (error "uninitialized contextClassLoader")
+
+-- | Sets the context class loader of the current thread so it can find
+-- spark classes
+initializeSparkThread :: IO ()
+initializeSparkThread = do
+    contextClassLoader <- readIORef contextClassLoaderRef
+    [java| { Thread.currentThread().setContextClassLoader($contextClassLoader); } |]
+
+-- | Runs a computation in a thread that can call functions from spark
+runInSparkThread :: IO a -> IO a
+runInSparkThread m =
+    runInBoundThread $ runInAttachedThread $ initializeSparkThread >> m

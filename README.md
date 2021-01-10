@@ -118,6 +118,11 @@ repo, we use `gradle` to install Spark, and we query `gradle` to get
 the paths we need to add to the `CLASSPATH`. This is done with Cabal
 hooks (see [./Setup.hs](./Setup.hs)).
 
+Additionally, the classes need to be found at runtime to load them.
+The main thread can find them, but other threads need to invoke
+`initializeSparkThread` or `runInSparkThread` from
+`Control.Distributed.Spark`.
+
 ### Package
 
 To package your app as a JAR directly consumable by Spark:
