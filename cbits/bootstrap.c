@@ -6,6 +6,8 @@
 #include "Rts.h"
 
 extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
+extern void sparkle_hs_init();
+extern void sparkle_hs_fini();
 
 // main is provided when linking an executable. But sparkle is sometimes
 // loaded dynamically when no main symbol is provided. Typically, ghc
@@ -210,13 +212,17 @@ static void bypass_exit(int rc)
 // Run the haskell main closure using the GHC public API. This replicates the behavior of hs_main
 // except it does not immediately exit.
 // @see https://github.com/ghc/ghc/blob/639e702b6129f501c539b158b982ed8489e3d09c/rts/RtsMain.c
-int do_main (int argc, char *argv[] )
+int do_main (JNIEnv * env, int argc, char *argv[] )
 {
 	int exit_status;
 	SchedulerStatus status;
 
 	hs_init_with_rtsopts(&argc, &argv);
 	rts_status = RTS_UP_DRIVER;
+
+	sparkle_hs_init();
+	if ((*env)->ExceptionOccurred(env))
+		return -1;
 
 	{
 		Capability *cap = rts_lock();
@@ -244,6 +250,8 @@ int do_main (int argc, char *argv[] )
 	default:
 		barf("main thread completed with invalid status");
 	}
+
+	sparkle_hs_fini();
 
 	// Shutdown the RTS but do not terminate the process
 	hs_exit();
@@ -281,7 +289,7 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
 	rts_status = RTS_UP_DRIVER;
 
 	// Call the Haskell main() function.
-	do_main(hs_argc, hs_argv);
+	do_main(env, hs_argc, hs_argv);
 
 	// Deallocate resources from above.
 	free(hs_argv);
