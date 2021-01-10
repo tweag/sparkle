@@ -26,20 +26,10 @@ import Data.Singletons (SomeSing(..))
 import qualified Data.Text as Text
 import qualified Data.Text.Foreign as Text
 import Foreign.JNI
-import Foreign.Ptr (Ptr)
 import Language.Java
 import Language.Java.Inline
 import System.IO
 
-foreign export ccall
-  "Java_io_tweag_sparkle_Sparkle_loadJavaWrappers"
-  jniLoadJavaWrappers
-  :: Ptr JNIEnv
-  -> Ptr JClass
-  -> IO ()
-
-jniLoadJavaWrappers :: Ptr JNIEnv -> Ptr JClass -> IO ()
-jniLoadJavaWrappers _ _ = loadJavaWrappers
 
 -- This function will be called before running main or any user code in
 -- executors.
