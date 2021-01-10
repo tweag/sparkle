@@ -1,5 +1,5 @@
 args:
-let pkgs = import (fetchTarball "https://github.com/tweag/nixpkgs/archive/e7ebd6be80d80000ea9efb62c589a827ba4c22dc.tar.gz") args;
+let pkgs = import (fetchTarball "https://github.com/tweag/nixpkgs/archive/a3a3dda3bacf61e8a39258a0ed9c924eeca8e293.tar.gz") args;
   spark = pkgs.spark.override {
     # TODO: Some part/dependency of spark is unable to cope with newer
     # jdks. The apps/rdd-ops example would fail. Needs further investigation.
