@@ -40,11 +40,11 @@ sparkle_hs_init :: IO ()
 sparkle_hs_init = do
     startFinalizerThread
     handle (printError "sparkle_hs_init") $ do
-      loader <- callStatic "java.lang.Thread" "currentThread"
-        >>= \thr ->
-          call (thr :: J ('Class "java.lang.Thread"))
-               "getContextClassLoader" <* deleteLocalRef thr
-        >>= \cl -> newGlobalRef cl <* deleteLocalRef cl
+      loader <- do
+        thr <- callStatic "java.lang.Thread" "currentThread"
+        cl <- call (thr :: J ('Class "java.lang.Thread")) "getContextClassLoader"
+              <* deleteLocalRef thr
+        newGlobalRef cl <* deleteLocalRef cl
 
       setGetClass loader
       loadJavaWrappers
@@ -68,12 +68,12 @@ sparkle_hs_init = do
           )
 
       setGetClassFunction $ \s ->
-        Text.useAsPtr (Text.pack $ forNameFQN s) $ \ptr len ->
-            newString ptr (fromIntegral len) >>= \jstr ->
-                  (unsafeCast :: JObject -> JClass)
-              <$> callStaticObjectMethod jclass forNameID
-                    [coerce jstr, coerce True, coerce loader]
-                  <* deleteLocalRef jstr
+        Text.useAsPtr (Text.pack $ forNameFQN s) $ \ptr len -> do
+          jstr <- newString ptr (fromIntegral len)
+          (unsafeCast :: JObject -> JClass)
+            <$> callStaticObjectMethod jclass forNameID
+                  [coerce jstr, coerce True, coerce loader]
+            <* deleteLocalRef jstr
 
     printError :: String -> SomeException -> IO ()
     printError lbl e = hPutStrLn stderr $ lbl ++ " failed: " ++ show e
