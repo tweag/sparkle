@@ -18,9 +18,9 @@ http_archive(
 
 http_archive(
   name = "io_tweag_inline_java",
-  sha256 = "f5780df3e903e121f360f8deea468226f00cd14cc1ac8cac57aa19762d2da5db",
-  strip_prefix = "inline-java-0.9.1",
-  urls = ["https://github.com/tweag/inline-java/archive/v0.9.1.tar.gz"],
+  sha256 = "a408c2601a893a20fad62b8e140dde9c1234ac87fe0061421b8b0850d14f57ff",
+  strip_prefix = "inline-java-6ae891748ed09e57da9883180bb3b7263ea302d5",
+  urls = ["https://github.com/tweag/inline-java/archive/6ae891748ed09e57da9883180bb3b7263ea302d5.tar.gz"],
 )
 
 load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
@@ -39,6 +39,12 @@ nixpkgs_local_repository(
 
 nixpkgs_python_configure(
   repository = "@nixpkgs",
+)
+
+nixpkgs_package(
+    name = "sed",
+    attribute_path = "gnused",
+    repository = "@nixpkgs",
 )
 
 RULES_JVM_EXTERNAL_TAG = "3.3"
@@ -88,6 +94,7 @@ stack_snapshot(
     name = "stackage",
     packages = [
         "Cabal",
+        "async",
         "base",
         "binary",
         "bytestring",
@@ -108,6 +115,7 @@ stack_snapshot(
         "process",
         "regex-tdfa",
         "singletons",
+        "stm",
         "streaming",
         "template-haskell",
         "temporary",

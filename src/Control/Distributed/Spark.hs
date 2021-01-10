@@ -47,7 +47,8 @@ foreign export ccall sparkle_hs_init :: IO ()
 
 {-# ANN sparkle_hs_init ("HLint: ignore Use camelCase" :: String) #-}
 sparkle_hs_init :: IO ()
-sparkle_hs_init =
+sparkle_hs_init = do
+    startFinalizerThread
     handle (printError "sparkle_hs_init") $ do
       loader <- callStatic "java.lang.Thread" "currentThread"
         >>= \thr ->
@@ -95,7 +96,7 @@ forNameFQN s0 = case s0 of
   where
     arrayPrefix :: Sing (ty1 :: JType) -> String
     arrayPrefix (SArray s) = '[' : arrayPrefix s
-    arrayPrefix (SPrim s') = [primSignature s']
+    arrayPrefix s@(SPrim _) = [primSignature s]
     arrayPrefix s = 'L' : refName s ++ ";"
 
     refName :: Sing (ty1 :: JType) -> String
@@ -106,20 +107,9 @@ forNameFQN s0 = case s0 of
 
     _ = Dict :: Dict (IsReferenceType ty)
 
-primSignature :: String -> Char
-primSignature "boolean" = 'Z'
-primSignature "byte" = 'B'
-primSignature "char" = 'C'
-primSignature "short" = 'S'
-primSignature "int" = 'I'
-primSignature "long" = 'J'
-primSignature "float" = 'F'
-primSignature "double" = 'D'
-primSignature sym = error $ "Unknown primitive: " ++ sym
-
 -- This function will be called before running hs_exit.
 foreign export ccall sparkle_hs_fini :: IO ()
 
 {-# ANN sparkle_hs_fini ("HLint: ignore Use camelCase" :: String) #-}
 sparkle_hs_fini :: IO ()
-sparkle_hs_fini = return () -- TODO: call stopFinalizerThread when upgrading jni
+sparkle_hs_fini = stopFinalizerThread
