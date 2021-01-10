@@ -175,7 +175,7 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
 		rts_status = RTS_UP_EXECUTOR;
 
 		// Deallocate resources from above.
-		free(*hs_argv);
+		free(hs_argv);
 cleanup_initializeHaskellRTS:
 		for (jsize i = 0; i < jargc; i++)
 			free(cargs[i]);
@@ -236,7 +236,7 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain
 	main(hs_argc, hs_argv);
 
 	// Deallocate resources from above.
-	free(*hs_argv);
+	free(hs_argv);
 cleanup_cargs:
 	for (jsize i = 0; i < jargc; i++)
 		free(cargs[i]);
