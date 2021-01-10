@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Control.Distributed.Spark (module S) where
@@ -41,9 +42,7 @@ sparkle_hs_init = do
     startFinalizerThread
     handle (printError "sparkle_hs_init") $ do
       loader <- do
-        thr <- callStatic "java.lang.Thread" "currentThread"
-        cl <- call (thr :: J ('Class "java.lang.Thread")) "getContextClassLoader"
-              <* deleteLocalRef thr
+        cl <- [java| Thread.currentThread().getContextClassLoader() |]
         newGlobalRef cl <* deleteLocalRef cl
 
       setGetClass loader
@@ -68,6 +67,8 @@ sparkle_hs_init = do
           )
 
       setGetClassFunction $ \s ->
+        -- we can't use inline-java here, as the generated code would call
+        -- into this function creating an infinite recursion
         Text.useAsPtr (Text.pack $ forNameFQN s) $ \ptr len -> do
           jstr <- newString ptr (fromIntegral len)
           (unsafeCast :: JObject -> JClass)
