@@ -99,6 +99,7 @@ stack_snapshot(
         "binary",
         "bytestring",
         "choice",
+        "clock",
         "constraints",
         "containers",
         "deepseq",
