@@ -46,7 +46,7 @@ manyToOne fname colexprs = do
 lit :: Reflect a => a -> IO Column
 lit x =  do
   c <- upcast <$> reflect x  -- @upcast@ needed to land in java Object
-  callStaticSqlFun "lit" c
+  callStaticSqlFun "lit" c <* deleteLocalRef c
 
 plus :: Column -> Column -> IO Column
 plus col1 (Column col2) = call col1 "plus" (upcast col2)
@@ -319,7 +319,7 @@ array colexprs = do
 expr :: Text -> IO Column
 expr e = do
   jexpr <- reflect e
-  callStaticSqlFun "expr" jexpr
+  callStaticSqlFun "expr" jexpr <* deleteLocalRef jexpr
 
 greatest :: [Column] -> IO Column
 greatest = manyToOne "greatest"
@@ -337,7 +337,7 @@ least = manyToOne "least"
 cast :: Column -> Text -> IO Column
 cast col destType = do
   jdestType <- reflect destType
-  call col "cast" jdestType
+  call col "cast" jdestType <* deleteLocalRef jdestType
 
 -- | 'when', 'orWhen' and 'otherwise' are designed to be used
 -- together to make if-then-else and more generally mutli-way if branches:
