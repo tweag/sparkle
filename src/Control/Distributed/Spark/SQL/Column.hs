@@ -305,16 +305,10 @@ tanh :: Column -> IO Column
 tanh = callStaticSqlFun "tanh"
 
 coalesce :: [Column] -> IO Column
-coalesce colexprs = do
-  jcols <- toArray (Data.Coerce.coerce colexprs
-             :: [J ('Class "org.apache.spark.sql.Column")])
-  callStaticSqlFun "coalesce" jcols
+coalesce = manyToOne "coalesce"
 
 array :: [Column] -> IO Column
-array colexprs = do
-  jcols <- toArray (Data.Coerce.coerce colexprs
-             :: [J ('Class "org.apache.spark.sql.Column")])
-  callStaticSqlFun "array" jcols
+array = manyToOne "array"
 
 expr :: Text -> IO Column
 expr e = do
