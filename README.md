@@ -207,6 +207,13 @@ If you're using JDK 9, note that you'll need to either downgrade to
 JDK 8 or update your Gradle version, since Gradle versions up to and
 including 2.12 are not compatible with JDK 9.
 
+### JNI calls in auxiliary threads fail with ClassNotFoundException
+
+The context class loader of threads needs to be set appropriately
+before JNI calls can find classes in Spark. Calling
+`initializeSparkThread` or `runInSparkThread` from
+`Control.Distributed.Spark` should set it.
+
 ### Anonymous classes in inline-java quasiquotes fail to deserialize
 
 When using inline-java, it is recommended to use the Kryo serializer,
