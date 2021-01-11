@@ -11,7 +11,7 @@ def _mangle_dir(name):
     components = [c for c in components if c]
     return "/".join(components).replace("_", "_U").replace("/", "_S")
 
-def sparkle_package(name, src, **kwargs):
+def sparkle_package(name, src, resource_jars=[], **kwargs):
   libclosure = "libclosure-%s" % name
   
   library_closure(
@@ -51,6 +51,6 @@ def sparkle_package(name, src, **kwargs):
     name = name,
     create_executable = False,
     classpath_resources = [libclosure_renamed],
-    resource_jars = ["@io_tweag_sparkle//:sparkle-jar"],
+    resource_jars = ["@io_tweag_sparkle//:sparkle-jar"] + resource_jars,
     deploy_manifest_lines = ["Main-Class: io.tweag.sparkle.SparkMain"]
   )
