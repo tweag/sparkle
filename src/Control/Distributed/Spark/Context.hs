@@ -19,6 +19,7 @@ module Control.Distributed.Spark.Context
     SparkConf(..)
   , newSparkConf
   , confSet
+  , setLocalProperty
     -- * Spark contexts
   , SparkContext(..)
   , newSparkContext
@@ -55,6 +56,12 @@ confSet conf key value = do
   jval <- reflect value
   _ :: SparkConf <- [java| $conf.set($jkey, $jval) |]
   return ()
+
+setLocalProperty :: SparkContext -> Text -> Text -> IO ()
+setLocalProperty sc key value =
+  withLocalRef (reflect key) $ \jkey ->
+  withLocalRef (reflect value) $ \jval ->
+  call sc "setLocalProperty" jkey jval
 
 newtype SparkContext = SparkContext (J ('Class "org.apache.spark.api.java.JavaSparkContext"))
   deriving Coercible
