@@ -17,7 +17,6 @@ import Control.Monad (foldM)
 import qualified Data.Coerce
 import Data.Int (Int32)
 import Data.Text (Text)
-import Foreign.JNI (deleteLocalRef)
 import qualified Foreign.JNI.String
 import Language.Java
 import Prelude hiding (min, max, mod, and, or, otherwise)
@@ -39,14 +38,13 @@ callStaticSqlFun
 callStaticSqlFun = callStatic "org.apache.spark.sql.functions"
 
 manyToOne :: Foreign.JNI.String.String -> [Column] -> IO Column
-manyToOne fname colexprs = do
-    arr <- toArray (Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
-    callStaticSqlFun fname arr <* deleteLocalRef arr
+manyToOne fname colexprs =
+    toArray (Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
+    `withLocalRef` callStaticSqlFun fname
 
 lit :: Reflect a => a -> IO Column
-lit x =  do
-  c <- upcast <$> reflect x  -- @upcast@ needed to land in java Object
-  callStaticSqlFun "lit" c <* deleteLocalRef c
+lit x =  -- @upcast@ needed to land in java Object
+    (upcast <$> reflect x) `withLocalRef` callStaticSqlFun "lit"
 
 plus :: Column -> Column -> IO Column
 plus col1 (Column col2) = call col1 "plus" (upcast col2)
@@ -166,9 +164,8 @@ datediff :: Column -> Column -> IO Column
 datediff = callStaticSqlFun "datediff"
 
 date_format :: Column -> Text -> IO Column
-date_format col format = do
-    jFormat <- reflect format
-    callStaticSqlFun "date_format" col jFormat <* deleteLocalRef jFormat
+date_format col format =
+    reflect format `withLocalRef` callStaticSqlFun "date_format" col
 
 date_sub :: Column -> Int32 -> IO Column
 date_sub = callStaticSqlFun "date_sub"
@@ -201,9 +198,8 @@ months_between :: Column -> Column -> IO Column
 months_between = callStaticSqlFun "months_between"
 
 next_day :: Column -> Text -> IO Column
-next_day col dayOfWeek = do
-    jDayOfWeek <- reflect dayOfWeek
-    callStaticSqlFun "next_day" col jDayOfWeek <* deleteLocalRef jDayOfWeek
+next_day col dayOfWeek =
+    reflect dayOfWeek `withLocalRef` callStaticSqlFun "next_day" col
 
 quarter :: Column -> IO Column
 quarter = callStaticSqlFun "quarter"
@@ -212,29 +208,24 @@ to_date :: Column -> IO Column
 to_date = callStaticSqlFun "to_date"
 
 from_unixtime :: Column -> Text -> IO Column
-from_unixtime col format = do
-    jFormat <- reflect format
-    callStaticSqlFun "from_unixtime" col jFormat <* deleteLocalRef jFormat
+from_unixtime col format =
+    reflect format `withLocalRef` callStaticSqlFun "from_unixtime" col
 
 from_utc_timestamp :: Column -> Text -> IO Column
-from_utc_timestamp col tz = do
-    jTz <- reflect tz
-    callStaticSqlFun "from_utc_timestamp" col jTz <* deleteLocalRef jTz
+from_utc_timestamp col tz =
+    reflect tz `withLocalRef` callStaticSqlFun "from_utc_timestamp" col
 
 to_utc_timestamp :: Column -> Text -> IO Column
-to_utc_timestamp col tz = do
-    jTz <- reflect tz
-    callStaticSqlFun "to_utc_timestamp" col jTz <* deleteLocalRef jTz
+to_utc_timestamp col tz =
+    reflect tz `withLocalRef` callStaticSqlFun "to_utc_timestamp" col
 
 trunc :: Column -> Text -> IO Column
-trunc col res = do
-    jRes <- reflect res
-    callStaticSqlFun "trunc" col jRes <* deleteLocalRef jRes
+trunc col res =
+    reflect res `withLocalRef` callStaticSqlFun "trunc" col
 
 unix_timestamp :: Column -> Maybe (Text) -> IO Column
-unix_timestamp col (Just format) = do
-    jFormat <- reflect format
-    callStaticSqlFun "unix_timestamp" col jFormat <* deleteLocalRef jFormat
+unix_timestamp col (Just format) =
+    reflect format `withLocalRef` callStaticSqlFun "unix_timestamp" col
 unix_timestamp col Nothing =
     callStaticSqlFun "unix_timestamp" col
 
@@ -311,9 +302,7 @@ array :: [Column] -> IO Column
 array = manyToOne "array"
 
 expr :: Text -> IO Column
-expr e = do
-  jexpr <- reflect e
-  callStaticSqlFun "expr" jexpr <* deleteLocalRef jexpr
+expr e = reflect e `withLocalRef` callStaticSqlFun "expr"
 
 greatest :: [Column] -> IO Column
 greatest = manyToOne "greatest"
@@ -329,9 +318,7 @@ least = manyToOne "least"
 -- The supported types are: string, boolean, byte, short,
 -- int, long, float, double, decimal, date, timestamp.
 cast :: Column -> Text -> IO Column
-cast col destType = do
-  jdestType <- reflect destType
-  call col "cast" jdestType <* deleteLocalRef jdestType
+cast col destType = reflect destType `withLocalRef` call col "cast"
 
 -- | 'when', 'orWhen' and 'otherwise' are designed to be used
 -- together to make if-then-else and more generally mutli-way if branches:
@@ -377,24 +364,22 @@ concat :: [Column] -> IO Column
 concat = manyToOne "concat"
 
 concat_ws :: Text -> [Column] -> IO Column
-concat_ws sep colexprs = do
-    jSep <- reflect sep
-    arrCols <- toArray (Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
-    callStaticSqlFun "concat_ws" jSep arrCols <* deleteLocalRef jSep <* deleteLocalRef arrCols
+concat_ws sep colexprs =
+    reflect sep `withLocalRef` \jSep ->
+    toArray (Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
+    `withLocalRef` callStaticSqlFun "concat_ws" jSep
 
 format_string :: Text -> [Column] -> IO Column
-format_string format arguments = do
-    jFormat <- reflect format
-    arrCols <- toArray (Data.Coerce.coerce arguments :: [J ('Class "org.apache.spark.sql.Column")])
-    callStaticSqlFun "format_string" jFormat arrCols <* deleteLocalRef jFormat <* deleteLocalRef arrCols
+format_string format arguments =
+    reflect format `withLocalRef` \jFormat ->
+    toArray (Data.Coerce.coerce arguments :: [J ('Class "org.apache.spark.sql.Column")])
+    `withLocalRef` callStaticSqlFun "format_string" jFormat
 
 initcap :: Column -> IO Column
 initcap = callStaticSqlFun "initcap"
 
 instr :: Column -> Text -> IO Column
-instr col substr = do
-    jSubstring <- reflect substr
-    callStaticSqlFun "instr" col jSubstring <* deleteLocalRef jSubstring
+instr col substr = reflect substr `withLocalRef` callStaticSqlFun "instr" col
 
 length :: Column -> IO Column
 length = callStaticSqlFun "length"
@@ -403,19 +388,18 @@ levenshtein :: Column -> Column -> IO Column
 levenshtein = callStaticSqlFun "levenshtein"
 
 locate :: Text -> Column -> Maybe Int32 -> IO Column
-locate substr str maybePos = do
-    jSubstr <- reflect substr
+locate substr str maybePos =
+    reflect substr `withLocalRef` \jSubstr ->
     case maybePos of
-      Nothing  -> callStaticSqlFun "locate" jSubstr str <* deleteLocalRef jSubstr
-      Just pos -> callStaticSqlFun "locate" jSubstr str pos <* deleteLocalRef jSubstr
+      Nothing  -> callStaticSqlFun "locate" jSubstr str
+      Just pos -> callStaticSqlFun "locate" jSubstr str pos
 
 lower :: Column -> IO Column
 lower = callStaticSqlFun "lower"
 
 lpad :: Column -> Int32 -> Text -> IO Column
-lpad str len pad = do
-    jPad <- reflect pad
-    callStaticSqlFun "lpad" str len jPad <* deleteLocalRef jPad
+lpad str len pad =
+    reflect pad `withLocalRef` callStaticSqlFun "lpad" str len
 
 ltrim :: Column -> IO Column
 ltrim = callStaticSqlFun "ltrim"
@@ -427,9 +411,7 @@ reverse :: Column -> IO Column
 reverse = callStaticSqlFun "reverse"
 
 rpadCol :: Column -> Int32 -> Text -> IO Column
-rpadCol str len pad = do
-    jPad <- reflect pad
-    callStaticSqlFun "rpad" str len jPad <* deleteLocalRef jPad
+rpadCol str len pad = reflect pad `withLocalRef` callStaticSqlFun "rpad" str len
 
 rtrim :: Column -> IO Column
 rtrim = callStaticSqlFun "rtrim"
@@ -438,15 +420,14 @@ substring :: Column -> Int32 -> Int32 -> IO Column
 substring = callStaticSqlFun "substring"
 
 substring_index :: Column -> Text -> Int32 -> IO Column
-substring_index str delim count_c = do
-    jDelim <- reflect delim
-    callStaticSqlFun "substring_index" str jDelim count_c <* deleteLocalRef jDelim
+substring_index str delim count_c =
+    reflect delim `withLocalRef` \jDelim ->
+    callStaticSqlFun "substring_index" str jDelim count_c
 
 translate :: Column -> Text -> Text -> IO Column
-translate str from to = do
-    jFrom <- reflect from
-    jTo <- reflect to
-    callStaticSqlFun "translate" str jFrom jTo <* deleteLocalRef jFrom <* deleteLocalRef jTo
+translate str from to =
+    reflect from `withLocalRef` \jFrom ->
+    reflect to `withLocalRef` callStaticSqlFun "translate" str jFrom
 
 trim :: Column -> IO Column
 trim = callStaticSqlFun "trim"
@@ -458,15 +439,14 @@ soundex :: Column -> IO Column
 soundex = callStaticSqlFun "soundex"
 
 regexp_extract :: Column -> Text -> Int32 -> IO Column
-regexp_extract str pat group = do
-    p <- reflect pat
-    callStaticSqlFun "regexp_extract" str p group <* deleteLocalRef p
+regexp_extract str pat group =
+    reflect pat `withLocalRef` \p ->
+    callStaticSqlFun "regexp_extract" str p group
 
 regexp_replace :: Column -> Text -> Text -> IO Column
-regexp_replace str pat replace = do
-    p <- reflect pat
-    rep <- reflect replace
-    callStaticSqlFun "regexp_replace" str p rep <* deleteLocalRef p <* deleteLocalRef rep
+regexp_replace str pat replace =
+    reflect pat `withLocalRef` \p ->
+    reflect replace `withLocalRef` callStaticSqlFun "regexp_replace" str p
 
 -- Window functions
 
