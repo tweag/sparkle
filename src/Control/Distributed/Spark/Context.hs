@@ -18,6 +18,7 @@ module Control.Distributed.Spark.Context
   ( -- * Spark configurations
     SparkConf(..)
   , newSparkConf
+  , confGet
   , confSet
   , setLocalProperty
     -- * Spark contexts
@@ -27,6 +28,8 @@ module Control.Distributed.Spark.Context
   , addFile
   , getFile
   , master
+  , setJobGroup
+  , cancelJobGroup
   -- * RDD creation
   , parallelize
   , binaryRecords
@@ -56,6 +59,12 @@ confSet conf key value = do
   jval <- reflect value
   _ :: SparkConf <- [java| $conf.set($jkey, $jval) |]
   return ()
+
+confGet :: SparkConf -> Text -> Text -> IO Text
+confGet conf key def =
+  reflect key `withLocalRef` \jkey ->
+  reflect def `withLocalRef` \jdef ->
+  call conf "get" jkey jdef `withLocalRef` reify
 
 setLocalProperty :: SparkContext -> Text -> Text -> IO ()
 setLocalProperty sc key value =
@@ -119,3 +128,12 @@ parallelize sc xs = do
   jxs :: J ('Array ('Class "java.lang.Object")) <- unsafeCast <$> reflect xs
   jlist :: J ('Iface "java.util.List") <- [java| java.util.Arrays.asList($jxs) |]
   [java| $sc.parallelize($jlist) |]
+
+setJobGroup :: Text -> Text -> Bool -> SparkContext -> IO ()
+setJobGroup jobId description interruptOnCancel sc =
+    reflect jobId `withLocalRef` \jjobId ->
+    reflect description `withLocalRef` \jdescription ->
+    call sc "setJobGroup" jjobId jdescription interruptOnCancel
+
+cancelJobGroup :: Text -> SparkContext -> IO ()
+cancelJobGroup jobId sc = reflect jobId `withLocalRef` call sc "cancelJobGroup"
