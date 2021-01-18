@@ -11,9 +11,9 @@ http_archive(
 
 http_archive(
   name = "io_tweag_clodl",
-  sha256 = "13c1ca41dca52f13483b33ab1579777b0eb6eeaaaa28fd6164c13cc7704f0d2d",
-  strip_prefix = "clodl-cb330384fc0a06632e8e4464921b0bcf7c5fe077",
-  urls = ["https://github.com/tweag/clodl/archive/cb330384fc0a06632e8e4464921b0bcf7c5fe077.tar.gz"]
+  sha256 = "dd3729c49c169fa632ced79e5680e60a072b3204a8044daac4f51832ddae74a3",
+  strip_prefix = "clodl-4143916be74a0d048fea5aaca465c6581313a2f8",
+  urls = ["https://github.com/tweag/clodl/archive/4143916be74a0d048fea5aaca465c6581313a2f8.tar.gz"]
 )
 
 http_archive(
@@ -220,4 +220,11 @@ genrule(
     visibility = ["//visibility:public"],
 )
 """,
+)
+
+http_archive(
+    name = "com_github_bazelbuild_buildtools",
+    strip_prefix = "buildtools-master",
+	sha256 = "6c31bcf9b489f74385fb95a1f71a2f63e059c1dc2f5d30bf6f7f2348f5b85ca4",
+    url = "https://github.com/bazelbuild/buildtools/archive/master.zip",
 )
