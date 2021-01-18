@@ -13,6 +13,7 @@ haskell_binary(
   srcs = ["HelloSpark.hs"],
   deps = [
     "//:sparkle-lib",
+    "@io_tweag_inline_java//jni",
 	"@stackage//:base",
 	"@stackage//:distributed-closure",
 	"@stackage//:text",
