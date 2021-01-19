@@ -7,6 +7,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StaticPointers #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -22,16 +23,21 @@ import Control.Distributed.Spark.SQL.Encoder
 import Control.Distributed.Spark.SQL.Row
 import Control.Distributed.Spark.SQL.StructType
 import Control.Distributed.Spark.SQL.SparkSession
+import qualified Data.Coerce
 import Data.Int
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.Typeable
 import Foreign.JNI
 import Language.Java
-import Language.Java.Inline (java)
+import Language.Java.Inline
 import Prelude hiding (filter)
 import Streaming (Stream, Of, effect)
 import qualified Streaming.Prelude as S (filter, fold_, map, yield)
 import System.IO.Unsafe (unsafeDupablePerformIO, unsafePerformIO)
+
+imports "org.apache.spark.storage.StorageLevel"
+
 
 newtype Dataset a = Dataset (J ('Class "org.apache.spark.sql.Dataset"))
   deriving Coercible
@@ -71,8 +77,33 @@ sparkSession ds = [java| $ds.sparkSession() |]
 cache :: Dataset a -> IO (Dataset a)
 cache ds = [java| $ds.cache() |]
 
+data StorageLevel
+  = DISK_ONLY
+  | DISK_ONLY_2
+  | MEMORY_AND_DISK
+  | MEMORY_AND_DISK_2
+  | MEMORY_AND_DISK_SER
+  | MEMORY_AND_DISK_SER_2
+  | MEMORY_ONLY
+  | MEMORY_ONLY_2
+  | MEMORY_ONLY_SER
+  | MEMORY_ONLY_SER_2
+  | NONE
+  | OFF_HEAP
+  deriving (Enum,Read,Show,Eq)
+
+persist :: StorageLevel -> Dataset a -> IO (Dataset a)
+persist storageLevel ds =
+  withLocalRef (reflect (Text.pack $ Prelude.show storageLevel)) $ \jstorageLevel ->
+  [java| $ds.persist(StorageLevel.fromString($jstorageLevel)) |]
+
 unpersist :: Dataset a -> IO (Dataset a)
 unpersist ds = [java| $ds.unpersist(false) |]
+
+withColumn :: Text -> Column -> Dataset a -> IO (Dataset Row)
+withColumn colName c df =
+    withLocalRef (reflect colName) $ \jcolName ->
+    [java| $df.withColumn($jcolName, $c) |]
 
 withColumnRenamed :: Text -> Text -> Dataset a -> IO (Dataset Row)
 withColumnRenamed  old newt df = do
@@ -84,6 +115,11 @@ toDF :: [Text] -> Dataset a -> IO (Dataset Row)
 toDF cols df = do
     jcols <- reflect cols
     [java| $df.toDF($jcols) |]
+
+drop :: Text -> Dataset a -> IO (Dataset Row)
+drop colName df =
+    withLocalRef (reflect colName) $ \jcolName ->
+    [java| $df.drop($jcolName) |]
 
 selectDS :: Dataset a -> [Text] -> IO (Dataset Row)
 selectDS _ [] = error "selectDS: not enough arguments."
@@ -97,6 +133,9 @@ limit n df = [java| $df.limit($n) |]
 
 show :: Dataset a -> IO ()
 show df = [java| { $df.show(); } |]
+
+explain :: Dataset a -> Bool -> IO ()
+explain df extended = [java| { $df.explain($extended); } |]
 
 range
   :: Int64
@@ -133,6 +172,24 @@ orderBy :: [Column] -> Dataset a -> IO (Dataset Row)
 orderBy cols ds = do
     jCols <- reflect cols
     [java| $ds.orderBy($jCols) |]
+
+sortWithinPartitions :: [Column] -> Dataset a -> IO (Dataset Row)
+sortWithinPartitions cols ds =
+  withLocalRef (toArray (Data.Coerce.coerce cols :: [J ('Class "org.apache.spark.sql.Column")])) $ \jCols ->
+  [java| $ds.sortWithinPartitions($jCols) |]
+
+sort :: [Column] -> Dataset a -> IO (Dataset a)
+sort cols ds =
+    withLocalRef (toArray (Data.Coerce.coerce cols
+               :: [J ('Class "org.apache.spark.sql.Column")])) $ \jcols ->
+      [java| $ds.sort($jcols) |]
+
+sortByColumnNames :: [Text] -> Dataset a -> IO (Dataset a)
+sortByColumnNames [] _ = error "sortByColNames: empty list of column names"
+sortByColumnNames (cname : cnames) ds =
+    withLocalRef (reflect cname) $ \jn ->
+    withLocalRef (reflect cnames) $ \jns ->
+      [java| $ds.sort($jn, $jns) |]
 
 except :: Dataset a -> Dataset a -> IO (Dataset Row)
 except ds1 ds2 = [java| $ds1.except($ds2) |]

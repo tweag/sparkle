@@ -26,7 +26,7 @@ import Control.Distributed.Spark.SQL.Context as S
 import Control.Distributed.Spark.SQL.Encoder as S
 import Control.Distributed.Spark.SQL.Row as S
 import Control.Distributed.Spark.SQL.SparkSession as S
-import Control.Distributed.Spark.RDD as S
+import Control.Distributed.Spark.RDD as S hiding (coalesce)
 import Control.Exception (SomeException, handle)
 import Data.IORef
 import Data.Singletons (SomeSing(..))
