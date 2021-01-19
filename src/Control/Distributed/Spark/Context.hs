@@ -10,6 +10,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 {-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
@@ -30,6 +31,7 @@ module Control.Distributed.Spark.Context
   , master
   , setJobGroup
   , cancelJobGroup
+  , context
   -- * RDD creation
   , parallelize
   , binaryRecords
@@ -43,6 +45,9 @@ import Data.Text (Text)
 import Control.Distributed.Spark.RDD
 import Language.Java
 import Language.Java.Inline
+
+imports "org.apache.spark.api.java.JavaSparkContext"
+
 
 newtype SparkConf = SparkConf (J ('Class "org.apache.spark.SparkConf"))
   deriving Coercible
@@ -137,3 +142,6 @@ setJobGroup jobId description interruptOnCancel sc =
 
 cancelJobGroup :: Text -> SparkContext -> IO ()
 cancelJobGroup jobId sc = reflect jobId `withLocalRef` call sc "cancelJobGroup"
+
+context :: RDD a -> IO SparkContext
+context rdd = [java| JavaSparkContext.fromSparkContext($rdd.context()) |]

@@ -16,7 +16,12 @@
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
+  , isEmpty
+  , toDebugString
+  , cache
+  , unpersist
   , repartition
+  , coalesce
   , filter
   , map
   , module Choice
@@ -50,6 +55,7 @@ import Control.Monad
 import Data.Choice (Choice)
 import qualified Data.Choice as Choice
 import Data.Int
+import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Typeable (Typeable)
 import Data.Vector.Storable as V (fromList)
@@ -63,8 +69,23 @@ import Streaming (Stream, Of)
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
   deriving Coercible
 
+cache :: RDD a -> IO (RDD a)
+cache rdd = [java| $rdd.cache() |]
+
+unpersist :: RDD a -> Bool -> IO (RDD a)
+unpersist rdd blocking = [java| $rdd.unpersist($blocking) |]
+
+isEmpty :: RDD a -> IO Bool
+isEmpty rdd = [java| $rdd.isEmpty() |]
+
+toDebugString :: RDD a -> IO Text
+toDebugString rdd = withLocalRef [java| $rdd.toDebugString() |] reify
+
 repartition :: Int32 -> RDD a -> IO (RDD a)
 repartition n rdd = [java| $rdd.repartition($n) |]
+
+coalesce :: Int32 -> RDD a -> IO (RDD a)
+coalesce n rdd = [java| $rdd.coalesce($n) |]
 
 filter
   :: (Static (Reify a), Typeable a)
