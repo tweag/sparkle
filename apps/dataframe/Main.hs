@@ -183,6 +183,23 @@ main = do
                   , daysCol', monthsCol', yearsCol' ]
          >>= Dataset.show
 
+    do (lit (1 :: Int32)         `withLocalRef` named "int")                       `withLocalRef` \intCol            ->
+         (lit True               `withLocalRef` named "bool")                      `withLocalRef` \boolCol           ->
+         (sqrt intCol            `withLocalRef` named "sqrt(int)")                 `withLocalRef` \sqrtIntCol        ->
+         (cast boolCol "int"     `withLocalRef` named "cast bool to int")          `withLocalRef` \castBoolIntCol    ->
+         (cast boolCol "double"  `withLocalRef` named "cast bool to double")       `withLocalRef` \castBoolDoubleCol ->
+         (sqrt castBoolIntCol    `withLocalRef` named "sqrt(cast bool to int)")    `withLocalRef` \sqrtBoolIntCol    ->
+         (sqrt castBoolDoubleCol `withLocalRef` named "sqrt(cast bool to double)") `withLocalRef` \sqrtBoolDoubleCol ->
+
+         select df1 [ intCol
+                    , boolCol
+                    , sqrtIntCol
+                    , castBoolIntCol
+                    , castBoolDoubleCol
+                    , sqrtBoolIntCol
+                    , sqrtBoolDoubleCol
+                    ] `withLocalRef` Dataset.show
+
     return ()
 
 named :: Text.Text -> Column -> IO Column

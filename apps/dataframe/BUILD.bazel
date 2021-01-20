@@ -1,0 +1,28 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_binary",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_binary(
+  name = "dataframe",
+  linkstatic = False,
+  srcs = ["Main.hs"],
+  deps = [
+    "//:sparkle-lib",
+    "@io_tweag_inline_java//jvm",
+	"@stackage//:base",
+	"@stackage//:distributed-closure",
+	"@stackage//:text",
+  ],
+  compiler_flags = ["-threaded", "-pie"],
+)
+
+sparkle_package(
+  name = "sparkle-example-dataframe",
+  src = ":dataframe",
+  resource_jars = ["@io_tweag_inline_java//jvm-batching:jar"],
+)
