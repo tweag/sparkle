@@ -8,7 +8,7 @@ import Control.Distributed.Spark as RDD
 import qualified Data.Text as Text
 
 main :: IO ()
-main = do
+main = forwardUnhandledExceptionsToSpark $ do
     conf <- newSparkConf "RDD operations demo"
     sc   <- getOrCreateSparkContext conf
     rdd  <- parallelize sc $ Text.words "The quick brown fox jumps over the lazy dog"

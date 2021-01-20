@@ -1,10 +1,11 @@
 module Main where
 
 import System.Environment (getArgs, getProgName)
+import Control.Distributed.Spark (forwardUnhandledExceptionsToSpark)
 import Data.List (intercalate)
 
 main :: IO ()
-main = do
+main = forwardUnhandledExceptionsToSpark $ do
     putStrLn "Sparkle passes command line arguments correctly: "
     args <- getArgs
     progName <- getProgName

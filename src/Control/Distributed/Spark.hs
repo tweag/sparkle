@@ -9,6 +9,7 @@ module Control.Distributed.Spark
   ( module S
   , initializeSparkThread
   , runInSparkThread
+  , forwardUnhandledExceptionsToSpark
   ) where
 
 import Control.Concurrent (runInBoundThread)
@@ -33,6 +34,7 @@ import Data.Singletons (SomeSing(..))
 import qualified Data.Text as Text
 import qualified Data.Text.Foreign as Text
 import Foreign.JNI
+import Foreign.JNI.String (fromChars)
 import Language.Java
 import Language.Java.Inline
 import System.IO
@@ -129,3 +131,13 @@ initializeSparkThread = do
 runInSparkThread :: IO a -> IO a
 runInSparkThread m =
     runInBoundThread $ runInAttachedThread $ initializeSparkThread >> m
+
+-- | Invoke this functions at the main function to forward any unhandled
+-- exceptions to Spark.
+forwardUnhandledExceptionsToSpark :: IO () -> IO ()
+forwardUnhandledExceptionsToSpark =
+    handle (\e ->
+      findClass (referenceTypeName (SClass "java.lang.RuntimeException")) `withLocalRef` \jclass ->
+      throwNew jclass (fromChars $ show (e :: SomeException))
+    ) .
+    handle (\(JVMException je) -> throw je)

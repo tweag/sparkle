@@ -17,7 +17,6 @@ import Control.Concurrent (forkOS)
 import Control.Concurrent.MVar
 import Control.Distributed.Closure (closure)
 import qualified Control.Distributed.Spark as Spark
-import Control.Exception (onException)
 import Control.Monad (forM_, void)
 import Data.Choice
 import Data.Int (Int64)
@@ -42,7 +41,7 @@ partitionSize :: Int64
 partitionSize = 1000*10
 
 main :: IO ()
-main = (`onException` putStrLn "main terminated with exception") $ do
+main = Spark.forwardUnhandledExceptionsToSpark $ do
     conf <- Spark.newSparkConf "osthreads sparkle"
     defaultPoolMode <- getArgs >>= \case
       "FAIR" : poolConfigXmlFile : rest -> do

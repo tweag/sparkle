@@ -13,7 +13,7 @@ import Language.Scala.Tuple
 import Prelude hiding (sqrt)
 
 main :: IO ()
-main = do
+main = forwardUnhandledExceptionsToSpark $ do
     conf <- newSparkConf "Sparkle Dataset demo"
     session <- builder >>= (`config` conf) >>= getOrCreate
     sc <- sparkContext session

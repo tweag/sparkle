@@ -10,7 +10,7 @@ import qualified Control.Distributed.Spark.SQL.StructField as StructField
 import qualified Control.Distributed.Spark.SQL.StructType as StructType
 
 main :: IO ()
-main = do
+main = forwardUnhandledExceptionsToSpark $ do
     conf <- newSparkConf "Spark Online Latent Dirichlet Allocation in Haskell!"
     confSet conf "spark.hadoop.fs.s3a.aws.credentials.provider"
                  "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider"
