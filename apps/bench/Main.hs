@@ -4,7 +4,6 @@
 {-# LANGUAGE StaticPointers #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
-{-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
 module Main where
 
@@ -36,7 +35,7 @@ mapHaskell :: RDD Int32 -> IO Int64
 mapHaskell rdd = reify =<< [java| $rdd.map($hincr).count() |]
 
 main :: IO ()
-main = do
+main = forwardUnhandledExceptionsToSpark $ do
     conf <- newSparkConf "RDD benchmarks"
     confSet conf "spark.serializer" "org.apache.spark.serializer.KryoSerializer"
     confSet conf "spark.kryo.registrator" "io.tweag.sparkle.kryo.InlineJavaRegistrator"

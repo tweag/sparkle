@@ -104,6 +104,7 @@ stack_snapshot(
         "clock",
         "constraints",
         "containers",
+        "criterion",
         "deepseq",
         "directory",
         "distributed-closure",
