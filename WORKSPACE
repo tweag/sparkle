@@ -62,6 +62,8 @@ load("@rules_jvm_external//:defs.bzl", "maven_install")
 maven_install(
     artifacts = [
 	    "org.apache.spark:spark-core_2.11:2.2.0",
+        "org.apache.spark:spark-mllib_2.11:2.2.0",
+        "org.apache.spark:spark-mllib-local_2.11:2.2.0",
         "org.apache.spark:spark-sql_2.11:2.2.0",
         "org.apache.spark:spark-catalyst_2.11:2.2.0",
         "com.esotericsoftware:kryo:3.0.3",

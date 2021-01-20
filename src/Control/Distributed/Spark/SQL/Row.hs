@@ -4,6 +4,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -17,50 +18,58 @@ import Control.Distributed.Spark.SQL.StructType
 import Data.Int
 import Data.Text
 import Language.Java
+import Language.Java.Inline
+
+imports "org.apache.spark.api.java.function.*"
+imports "org.apache.spark.sql.Row"
+imports "org.apache.spark.sql.RowFactory"
+
 
 newtype Row = Row (J ('Class "org.apache.spark.sql.Row"))
   deriving (Coercible, Interpretation, Reify, Reflect)
 
 toRows :: PairRDD a b -> IO (RDD Row)
-toRows = callStatic "Helper" "toRows"
+toRows prdd =
+    [java|
+        $prdd.map(new Function<scala.Tuple2<String, Long>, Row>() {
+            public Row call(scala.Tuple2<String, Long> tup) {
+                return RowFactory.create(tup._2(), tup._1());
+            }
+        })
+     |]
 
 schema :: Row -> IO StructType
-schema (Row r) = call r "schema"
+schema r = [java| $r.schema() |]
 
 get :: Int32 -> Row -> IO JObject
-get i r = call r "get" i
+get i r = [java| $r.get($i) |]
 
 size :: Row -> IO Int32
-size r = call r "size"
+size r = [java| $r.size() |]
 
 isNullAt :: Int32 -> Row -> IO Bool
-isNullAt i (Row r) = call r "isNullAt" i
+isNullAt i r = [java| $r.isNullAt($i) |]
 
 getBoolean :: Int32 -> Row -> IO Bool
-getBoolean i r = call r "getBoolean" i
+getBoolean i r = [java| $r.getBoolean($i) |]
 
 getDouble :: Int32 -> Row -> IO Double
-getDouble i r = call r "getDouble" i
+getDouble i r = [java| $r.getDouble($i) |]
 
 getLong :: Int32 -> Row -> IO Int64
-getLong i r = call r "getLong" i
+getLong i r = [java| $r.getLong($i) |]
 
 getString :: Int32 -> Row -> IO Text
-getString i r = call r "getString" i >>= reify
+getString i r = [java| $r.getString($i) |] `withLocalRef` reify
 
 getList :: forall a. Reify a => Int32 -> Row -> IO [a]
 getList i r =
-    call r "getList" i >>= listToArray >>= reify
+    [java| $r.getList($i).toArray() |] `withLocalRef` (reify . cast)
   where
-    listToArray :: J ('Iface "java.util.List") -> IO (J ('Array (Interp a)))
-    listToArray jlist = cast <$> call jlist "toArray"
-
     cast :: J ('Array ('Class "java.lang.Object")) -> J ('Array (Interp a))
     cast = unsafeCast
 
 createRow :: [JObject] -> IO Row
 createRow vs = do
     jvs <- toArray vs
-    callStatic "org.apache.spark.sql.RowFactory"
-               "create"
-               jvs
+    [java| RowFactory.create($jvs) |]

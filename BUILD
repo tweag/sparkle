@@ -41,6 +41,8 @@ haskell_library(
     "@io_tweag_inline_java//jvm-streaming",
     "@io_tweag_inline_java//:inline-java",
     "@maven//:org_apache_spark_spark_catalyst_2_11",
+    "@maven//:org_apache_spark_spark_mllib_2_11",
+    "@maven//:org_apache_spark_spark_mllib_local_2_11",
     "@maven//:org_apache_spark_spark_sql_2_11",
     "@maven//:org_scala_lang_scala_library",
     "@maven//:org_scala_lang_scala_reflect",
