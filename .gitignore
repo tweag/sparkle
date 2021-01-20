@@ -16,5 +16,6 @@ cabal.sandbox.config
 *.hp
 .stack-work
 .gradle
+*.swp
 build
 bazel-*
