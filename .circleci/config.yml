@@ -75,6 +75,7 @@ jobs:
             while true; do echo "."; sleep 60; done &
 
             nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
+            nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
             nix-shell --pure --run 'bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar'
       - run:
           name: Install spark and hadoop
@@ -92,6 +93,7 @@ jobs:
             export PATH="$PWD/spark-2.4.7-bin-without-hadoop/bin:$PATH"
             spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
             spark-submit bazel-bin/apps/osthreads/sparkle-example-osthreads_deploy.jar | tee out.txt || grep "Job |           pool | start time (s) | end time (s)" out.txt
+            spark-submit bazel-bin/apps/rdd-ops/sparkle-example-rddops_deploy.jar
 
         # see note about 'Disk cache'
       - save_cache:

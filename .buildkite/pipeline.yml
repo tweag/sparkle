@@ -4,7 +4,9 @@ steps:
       - echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
       - nix-shell --pure --run 'bazel build //...'
       - nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
+      - nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
       - nix-shell --pure --run 'bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $PWD/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar'
+      - nix-shell --pure --run 'bazel run spark-submit -- $PWD/bazel-bin/apps/rdd-ops/sparkle-example-rddops_deploy.jar'
     timeout: 60
   - label: "Build and test with stack"
     command:
