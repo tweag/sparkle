@@ -14,25 +14,24 @@ See [this blog post][hello-sparkle] for the details.
 ## Getting started
 
 The tl;dr using the `hello` app as an example on your local machine:
-
 ```
-$ stack build hello
-$ stack exec -- sparkle package sparkle-example-hello
-$ stack exec -- spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 sparkle-example-hello.jar
+$ nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.jar"
+$ nix-shell --pure --run "bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $PWD/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar"
 ```
 
-### Using bazel
-
-There is experimental support for [bazel]. This mechanism doesn't require
-executing `sparkle package`. Note however, that `bazel` evolves quickly and
-you'll need an old version (0.13.0) to use the following instructions.
-
-```
-$ bazel build //apps/hello:sparkle-example-hello_deploy.jar
-$ bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $(pwd)/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
-```
+You'll need [nix] for the above to work.
 
 [bazel]: https://bazel.build
+
+## How it works
+
+sparkle is a tool for creating self-contained Spark applications in
+Haskell. Spark applications are typically distributed as JAR files, so
+that's what sparkle creates. We embed Haskell native object code as
+compiled by GHC in these JAR files, along with any shared library
+required by this object code to run. Spark dynamically loads this
+object code into its address space at runtime and interacts with it
+via the Java Native Interface (JNI).
 
 ## How to use
 
@@ -40,9 +39,7 @@ To run a Spark application the process is as follows:
 
 1. **create** an application in the `apps/` folder, in-repo or as
    a submodule;
-1. **add** your app to `stack.yaml`;
 1. **build** the app;
-1. **package** your app into a deployable JAR container;
 1. **submit** it to a local or cluster deployment of Spark.
 
 **If you run into issues, read the Troubleshooting section below
@@ -52,61 +49,51 @@ To run a Spark application the process is as follows:
 
 #### Linux
 
-**Requirements**
+Include the following in a `BUILD.bazel` file next to your source code.
+```
+package(default_visibility = ["//visibility:public"])
 
-* the [Stack][stack] build tool (version 1.2 or above);
-* either, the [Nix][nix] package manager,
-* or, OpenJDK, Gradle and Spark (version 1.6) installed from your distro.
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_binary",
+)
 
-To build:
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_binary(
+  name = "hello-hs",
+  linkstatic = False,
+  compiler_flags = ["-threaded", "-pie"],
+  srcs = ...,
+  deps = ...,
+  ...
+)
+
+sparkle_package(
+  name = "sparkle-example-hello",
+  src = ":hello-hs",
+)
+```
+
+And then ask [Bazel][bazel] to build a *deploy* jar file.
 
 ```
-$ stack build
-```
-
-You can optionally get Stack to download Spark and Gradle in a local
-sandbox (using [Nix][nix]) for good build results reproducibility.
-**This is the recommended way to build sparkle.** Alternatively,
-you'll need these installed through your OS distribution's package
-manager for the next steps (and you'll need to tell Stack how to find
-the JVM header files and shared libraries).
-
-To use Nix, set the following in your `~/.stack/config.yaml` (or pass
-`--nix` to all Stack commands, see the [Stack manual][stack-nix] for
-more):
-
-```yaml
-nix:
-  enable: true
+$ nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.jar"
 ```
 
 #### Other platforms
 
-sparkle is not directly supported on non-Linux operating systems (e.g.
-Mac OS X or Windows). But you can use Docker to run sparkle natively
-inside a container on those platforms. First,
+`sparkle` builds in Mac OS X, but running it requires installing binaries
+for `Spark` and maybe `Hadoop` (See [.circleci/config.yml](.circleci/config.yml).
 
-```
-$ stack docker pull
-```
-
-Then, just add `--docker` as an argument to *all* Stack commands, e.g.
-
-```
-$ stack --docker build
-```
-
-By default, Stack uses the [tweag/sparkle][docker-build-img] build and
-test Docker image, which includes everything that Nix does as in the
-Linux section. See the [Stack manual][stack-docker] for how to modify
-the Docker settings.
+Another alternative is to build and run `sparkle` via Docker in non-Linux
+platforms, using a docker image provisioned with Nix.
 
 #### Integrating `sparkle` in another project
 
 As `sparkle` interacts with the JVM, you need to tell `ghc`
 where JVM-specific headers and libraries are. It needs to be able to
-locate `jni.h`, `jni_md.h` and `libjvm.so`. Doing this with `stack`
-is explained in the Troubleshooting section below.
+locate `jni.h`, `jni_md.h` and `libjvm.so`.
 
 `sparkle` uses `inline-java` to embed fragments of Java code in Haskell
 modules, which requires running the `javac` compiler, which must be
@@ -115,41 +102,37 @@ the Spark classes that `inline-java` quotations refer to. Therefore,
 these classes need to be added to the `CLASSPATH` when building sparkle.
 Dependending on your build system, how to do this might vary. In this
 repo, we use `gradle` to install Spark, and we query `gradle` to get
-the paths we need to add to the `CLASSPATH`. This is done with Cabal
-hooks (see [./Setup.hs](./Setup.hs)).
+the paths we need to add to the `CLASSPATH`.
 
 Additionally, the classes need to be found at runtime to load them.
 The main thread can find them, but other threads need to invoke
 `initializeSparkThread` or `runInSparkThread` from
 `Control.Distributed.Spark`.
 
-### Package
-
-To package your app as a JAR directly consumable by Spark:
-
-```
-$ stack exec -- sparkle package <app-executable-name>
-```
+If the `main` function terminates with unhandled exceptions, they
+can be propagated to Spark with
+`Control.Distributed.Spark.forwardUnhandledExceptionsToSpark`. This
+allows spark both to report the exception and to cleanup before
+termination.
 
 ### Submit
 
 Finally, to run your application, for example locally:
 
 ```
-$ stack exec -- spark-submit --master 'local[1]' <app-executable-name>.jar
+$ nix-shell --pure --run "bazel run spark-submit -- /path/to/$PWD/<app-target-name>_deploy.jar"
 ```
 
-The `<app-executable-name>` is any executable name as given in the
-`.cabal` file for your app. See apps in the [apps/](apps/) folder for
-examples.
+The `<app-target-name>` is the name of the Bazel target producing the jar file. See apps in
+the [apps/](apps/) folder for examples.
 
 RTS options can be passed as a java property
 ```
-$ stack exec -- spark-submit --driver-java-options=-Dghc_rts_opts='+RTS\ -s\ -RTS' <app-executable-name>.jar
+$ nix-shell --pure --run "bazel run spark-submit -- --driver-java-options=-Dghc_rts_opts='+RTS\ -s\ -RTS' <app-target-name>_deploy.jar
 ```
 or as command line arguments
 ```
-$ stack exec -- spark-submit <app-executable-name>.jar +RTS -s -RTS
+$ nix-shell --pure --run "bazel run spark-submit -- <app-target-name>_deploy.jar +RTS -s -RTS
 ```
 
 See [here][spark-submit] for other options, including launching
@@ -169,43 +152,7 @@ the [Databricks hosted platform][databricks] and on
 [databricks]: https://databricks.com/
 [aws-emr]: https://aws.amazon.com/emr/
 
-## How it works
-
-sparkle is a tool for creating self-contained Spark applications in
-Haskell. Spark applications are typically distributed as JAR files, so
-that's what sparkle creates. We embed Haskell native object code as
-compiled by GHC in these JAR files, along with any shared library
-required by this object code to run. Spark dynamically loads this
-object code into its address space at runtime and interacts with it
-via the Java Native Interface (JNI).
-
 ## Troubleshooting
-
-### `jvm` library or header files not found
-
-You'll need to tell Stack where to find your local JVM installation.
-Something like the following in your `~/.stack/config.yaml` should do
-the trick, but check that the paths match up what's on your system:
-
-```
-extra-include-dirs: [/usr/lib/jvm/java-7-openjdk-amd64/include]
-extra-lib-dirs: [/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server]
-```
-
-Or use `--nix`: since it won't use your globally installed JDK, it
-will have no trouble finding its own locally installed one.
-
-### Can't build sparkle on OS X
-
-OS X is not a supported platform for now. There are several issues to
-make sparkle work on OS X, tracked
-[in this ticket](https://github.com/tweag/sparkle/issues/12).
-
-### Gradle <= 2.12 incompatible with JDK 9
-
-If you're using JDK 9, note that you'll need to either downgrade to
-JDK 8 or update your Gradle version, since Gradle versions up to and
-including 2.12 are not compatible with JDK 9.
 
 ### JNI calls in auxiliary threads fail with ClassNotFoundException
 
