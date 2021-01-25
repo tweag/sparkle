@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<allocations>
+  <pool name="default">
+    <schedulingMode>FAIR</schedulingMode>
+  </pool>
+</allocations>

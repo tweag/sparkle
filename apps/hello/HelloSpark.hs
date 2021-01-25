@@ -8,6 +8,7 @@ import Control.Distributed.Spark as RDD
 import qualified Data.Text as Text
 import Data.Text (Text)
 
+
 f1 :: Text -> Bool
 f1 s = "a" `Text.isInfixOf` s
 
@@ -15,7 +16,7 @@ f2 :: Text -> Bool
 f2 s = "b" `Text.isInfixOf` s
 
 main :: IO ()
-main = do
+main = forwardUnhandledExceptionsToSpark $ do
     conf <- newSparkConf "Hello sparkle!"
     confSet conf "spark.hadoop.fs.s3a.aws.credentials.provider"
                  "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider"

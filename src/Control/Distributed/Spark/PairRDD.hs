@@ -97,3 +97,7 @@ zip rdda rddb = [java| $rdda.zip($rddb) |]
 
 sortByKey :: PairRDD a b -> IO (PairRDD a b)
 sortByKey prdd = [java| $prdd.sortByKey() |]
+
+-- | Cartesian product of 2 RDDs
+cartesian :: RDD a -> RDD b -> IO (PairRDD a b)
+cartesian rdd0 rdd1 = [java| $rdd0.cartesian($rdd1) |]

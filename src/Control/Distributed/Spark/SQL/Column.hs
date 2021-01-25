@@ -15,6 +15,7 @@ module Control.Distributed.Spark.SQL.Column where
 
 import Control.Monad (foldM)
 import qualified Data.Coerce
+import Data.Int (Int32)
 import Data.Text (Text)
 import qualified Foreign.JNI.String
 import Language.Java
@@ -36,10 +37,14 @@ callStaticSqlFun
   :: (Coercible a, VariadicIO f a) => Foreign.JNI.String.String -> f
 callStaticSqlFun = callStatic "org.apache.spark.sql.functions"
 
+manyToOne :: Foreign.JNI.String.String -> [Column] -> IO Column
+manyToOne fname colexprs =
+    toArray (Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
+    `withLocalRef` callStaticSqlFun fname
+
 lit :: Reflect a => a -> IO Column
-lit x =  do
-  c <- upcast <$> reflect x  -- @upcast@ needed to land in java Object
-  callStaticSqlFun "lit" c
+lit x =  -- @upcast@ needed to land in java Object
+    (upcast <$> reflect x) `withLocalRef` callStaticSqlFun "lit"
 
 plus :: Column -> Column -> IO Column
 plus col1 (Column col2) = call col1 "plus" (upcast col2)
@@ -80,11 +85,38 @@ and col1 (Column col2) = call col1 "and" col2
 or :: Column -> Column -> IO Column
 or col1 = call col1 "or"
 
+approx_count_distinct :: Column -> IO Column
+approx_count_distinct = callStaticSqlFun "approx_count_distinct"
+
+count :: Column -> IO Column
+count = callStaticSqlFun "count"
+
+countDistinct :: Column -> IO Column
+countDistinct = callStaticSqlFun "countDistinct"
+
 min :: Column -> IO Column
 min = callStaticSqlFun "min"
 
 mean :: Column -> IO Column
 mean = callStaticSqlFun "mean"
+
+variance :: Column -> IO Column
+variance = callStaticSqlFun "variance"
+
+var_pop :: Column -> IO Column
+var_pop = callStaticSqlFun "var_pop"
+
+var_samp :: Column -> IO Column
+var_samp = callStaticSqlFun "var_samp"
+
+corr :: Column -> Column -> IO Column
+corr = callStaticSqlFun "corr"
+
+covar_pop :: Column -> Column -> IO Column
+covar_pop = callStaticSqlFun "covar_pop"
+
+covar_samp :: Column -> Column -> IO Column
+covar_samp = callStaticSqlFun "covar_samp"
 
 max :: Column -> IO Column
 max = callStaticSqlFun "max"
@@ -97,6 +129,12 @@ negate = callStaticSqlFun "negate"
 
 signum :: Column -> IO Column
 signum = callStaticSqlFun "signum"
+
+kurtosis :: Column -> IO Column
+kurtosis = callStaticSqlFun "kurtosis"
+
+skewness :: Column -> IO Column
+skewness = callStaticSqlFun "skewness"
 
 abs :: Column -> IO Column
 abs = callStaticSqlFun "abs"
@@ -113,6 +151,25 @@ ceil = callStaticSqlFun "ceil"
 round :: Column -> IO Column
 round = callStaticSqlFun "round"
 
+add_months :: Column -> Int32 -> IO Column
+add_months = callStaticSqlFun "add_months"
+
+current_timestamp :: IO Column
+current_timestamp = callStaticSqlFun "current_timestamp"
+
+date_add :: Column -> Int32 -> IO Column
+date_add = callStaticSqlFun "date_add"
+
+datediff :: Column -> Column -> IO Column
+datediff = callStaticSqlFun "datediff"
+
+date_format :: Column -> Text -> IO Column
+date_format col format =
+    reflect format `withLocalRef` callStaticSqlFun "date_format" col
+
+date_sub :: Column -> Int32 -> IO Column
+date_sub = callStaticSqlFun "date_sub"
+
 second :: Column -> IO Column
 second = callStaticSqlFun "second"
 
@@ -125,17 +182,79 @@ hour = callStaticSqlFun "hour"
 dayofmonth :: Column -> IO Column
 dayofmonth = callStaticSqlFun "dayofmonth"
 
+dayofyear :: Column -> IO Column
+dayofyear = callStaticSqlFun "dayofyear"
+
+last_day :: Column -> IO Column
+last_day = callStaticSqlFun "last_day"
+
 month :: Column -> IO Column
 month = callStaticSqlFun "month"
 
 year :: Column -> IO Column
 year = callStaticSqlFun "year"
 
-current_timestamp :: IO Column
-current_timestamp = callStaticSqlFun "current_timestamp"
+months_between :: Column -> Column -> IO Column
+months_between = callStaticSqlFun "months_between"
+
+next_day :: Column -> Text -> IO Column
+next_day col dayOfWeek =
+    reflect dayOfWeek `withLocalRef` callStaticSqlFun "next_day" col
+
+quarter :: Column -> IO Column
+quarter = callStaticSqlFun "quarter"
+
+to_date :: Column -> IO Column
+to_date = callStaticSqlFun "to_date"
+
+from_unixtime :: Column -> Text -> IO Column
+from_unixtime col format =
+    reflect format `withLocalRef` callStaticSqlFun "from_unixtime" col
+
+from_utc_timestamp :: Column -> Text -> IO Column
+from_utc_timestamp col tz =
+    reflect tz `withLocalRef` callStaticSqlFun "from_utc_timestamp" col
+
+to_utc_timestamp :: Column -> Text -> IO Column
+to_utc_timestamp col tz =
+    reflect tz `withLocalRef` callStaticSqlFun "to_utc_timestamp" col
+
+trunc :: Column -> Text -> IO Column
+trunc col res =
+    reflect res `withLocalRef` callStaticSqlFun "trunc" col
+
+unix_timestamp :: Column -> Maybe (Text) -> IO Column
+unix_timestamp col (Just format) =
+    reflect format `withLocalRef` callStaticSqlFun "unix_timestamp" col
+unix_timestamp col Nothing =
+    callStaticSqlFun "unix_timestamp" col
+
+weekofyear :: Column -> IO Column
+weekofyear = callStaticSqlFun "weekofyear"
 
 current_date :: IO Column
 current_date = callStaticSqlFun "current_date"
+
+atan :: Column -> IO Column
+atan = callStaticSqlFun "atan"
+
+asin :: Column -> IO Column
+asin = callStaticSqlFun "asin"
+
+acos :: Column -> IO Column
+acos = callStaticSqlFun "acos"
+
+cbrt :: Column -> IO Column
+cbrt = callStaticSqlFun "cbrt"
+
+cos :: Column -> IO Column
+cos = callStaticSqlFun "cos"
+
+cosh :: Column -> IO Column
+cosh = callStaticSqlFun "cosh"
+
+degrees :: Column -> IO Column
+degrees = callStaticSqlFun "degrees"
 
 pow :: Column -> Column -> IO Column
 pow = callStaticSqlFun "pow"
@@ -146,8 +265,14 @@ exp = callStaticSqlFun "exp"
 expm1 :: Column -> IO Column
 expm1 = callStaticSqlFun "expm1"
 
+hypot :: Column -> IO Column
+hypot = callStaticSqlFun "hypot"
+
 log :: Column -> IO Column
 log = callStaticSqlFun "log"
+
+log10 :: Column -> IO Column
+log10 = callStaticSqlFun "log10"
 
 log1p :: Column -> IO Column
 log1p = callStaticSqlFun "log1p"
@@ -155,22 +280,35 @@ log1p = callStaticSqlFun "log1p"
 isnull :: Column -> IO Column
 isnull = callStaticSqlFun "isnull"
 
+radians :: Column -> IO Column
+radians = callStaticSqlFun "radians"
+
+sin :: Column -> IO Column
+sin = callStaticSqlFun "sin"
+
+sinh :: Column -> IO Column
+sinh = callStaticSqlFun "sinh"
+
+tan :: Column -> IO Column
+tan = callStaticSqlFun "tan"
+
+tanh :: Column -> IO Column
+tanh = callStaticSqlFun "tanh"
+
 coalesce :: [Column] -> IO Column
-coalesce colexprs = do
-  jcols <- toArray (Data.Coerce.coerce colexprs
-             :: [J ('Class "org.apache.spark.sql.Column")])
-  callStaticSqlFun "coalesce" jcols
+coalesce = manyToOne "coalesce"
 
 array :: [Column] -> IO Column
-array colexprs = do
-  jcols <- toArray (Data.Coerce.coerce colexprs
-             :: [J ('Class "org.apache.spark.sql.Column")])
-  callStaticSqlFun "array" jcols
+array = manyToOne "array"
 
 expr :: Text -> IO Column
-expr e = do
-  jexpr <- reflect e
-  callStaticSqlFun "expr" jexpr
+expr e = reflect e `withLocalRef` callStaticSqlFun "expr"
+
+greatest :: [Column] -> IO Column
+greatest = manyToOne "greatest"
+
+least :: [Column] -> IO Column
+least = manyToOne "least"
 
 -- | From the Spark docs:
 --
@@ -180,9 +318,7 @@ expr e = do
 -- The supported types are: string, boolean, byte, short,
 -- int, long, float, double, decimal, date, timestamp.
 cast :: Column -> Text -> IO Column
-cast col destType = do
-  jdestType <- reflect destType
-  call col "cast" jdestType
+cast col destType = reflect destType `withLocalRef` call col "cast"
 
 -- | 'when', 'orWhen' and 'otherwise' are designed to be used
 -- together to make if-then-else and more generally mutli-way if branches:
@@ -218,3 +354,110 @@ multiwayIf ((c1, e1):cases0) def =
       when c1 e1
   >>= flip (foldM (uncurry . orWhen)) cases0
   >>= (`otherwise` def)
+
+-- String functions
+
+ascii :: Column -> IO Column
+ascii = callStaticSqlFun "ascii"
+
+concat :: [Column] -> IO Column
+concat = manyToOne "concat"
+
+concat_ws :: Text -> [Column] -> IO Column
+concat_ws sep colexprs =
+    reflect sep `withLocalRef` \jSep ->
+    toArray (Data.Coerce.coerce colexprs :: [J ('Class "org.apache.spark.sql.Column")])
+    `withLocalRef` callStaticSqlFun "concat_ws" jSep
+
+format_string :: Text -> [Column] -> IO Column
+format_string format arguments =
+    reflect format `withLocalRef` \jFormat ->
+    toArray (Data.Coerce.coerce arguments :: [J ('Class "org.apache.spark.sql.Column")])
+    `withLocalRef` callStaticSqlFun "format_string" jFormat
+
+initcap :: Column -> IO Column
+initcap = callStaticSqlFun "initcap"
+
+instr :: Column -> Text -> IO Column
+instr col substr = reflect substr `withLocalRef` callStaticSqlFun "instr" col
+
+length :: Column -> IO Column
+length = callStaticSqlFun "length"
+
+levenshtein :: Column -> Column -> IO Column
+levenshtein = callStaticSqlFun "levenshtein"
+
+locate :: Text -> Column -> Maybe Int32 -> IO Column
+locate substr str maybePos =
+    reflect substr `withLocalRef` \jSubstr ->
+    case maybePos of
+      Nothing  -> callStaticSqlFun "locate" jSubstr str
+      Just pos -> callStaticSqlFun "locate" jSubstr str pos
+
+lower :: Column -> IO Column
+lower = callStaticSqlFun "lower"
+
+lpad :: Column -> Int32 -> Text -> IO Column
+lpad str len pad =
+    reflect pad `withLocalRef` callStaticSqlFun "lpad" str len
+
+ltrim :: Column -> IO Column
+ltrim = callStaticSqlFun "ltrim"
+
+repeat :: Column -> Int32 -> IO Column
+repeat = callStaticSqlFun "repeat"
+
+reverse :: Column -> IO Column
+reverse = callStaticSqlFun "reverse"
+
+rpadCol :: Column -> Int32 -> Text -> IO Column
+rpadCol str len pad = reflect pad `withLocalRef` callStaticSqlFun "rpad" str len
+
+rtrim :: Column -> IO Column
+rtrim = callStaticSqlFun "rtrim"
+
+substring :: Column -> Int32 -> Int32 -> IO Column
+substring = callStaticSqlFun "substring"
+
+substring_index :: Column -> Text -> Int32 -> IO Column
+substring_index str delim count_c =
+    reflect delim `withLocalRef` \jDelim ->
+    callStaticSqlFun "substring_index" str jDelim count_c
+
+translate :: Column -> Text -> Text -> IO Column
+translate str from to =
+    reflect from `withLocalRef` \jFrom ->
+    reflect to `withLocalRef` callStaticSqlFun "translate" str jFrom
+
+trim :: Column -> IO Column
+trim = callStaticSqlFun "trim"
+
+upper :: Column -> IO Column
+upper = callStaticSqlFun "upper"
+
+soundex :: Column -> IO Column
+soundex = callStaticSqlFun "soundex"
+
+regexp_extract :: Column -> Text -> Int32 -> IO Column
+regexp_extract str pat group =
+    reflect pat `withLocalRef` \p ->
+    callStaticSqlFun "regexp_extract" str p group
+
+regexp_replace :: Column -> Text -> Text -> IO Column
+regexp_replace str pat replace =
+    reflect pat `withLocalRef` \p ->
+    reflect replace `withLocalRef` callStaticSqlFun "regexp_replace" str p
+
+-- Window functions
+
+last :: Column -> IO Column
+last = callStaticSqlFun "last"
+
+first :: Column -> IO Column
+first = callStaticSqlFun "first"
+
+lead :: Column -> Int32 -> IO Column
+lead = callStaticSqlFun "lead"
+
+lag :: Column -> Int32 -> IO Column
+lag = callStaticSqlFun "lag"

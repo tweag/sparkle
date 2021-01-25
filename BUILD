@@ -22,7 +22,10 @@ cc_library(
   name = "sparkle-bootstrap-cc",
   srcs = ["cbits/bootstrap.c", "cbits/io_tweag_sparkle_Sparkle.h"],
   deps = ["@openjdk//:lib", "@rules_haskell_ghc_nixpkgs//:include"],
-  linkopts = ["-Wl,-z,lazy"],
+  linkopts = select({
+    "@bazel_tools//src/conditions:darwin": [],
+    "//conditions:default": ["-Wl,-z,lazy"],
+  }),
   copts = ["-std=c99"],
 ) 
 
@@ -38,6 +41,8 @@ haskell_library(
     "@io_tweag_inline_java//jvm-streaming",
     "@io_tweag_inline_java//:inline-java",
     "@maven//:org_apache_spark_spark_catalyst_2_11",
+    "@maven//:org_apache_spark_spark_mllib_2_11",
+    "@maven//:org_apache_spark_spark_mllib_local_2_11",
     "@maven//:org_apache_spark_spark_sql_2_11",
     "@maven//:org_scala_lang_scala_library",
     "@maven//:org_scala_lang_scala_reflect",

@@ -25,9 +25,6 @@ public class SparkleBase {
                 StandardCopyOption.REPLACE_EXISTING);
             in.close();
             try {
-              if (System.getProperty("os.name").startsWith("Mac "))
-                loadApplication(sparkleAppZipFile, "hsapp");
-              else
                 loadApplication(sparkleAppZipFile, "libhsapp.so");
             } finally {
               sparkleAppZipFile.delete();
@@ -60,7 +57,7 @@ public class SparkleBase {
           zip.close();
 
           // Dynamically load the app.
-          Path appPath = sparkleAppTmpDir.resolve("libclodl-top.so");
+          Path appPath = sparkleAppTmpDir.resolve("clodl-top0");
           if (Files.exists(appPath))
             // Built with bazel.
             System.load(appPath.toString());

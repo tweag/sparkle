@@ -1,0 +1,35 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_binary",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_binary(
+  name = "bench-hs",
+  linkstatic = False,
+  srcs = ["Main.hs"],
+  plugins = ["@io_tweag_inline_java//:inline-java-plugin"],
+  deps = [
+    "//:sparkle-lib",
+    "@maven//:org_apache_spark_spark_core_2_11",
+    "@maven//:org_scala_lang_scala_library",
+    "@maven//:org_scala_lang_scala_reflect",
+    "@io_tweag_inline_java//:inline-java",
+    "@io_tweag_inline_java//jvm",
+	"@stackage//:base",
+	"@stackage//:criterion",
+	"@stackage//:distributed-closure",
+	"@stackage//:text",
+	"@stackage//:vector",
+  ],
+  compiler_flags = ["-threaded", "-pie"],
+)
+
+sparkle_package(
+  name = "sparkle-benchmarks",
+  src = ":bench-hs",
+  resource_jars = ["@io_tweag_inline_java//jvm-batching:jar"],
+)

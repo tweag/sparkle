@@ -11,16 +11,16 @@ http_archive(
 
 http_archive(
   name = "io_tweag_clodl",
-  sha256 = "13c1ca41dca52f13483b33ab1579777b0eb6eeaaaa28fd6164c13cc7704f0d2d",
-  strip_prefix = "clodl-cb330384fc0a06632e8e4464921b0bcf7c5fe077",
-  urls = ["https://github.com/tweag/clodl/archive/cb330384fc0a06632e8e4464921b0bcf7c5fe077.tar.gz"]
+  sha256 = "dd3729c49c169fa632ced79e5680e60a072b3204a8044daac4f51832ddae74a3",
+  strip_prefix = "clodl-4143916be74a0d048fea5aaca465c6581313a2f8",
+  urls = ["https://github.com/tweag/clodl/archive/4143916be74a0d048fea5aaca465c6581313a2f8.tar.gz"]
 )
 
 http_archive(
   name = "io_tweag_inline_java",
-  sha256 = "f5780df3e903e121f360f8deea468226f00cd14cc1ac8cac57aa19762d2da5db",
-  strip_prefix = "inline-java-0.9.1",
-  urls = ["https://github.com/tweag/inline-java/archive/v0.9.1.tar.gz"],
+  sha256 = "a408c2601a893a20fad62b8e140dde9c1234ac87fe0061421b8b0850d14f57ff",
+  strip_prefix = "inline-java-6ae891748ed09e57da9883180bb3b7263ea302d5",
+  urls = ["https://github.com/tweag/inline-java/archive/6ae891748ed09e57da9883180bb3b7263ea302d5.tar.gz"],
 )
 
 load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
@@ -41,6 +41,12 @@ nixpkgs_python_configure(
   repository = "@nixpkgs",
 )
 
+nixpkgs_package(
+    name = "sed",
+    attribute_path = "gnused",
+    repository = "@nixpkgs",
+)
+
 RULES_JVM_EXTERNAL_TAG = "3.3"
 RULES_JVM_EXTERNAL_SHA = "d85951a92c0908c80bd8551002d66cb23c3434409c814179c0ff026b53544dab"
 
@@ -56,6 +62,8 @@ load("@rules_jvm_external//:defs.bzl", "maven_install")
 maven_install(
     artifacts = [
 	    "org.apache.spark:spark-core_2.11:2.2.0",
+        "org.apache.spark:spark-mllib_2.11:2.2.0",
+        "org.apache.spark:spark-mllib-local_2.11:2.2.0",
         "org.apache.spark:spark-sql_2.11:2.2.0",
         "org.apache.spark:spark-catalyst_2.11:2.2.0",
         "com.esotericsoftware:kryo:3.0.3",
@@ -88,12 +96,15 @@ stack_snapshot(
     name = "stackage",
     packages = [
         "Cabal",
+        "async",
         "base",
         "binary",
         "bytestring",
         "choice",
+        "clock",
         "constraints",
         "containers",
+        "criterion",
         "deepseq",
         "directory",
         "distributed-closure",
@@ -108,6 +119,7 @@ stack_snapshot(
         "process",
         "regex-tdfa",
         "singletons",
+        "stm",
         "streaming",
         "template-haskell",
         "temporary",
@@ -181,13 +193,20 @@ filegroup(
 
 filegroup(
     name = "libjvm",
-    srcs = ["lib/openjdk/jre/lib/amd64/server/libjvm.so"],
+    srcs = select({
+        "@bazel_tools//src/conditions:darwin": ["jre/lib/server/libjvm.dylib"],
+        "//conditions:default": ["lib/openjdk/jre/lib/amd64/server/libjvm.so"],
+    }),
     visibility = ["//visibility:public"],
 )
 
 cc_library(
     name = "lib",
-    srcs = [":libjvm"],
+    # Don't link libjvm in osx, otherwise sparkle will try to load it a second time
+    srcs = select({
+      "@bazel_tools//src/conditions:darwin": [],
+      "//conditions:default": [":libjvm"],
+    }),
     hdrs = ["include/jni.h", "include/jni_md.h"],
     strip_include_prefix = "include",
     linkstatic = 1,
@@ -204,4 +223,11 @@ genrule(
     visibility = ["//visibility:public"],
 )
 """,
+)
+
+http_archive(
+    name = "com_github_bazelbuild_buildtools",
+    strip_prefix = "buildtools-master",
+	sha256 = "6c31bcf9b489f74385fb95a1f71a2f63e059c1dc2f5d30bf6f7f2348f5b85ca4",
+    url = "https://github.com/bazelbuild/buildtools/archive/master.zip",
 )

@@ -7,7 +7,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StaticPointers #-}
@@ -16,7 +18,12 @@
 
 module Control.Distributed.Spark.RDD
   ( RDD(..)
+  , isEmpty
+  , toDebugString
+  , cache
+  , unpersist
   , repartition
+  , coalesce
   , filter
   , map
   , module Choice
@@ -24,7 +31,9 @@ module Control.Distributed.Spark.RDD
   , mapPartitionsWithIndex
   , fold
   , reduce
+  , slowReduce
   , aggregate
+  , slowAggregate
   , treeAggregate
   , count
   , mean
@@ -50,6 +59,7 @@ import Control.Monad
 import Data.Choice (Choice)
 import qualified Data.Choice as Choice
 import Data.Int
+import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Typeable (Typeable)
 import Data.Vector.Storable as V (fromList)
@@ -58,13 +68,30 @@ import Language.Java
 import Language.Java.Inline
 -- We don't need this instance. But import to bring it in scope transitively for users.
 import Language.Java.Streaming ()
-import Streaming (Stream, Of)
+import Streaming (Stream, Of, effect)
+import qualified Streaming.Prelude as S (fold_, uncons, yield)
+
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
   deriving Coercible
 
+cache :: RDD a -> IO (RDD a)
+cache rdd = [java| $rdd.cache() |]
+
+unpersist :: RDD a -> Bool -> IO (RDD a)
+unpersist rdd blocking = [java| $rdd.unpersist($blocking) |]
+
+isEmpty :: RDD a -> IO Bool
+isEmpty rdd = [java| $rdd.isEmpty() |]
+
+toDebugString :: RDD a -> IO Text
+toDebugString rdd = withLocalRef [java| $rdd.toDebugString() |] reify
+
 repartition :: Int32 -> RDD a -> IO (RDD a)
 repartition n rdd = [java| $rdd.repartition($n) |]
+
+coalesce :: Int32 -> RDD a -> IO (RDD a)
+coalesce n rdd = [java| $rdd.coalesce($n) |]
 
 filter
   :: (Static (Reify a), Typeable a)
@@ -123,15 +150,40 @@ fold clos zero rdd = do
   res :: JObject <- [java| $rdd.fold($jzero, $f) |]
   reify (unsafeCast res)
 
-reduce
+slowReduce
   :: (Static (Reify a), Static (Reflect a), Typeable a)
   => Closure (a -> a -> a)
   -> RDD a
   -> IO a
-reduce clos rdd = do
+slowReduce clos rdd = do
   f <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) clos
   res :: JObject <- [java| $rdd.reduce($f) |]
   reify (unsafeCast res)
+
+-- | A version of reduce implemented in terms of 'mapPartitions'.
+--
+-- NOTE: This is not defined in terms of 'aggregate' because we don't have a
+-- unit element here.
+reduce
+  :: ( Static (Reify a)
+     , Static (Reflect a)
+     , Static (Reify (Stream (Of a) IO ()))
+     , Static (Reflect (Stream (Of a) IO ()))
+     , Typeable a
+     )
+  => Closure (a -> a -> a)
+  -> RDD a
+  -> IO a
+reduce combOp rdd0 =
+    withLocalRef
+      (mapPartitions (Choice.Don't #preservePartitions) combOp' rdd0)
+      (slowReduce combOp)
+  where
+    combOp' = closure (static (\f s -> effect $ S.uncons s >>= \case
+                         Just (e, ss) -> S.yield <$> S.fold_ f e id ss
+                         Nothing -> return mempty
+                       ))
+       `cap` combOp
 
 sortBy
   :: (Static (Reify a), Static (Reflect b), Typeable a, Typeable b)
@@ -145,19 +197,42 @@ sortBy clos ascending numPartitions rdd = do
   f <- unsafeUngeneric <$> reflectFun (sing :: Sing 1) clos
   [java| $rdd.sortBy($f, $ascending, $numPartitions) |]
 
-aggregate
+slowAggregate
   :: (Static (Reify a), Static (Reify b), Static (Reflect b), Typeable a, Typeable b)
   => Closure (b -> a -> b)
   -> Closure (b -> b -> b)
   -> b
   -> RDD a
   -> IO b
-aggregate seqOp combOp zero rdd = do
+slowAggregate seqOp combOp zero rdd = do
   jseqOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) seqOp
   jcombOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) combOp
   jzero <- upcast <$> reflect zero
   res :: JObject <- [java| $rdd.aggregate($jzero, $jseqOp, $jcombOp) |]
   reify (unsafeCast res)
+
+-- | A version of aggregate implemented in terms of 'mapPartitions'.
+aggregate
+  :: ( Static (Reify (Stream (Of a) IO ()))
+     , Static (Reflect (Stream (Of b) IO ()))
+     , Static (Reify b)
+     , Static (Reflect b)
+     , Static (Serializable b)
+     , Typeable a
+     )
+  => Closure (b -> a -> b)
+  -> Closure (b -> b -> b)
+  -> b
+  -> RDD a
+  -> IO b
+aggregate seqOp combOp zero rdd0 =
+    withLocalRef
+      (mapPartitions (Choice.Don't #preservePartitions) seqOp' rdd0)
+      (slowReduce combOp)
+  where
+    seqOp' = closure (static (\f e s -> effect (S.yield <$> S.fold_ f e id s)))
+       `cap` seqOp
+       `cap` cpure closureDict zero
 
 treeAggregate
   :: (Static (Reify a), Static (Reify b), Static (Reflect b), Typeable a, Typeable b)

@@ -1,94 +1,121 @@
 version: 2
 
+# NOTE:
+#   Disk cache:
+#       We don't want to keep old artifacts around so we always build from
+#       scratch on master builds and upload the new cache afterwards. Because
+#       Circle doesn't allow skipping a "restore_cache" we create a dummy
+#       "empty" cache that's only ever pulled on master. Alternatively we could
+#       ask Bazel to clean up old items (LRU style):
+#           https://docs.bazel.build/versions/master/remote-caching.html
+#       It also appears that there's ongoing work but the feature is not ready:
+#           https://github.com/bazelbuild/bazel/issues/5139
+
 jobs:
-  publish:
-    docker:
-      - image: docker
-    working_directory: ~/sparkle
+  build-darwin:
+    macos:
+      xcode: "10.0"
     steps:
-      - checkout
-      - setup_remote_docker
       - run:
-          name: Build Docker image
+          name: Checkout
           command: |
-            docker build -t tweag/sparkle .
+            git --version
+            git clone -n https://github.com/tweag/sparkle.git .
+            git checkout $CIRCLE_SHA1
+
       - run:
-          name: Publish Docker image
+          name: Install Nix
           command: |
-            if [[ $CIRCLE_PROJECT_USERNAME = "tweag" ]];
-            then
-                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                docker push tweag/sparkle
-                docker tag tweag/sparkle tweag/sparkle:$CIRCLE_TAG
-                docker push tweag/sparkle:$CIRCLE_TAG
-            fi
-  build-stack:
-    docker:
-      - image: nixos/nix
-    working_directory: ~/sparkle
-    environment:
-      - NIXPKGS_ALLOW_INSECURE: 1
-    steps:
-      - checkout
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install xz
+            curl -L https://nixos.org/nix/install | sh
+
       - run:
-          name: Install Stack
+          name: Install cachix
+          shell: /bin/bash -eilo pipefail
           command: |
-            apk update --no-progress && apk --no-progress add ca-certificates bash
-            nix-env -f nixpkgs.nix -iA stack
+            nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/db557aab7b690f5e0e3348459f2e4dc8fd0d9298
+
       - run:
-          name: Compute cache key
+          name: Run cachix
+          shell: /bin/bash -eilo pipefail
           command: |
-            (echo shell.nix; echo nixpkgs.nix; find . -name "*.cabal" -o -name "stack.yaml" -type f) | sort | xargs cat > /tmp/stack-deps
+            cachix use tweag
+            cachix push tweag --watch-store
+          background: true
+
+      - run:
+          name: Configure
+          command: |
+            mkdir -p ~/.cache/bazel/
+
+            cp .bazelrc .bazelrc.orig
+            echo try-import .bazelrc.local > .bazelrc
+
+            echo build --host_platform=@io_tweag_rules_nixpkgs//nixpkgs/platforms:host > .bazelrc.local
+
       - restore_cache:
-          keys:
-            - sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+          keys: # see note about 'Disk cache'
+              - v1-sparkle-empty-{{ .Branch }}-
+              - v1-sparkle-cache-{{ .Branch }}-
+              - v1-sparkle-cache-master-
+
       - run:
-          name: Build dependencies with stack
+          name: Prefetch Stackage snapshot
+          shell: /bin/bash -eilo pipefail
           command: |
-              # -j2: Limit parallelism to avoid memory exhaustion
-              stack -j2 --no-terminal --nix build --only-snapshot --prefetch --no-haddock --test --bench
+            # Retry if needed due to network flakiness.
+            nix-shell --pure --run \
+              'cmd="bazel fetch @stackage//..."; $cmd || $cmd || $cmd'
+      - run:
+          name: Build all
+          shell: /bin/bash -eilo pipefail
+          command: |
+            cp .bazelrc.orig .bazelrc
+            # Keep CI awake
+            while true; do echo "."; sleep 60; done &
+
+            nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
+            nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
+            nix-shell --pure --run 'bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar'
+      - run:
+          name: Install spark and hadoop
+          command: |
+            # We roll our own installation of spark in OSX since nixpkgs doesn't support building hadoop
+            curl -O https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
+            curl https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz | tar -xz
+            curl https://downloads.apache.org/spark/spark-2.4.7/spark-2.4.7-bin-without-hadoop.tgz | tar -xz
+
+      - run:
+          name: Run tests
+          shell: /bin/bash -eilo pipefail
+          command: |
+            export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-2.10.1/bin/hadoop classpath)
+            export PATH="$PWD/spark-2.4.7-bin-without-hadoop/bin:$PATH"
+            spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+
+        # see note about 'Disk cache'
       - save_cache:
-          key: sparkle-stack-dependencies-{{ arch }}-{{ checksum "/tmp/stack-deps" }}
+          key: v1-inline-java-cache-{{ .Branch }}-{{ .BuildNum }}
           paths:
-            - ~/.stack
+              - ~/.cache/bazel/
+
       - run:
-          name: Build project
-          command: stack --no-terminal --nix build --pedantic
-      - run:
-          name: Smoke test using sparkle-example-hello
+          name: Clean up cache
+          shell: /bin/bash -eilo pipefail
           command: |
-            stack --no-terminal --nix exec -- sparkle package sparkle-example-hello
-            # XXX --packages flag should not be necessary. Workaround
-            # regression in Spark 2.2 vs 2.1 in Nixpkgs.
-            stack --no-terminal --nix exec -- spark-submit --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.7.4,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:12.0 sparkle-example-hello.jar
-  build-bazel:
-    docker:
-      - image: nixos/nix
-    working_directory: ~/sparkle
-    environment:
-      - NIXRUN: nix-shell -I nixpkgs=./nixpkgs.nix -p gcc bazel openjdk11 --run
-    steps:
-      - checkout
-      - run:
-          name: Install system dependencies
-          command: |
-            apk update --no-progress && apk --no-progress add ca-certificates bash binutils zip
-            $NIXRUN "echo nix dependencies installed"
-      - run:
-          name: Build project
-          command: $NIXRUN "bazel build //..."
-      - run:
-          name: Smoke test using sparkle-example-hello
-          command: |
-            $NIXRUN "bazel build //apps/hello:sparkle-example-hello_deploy.jar"
-            $NIXRUN "bazel run spark-submit -- --master 'local[1]' --packages com.amazonaws:aws-java-sdk:1.11.253,org.apache.hadoop:hadoop-aws:2.7.2,com.google.guava:guava:23.0 $(pwd)/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar"
+            rm -rf ~/.cache/bazel/
+            mkdir -p ~/.cache/bazel/
+
+      - save_cache:
+          key: v1-inline-java-empty-master-{{ .BuildNum }}
+          paths:
+              - ~/.cache/bazel/
 
 workflows:
   version: 2
   build:
     jobs:
-      - build-stack
-      - build-bazel
+      - build-darwin
   publish:
     jobs:
       - publish:

@@ -10,6 +10,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 {-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
@@ -18,7 +19,9 @@ module Control.Distributed.Spark.Context
   ( -- * Spark configurations
     SparkConf(..)
   , newSparkConf
+  , confGet
   , confSet
+  , setLocalProperty
     -- * Spark contexts
   , SparkContext(..)
   , newSparkContext
@@ -26,6 +29,9 @@ module Control.Distributed.Spark.Context
   , addFile
   , getFile
   , master
+  , setJobGroup
+  , cancelJobGroup
+  , context
   -- * RDD creation
   , parallelize
   , binaryRecords
@@ -39,6 +45,9 @@ import Data.Text (Text)
 import Control.Distributed.Spark.RDD
 import Language.Java
 import Language.Java.Inline
+
+imports "org.apache.spark.api.java.JavaSparkContext"
+
 
 newtype SparkConf = SparkConf (J ('Class "org.apache.spark.SparkConf"))
   deriving Coercible
@@ -55,6 +64,18 @@ confSet conf key value = do
   jval <- reflect value
   _ :: SparkConf <- [java| $conf.set($jkey, $jval) |]
   return ()
+
+confGet :: SparkConf -> Text -> Text -> IO Text
+confGet conf key def =
+  reflect key `withLocalRef` \jkey ->
+  reflect def `withLocalRef` \jdef ->
+  call conf "get" jkey jdef `withLocalRef` reify
+
+setLocalProperty :: SparkContext -> Text -> Text -> IO ()
+setLocalProperty sc key value =
+  withLocalRef (reflect key) $ \jkey ->
+  withLocalRef (reflect value) $ \jval ->
+  call sc "setLocalProperty" jkey jval
 
 newtype SparkContext = SparkContext (J ('Class "org.apache.spark.api.java.JavaSparkContext"))
   deriving Coercible
@@ -112,3 +133,15 @@ parallelize sc xs = do
   jxs :: J ('Array ('Class "java.lang.Object")) <- unsafeCast <$> reflect xs
   jlist :: J ('Iface "java.util.List") <- [java| java.util.Arrays.asList($jxs) |]
   [java| $sc.parallelize($jlist) |]
+
+setJobGroup :: Text -> Text -> Bool -> SparkContext -> IO ()
+setJobGroup jobId description interruptOnCancel sc =
+    reflect jobId `withLocalRef` \jjobId ->
+    reflect description `withLocalRef` \jdescription ->
+    call sc "setJobGroup" jjobId jdescription interruptOnCancel
+
+cancelJobGroup :: Text -> SparkContext -> IO ()
+cancelJobGroup jobId sc = reflect jobId `withLocalRef` call sc "cancelJobGroup"
+
+context :: RDD a -> IO SparkContext
+context rdd = [java| JavaSparkContext.fromSparkContext($rdd.context()) |]
