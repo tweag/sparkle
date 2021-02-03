@@ -227,7 +227,7 @@ genrule(
 
 http_archive(
     name = "com_github_bazelbuild_buildtools",
-    strip_prefix = "buildtools-master",
-	sha256 = "6c31bcf9b489f74385fb95a1f71a2f63e059c1dc2f5d30bf6f7f2348f5b85ca4",
-    url = "https://github.com/bazelbuild/buildtools/archive/master.zip",
+    strip_prefix = "buildtools-840218fa3afc7e7145c1eeb3bfeb612c497e67f7",
+	sha256 = "0dba3995084990d557f3bbb7f7eca4ebcc71d5c9d758eca49342e69fc41e061c",
+    url = "https://github.com/bazelbuild/buildtools/archive/840218fa3afc7e7145c1eeb3bfeb612c497e67f7.zip",
 )
