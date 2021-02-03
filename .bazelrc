@@ -1,3 +1,11 @@
 common --host_javabase=@local_jdk//:jdk
 build --java_toolchain=@bazel_tools//tools/jdk:toolchain_hostjdk8
+
+build:ghc_9_0_1 --repo_env=GHC_VERSION=9.0.1
+build:ghc_9_0_1 --build_tag_filters -skip_with_ghc_9_0_1
+build:ghc_9_0_1 --test_tag_filters -skip_with_ghc_9_0_1
+fetch:ghc_9_0_1 --repo_env=GHC_VERSION=9.0.1
+query:ghc_9_0_1 --repo_env=GHC_VERSION=9.0.1
+sync:ghc_9_0_1 --repo_env=GHC_VERSION=9.0.1
+
 try-import .bazelrc.local

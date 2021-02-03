@@ -6,6 +6,7 @@ load(
   "haskell_library",
   "haskell_toolchain",
 )
+load("@config_settings//:info.bzl", "ghc_version")
 
 _sparkle_java_deps = [
   "@maven//:org_apache_spark_spark_core_2_11",
@@ -54,11 +55,11 @@ haskell_library(
 	"@stackage//:choice",
 	"@stackage//:constraints",
 	"@stackage//:distributed-closure",
-	"@stackage//:singletons",
 	"@stackage//:streaming",
 	"@stackage//:text",
 	"@stackage//:vector",
-  ] + _sparkle_java_deps,
+  ] + _sparkle_java_deps +
+  ([] if ghc_version == "9.0.1" else ["@stackage//:singletons"]),
   plugins = ["@io_tweag_inline_java//:inline-java-plugin"],
 )
 

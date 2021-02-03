@@ -18,3 +18,9 @@ steps:
       - nix-shell --pure --run "bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $(pwd)/bazel-bin/apps/lda/sparkle-example-lda_deploy.jar"
       - spark-submit bazel-bin/apps/osthreads/sparkle-example-osthreads_deploy.jar | tee out.txt || grep "Job |           pool | start time (s) | end time (s)" out.txt
     timeout: 60
+  - label: "Build and test with bazel and ghc-9.0.1"
+    command:
+      - echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
+      - nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar --config ghc_9_0_1' shell-linear-types.nix
+      - nix-shell --pure --run 'bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $PWD/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar --config ghc_9_0_1' shell-linear-types.nix
+    timeout: 60

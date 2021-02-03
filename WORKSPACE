@@ -4,9 +4,9 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "rules_haskell",
-    sha256 = "a81f63fd05613cc3a3286ab0f4ed5acd527295fef7509184fb62d70e030d7ad1",
-    strip_prefix = "rules_haskell-8663806d1611b96c260b7dcd8693dfb5cf302b8b",
-    urls = ["https://github.com/tweag/rules_haskell/archive/8663806d1611b96c260b7dcd8693dfb5cf302b8b.tar.gz"],
+    sha256 = "f54eac4fd769de1c0146ab7dbb507129d6d27e2c533b42ed34baca3841f0329f",
+    strip_prefix = "rules_haskell-aafcd4c3fc622e8c336b6905b0bc4a21aac09dbb",
+    urls = ["https://github.com/tweag/rules_haskell/archive/aafcd4c3fc622e8c336b6905b0bc4a21aac09dbb.tar.gz"],
 )
 
 http_archive(
@@ -18,9 +18,9 @@ http_archive(
 
 http_archive(
   name = "io_tweag_inline_java",
-  sha256 = "a408c2601a893a20fad62b8e140dde9c1234ac87fe0061421b8b0850d14f57ff",
-  strip_prefix = "inline-java-6ae891748ed09e57da9883180bb3b7263ea302d5",
-  urls = ["https://github.com/tweag/inline-java/archive/6ae891748ed09e57da9883180bb3b7263ea302d5.tar.gz"],
+  sha256 = "52f61aa7069343667fba6f428fca5768d74b1240cefeb9620ba12c0779f21afc",
+  strip_prefix = "inline-java-a466217e2d382702b1809162ee0bad2ae4812dc0",
+  urls = ["https://github.com/tweag/inline-java/archive/a466217e2d382702b1809162ee0bad2ae4812dc0.tar.gz"],
 )
 
 load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
@@ -89,6 +89,15 @@ filegroup (
 """
 )
 
+nixpkgs_package(
+    name = "stack_ignore_global_hints",
+    attribute_path = "stack_ignore_global_hints",
+    repository = "@nixpkgs",
+)
+
+load("//:config_settings/setup.bzl", "config_settings")
+config_settings(name = "config_settings")
+load("@config_settings//:info.bzl", "ghc_version")
 
 load("@rules_haskell//haskell:cabal.bzl", "stack_snapshot")
 
@@ -118,7 +127,6 @@ stack_snapshot(
         "mtl",
         "process",
         "regex-tdfa",
-        "singletons",
         "stm",
         "streaming",
         "template-haskell",
@@ -126,8 +134,10 @@ stack_snapshot(
         "text",
         "vector",
         "zip-archive",
-    ],
-    snapshot = "nightly-2020-11-11",
+    ] + (["linear-base"] if ghc_version == "9.0.1" else ["singletons"]),
+    snapshot = "nightly-2020-11-11" if ghc_version == "8.10.2" else None,
+    local_snapshot = "//:snapshot-9.0.1.yaml" if ghc_version == "9.0.1" else None,
+    stack = "@stack_ignore_global_hints//:bin/stack" if ghc_version == "9.0.1" else None,
 )
 
 load("@rules_haskell//haskell:nixpkgs.bzl", "haskell_register_ghc_nixpkgs")
@@ -147,10 +157,11 @@ filegroup(
 )
 
 haskell_register_ghc_nixpkgs(
-    attribute_path = "haskell.compiler.ghc8102",
+    attribute_path = "haskell.compiler.ghc901"
+        if ghc_version == "9.0.1" else "haskell.compiler.ghc8102",
     locale_archive = "@glibc_locales//:locale-archive",
     repositories = {"nixpkgs": "@nixpkgs"},
-    version = "8.10.2",
+    version = ghc_version if ghc_version == "8.10.2" else "9.0.0.20201227",
     compiler_flags = [
         "-Werror",
         "-Wall",
