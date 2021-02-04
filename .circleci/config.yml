@@ -48,11 +48,6 @@ jobs:
           command: |
             mkdir -p ~/.cache/bazel/
 
-            cp .bazelrc .bazelrc.orig
-            echo try-import .bazelrc.local > .bazelrc
-
-            echo build --host_platform=@io_tweag_rules_nixpkgs//nixpkgs/platforms:host > .bazelrc.local
-
       - restore_cache:
           keys: # see note about 'Disk cache'
               - v1-sparkle-empty-{{ .Branch }}-
@@ -70,7 +65,6 @@ jobs:
           name: Build all
           shell: /bin/bash -eilo pipefail
           command: |
-            cp .bazelrc.orig .bazelrc
             # Keep CI awake
             while true; do echo "."; sleep 60; done &
 

@@ -1,5 +1,6 @@
-common --host_javabase=@local_jdk//:jdk
+build --host_javabase=@local_jdk//:jdk
 build --java_toolchain=@bazel_tools//tools/jdk:toolchain_hostjdk8
+build --host_platform=@io_tweag_rules_nixpkgs//nixpkgs/platforms:host
 
 build:ghc_9_0_1 --repo_env=GHC_VERSION=9.0.1
 build:ghc_9_0_1 --build_tag_filters -skip_with_ghc_9_0_1
