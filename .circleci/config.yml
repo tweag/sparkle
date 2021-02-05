@@ -15,6 +15,8 @@ jobs:
   build-darwin:
     macos:
       xcode: "10.0"
+    environment:
+      BAZEL_ARGS: --repository_cache=/Users/distiller/repo-cache --disk_cache=/Users/distiller/disk-cache
     steps:
       - run:
           name: Checkout
@@ -46,7 +48,7 @@ jobs:
       - run:
           name: Configure
           command: |
-            mkdir -p ~/.cache/bazel/
+            mkdir -p ~/repo-cache ~/disk-cache
 
       - restore_cache:
           keys: # see note about 'Disk cache'
@@ -58,9 +60,10 @@ jobs:
           name: Prefetch Stackage snapshot
           shell: /bin/bash -eilo pipefail
           command: |
+            echo $BAZEL_ARGS
             # Retry if needed due to network flakiness.
             nix-shell --pure --run \
-              'cmd="bazel fetch @stackage//..."; $cmd || $cmd || $cmd'
+              "cmd='bazel fetch @stackage//... $BAZEL_ARGS'; \$cmd || \$cmd || \$cmd"
       - run:
           name: Build all
           shell: /bin/bash -eilo pipefail
@@ -68,9 +71,9 @@ jobs:
             # Keep CI awake
             while true; do echo "."; sleep 60; done &
 
-            nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
-            nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
-            nix-shell --pure --run 'bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar'
+            nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.jar $BAZEL_ARGS"
+            nix-shell --pure --run "bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar $BAZEL_ARGS"
+            nix-shell --pure --run "bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar $BAZEL_ARGS"
       - run:
           name: Install spark and hadoop
           command: |
@@ -89,21 +92,23 @@ jobs:
 
         # see note about 'Disk cache'
       - save_cache:
-          key: v1-inline-java-cache-{{ .Branch }}-{{ .BuildNum }}
+          key: v1-sparkle-cache-{{ .Branch }}-{{ .BuildNum }}
           paths:
-              - ~/.cache/bazel/
+              - ~/repo-cache
+              - ~/disk-cache
 
       - run:
           name: Clean up cache
           shell: /bin/bash -eilo pipefail
           command: |
-            rm -rf ~/.cache/bazel/
-            mkdir -p ~/.cache/bazel/
+            rm -rf ~/repo-cache ~/disk-cache
+            mkdir -p ~/repo-cache ~/disk-cache
 
       - save_cache:
-          key: v1-inline-java-empty-master-{{ .BuildNum }}
+          key: v1-sparkle-empty-master-{{ .BuildNum }}
           paths:
-              - ~/.cache/bazel/
+              - ~/repo-cache
+              - ~/disk-cache
 
 workflows:
   version: 2
