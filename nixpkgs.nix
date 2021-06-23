@@ -3,7 +3,7 @@
 #
 # by going to a commit before the one introducing the regression.
 args:
-let pkgs = import (fetchTarball "https://github.com/tweag/nixpkgs/archive/76318102e1177a235ff38872cf4dfb2fc9590a42.tar.gz") args;
+let pkgs = import (fetchTarball "https://github.com/tweag/nixpkgs/archive/46113713d4f25579e07b78116a61ab6f178f4153.tar.gz") args;
 
     spark = pkgs.spark.override {
       # TODO: Some part/dependency of spark is unable to cope with newer
