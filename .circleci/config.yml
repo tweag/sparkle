@@ -28,7 +28,6 @@ jobs:
       - run:
           name: Install Nix
           command: |
-            HOMEBREW_NO_AUTO_UPDATE=1 brew install xz
             curl -L https://nixos.org/nix/install | sh
 
       - run:
@@ -74,20 +73,21 @@ jobs:
             nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.jar $BAZEL_ARGS"
             nix-shell --pure --run "bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar $BAZEL_ARGS"
             nix-shell --pure --run "bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar $BAZEL_ARGS"
+
       - run:
           name: Install spark and hadoop
           command: |
             # We roll our own installation of spark in OSX since nixpkgs doesn't support building hadoop
-            curl -O https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
-            curl https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz | tar -xz
-            curl https://downloads.apache.org/spark/spark-2.4.7/spark-2.4.7-bin-without-hadoop.tgz | tar -xz
+            curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
+            curl -L https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-without-hadoop.tgz | tar -xz
+            curl -L https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz | tar -xz
 
       - run:
           name: Run tests
           shell: /bin/bash -eilo pipefail
           command: |
             export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-2.10.1/bin/hadoop classpath)
-            export PATH="$PWD/spark-2.4.7-bin-without-hadoop/bin:$PATH"
+            export PATH="$PWD/spark-2.4.8-bin-without-hadoop/bin:$PATH"
             spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
 
         # see note about 'Disk cache'
