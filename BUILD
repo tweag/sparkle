@@ -4,7 +4,6 @@ exports_files(["hs-wrapper/FFIWrapper.hs"])
 
 load(
   "@rules_haskell//haskell:defs.bzl",
-  "haskell_binary",
   "haskell_library",
   "haskell_toolchain_library",
 )
