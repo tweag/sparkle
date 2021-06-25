@@ -2,14 +2,13 @@ package(default_visibility = ["//visibility:public"])
 
 load(
   "@rules_haskell//haskell:defs.bzl",
-  "haskell_binary",
+  "haskell_library",
 )
 
 load("@//:sparkle.bzl", "sparkle_package")
 
-haskell_binary(
+haskell_library(
   name = "lda-hs",
-  linkstatic = False,
   srcs = ["SparkLDA.hs"],
   deps = [
     "//:sparkle-lib",
@@ -17,7 +16,6 @@ haskell_binary(
 	"@stackage//:distributed-closure",
 	"@stackage//:text",
   ],
-  compiler_flags = ["-threaded", "-pie"],
 )
 
 sparkle_package(

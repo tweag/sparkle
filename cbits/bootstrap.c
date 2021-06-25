@@ -9,24 +9,7 @@ extern HsPtr sparkle_apply(HsPtr a1, HsPtr a2);
 extern void sparkle_hs_init();
 extern void sparkle_hs_fini();
 
-// main is provided when linking an executable. But sparkle is sometimes
-// loaded dynamically when no main symbol is provided. Typically, ghc
-// could load it when building code which uses ANN pragmas or template
-// haskell.
-//
-// Because of this we make main a weak symbol. The man page of nm [1]
-// says:
-//
-//	 When a weak undefined symbol is linked and the symbol is not
-//	 defined, the value of the symbol is determined in a system-specific
-//	 manner without error.
-//
-// [1] https://linux.die.net/man/1/nm
-// [2] https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html#index-g_t_0040code_007bweak_007d-function-attribute-3369
-extern int main(int argc, char *argv[]) __attribute__((weak));
-
-// Use the haskell main closure directly
-extern StgClosure ZCMain_main_closure __attribute__((weak));
+extern int ioTweagSparkleMain();
 
 // Enumeration describing the status of the GHC RTS in the current process.
 typedef enum
@@ -208,15 +191,8 @@ static void bypass_exit(int rc)
 	if(!rc) longjmp(bootstrap_env, 0);
 }
 
-
-// Run the haskell main closure using the GHC public API. This replicates the behavior of hs_main
-// except it does not immediately exit.
-// @see https://github.com/ghc/ghc/blob/639e702b6129f501c539b158b982ed8489e3d09c/rts/RtsMain.c
 int do_main (JNIEnv * env, int argc, char *argv[] )
 {
-	int exit_status;
-	SchedulerStatus status;
-
 	hs_init_with_rtsopts(&argc, &argv);
 	rts_status = RTS_UP_DRIVER;
 
@@ -224,39 +200,14 @@ int do_main (JNIEnv * env, int argc, char *argv[] )
 	if ((*env)->ExceptionOccurred(env))
 		return -1;
 
-	{
-		Capability *cap = rts_lock();
-		rts_evalLazyIO(&cap, &ZCMain_main_closure, NULL);
-		status = rts_getSchedStatus(cap);
-		rts_unlock(cap);
-	}
-
-	// check the status of the entire Haskell computation
-	switch (status) {
-	case Killed:
-		errorBelch("main thread exited (uncaught exception)");
-		exit_status = EXIT_KILLED;
-		break;
-	case Interrupted:
-		errorBelch("interrupted");
-		exit_status = EXIT_INTERRUPTED;
-		break;
-	case HeapExhausted:
-		exit_status = EXIT_HEAPOVERFLOW;
-		break;
-	case Success:
-		exit_status = EXIT_SUCCESS;
-		break;
-	default:
-		barf("main thread completed with invalid status");
-	}
+    ioTweagSparkleMain();
 
 	sparkle_hs_fini();
 
 	// Shutdown the RTS but do not terminate the process
 	hs_exit();
 
-	return exit_status;
+	return 0;
 }
 
 JNIEXPORT void JNICALL Java_io_tweag_sparkle_SparkMain_invokeMain

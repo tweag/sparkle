@@ -2,14 +2,13 @@ package(default_visibility = ["//visibility:public"])
 
 load(
   "@rules_haskell//haskell:defs.bzl",
-  "haskell_binary",
+  "haskell_library",
 )
 
 load("@//:sparkle.bzl", "sparkle_package")
 
-haskell_binary(
+haskell_library(
   name = "bench-hs",
-  linkstatic = False,
   srcs = ["Main.hs"],
   plugins = ["@io_tweag_inline_java//:inline-java-plugin"],
   deps = [
@@ -25,7 +24,6 @@ haskell_binary(
 	"@stackage//:text",
 	"@stackage//:vector",
   ],
-  compiler_flags = ["-threaded", "-pie"],
 )
 
 sparkle_package(

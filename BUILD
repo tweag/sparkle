@@ -1,10 +1,12 @@
 package(default_visibility = ["//visibility:public"])
 
+exports_files(["hs-wrapper/FFIWrapper.hs"])
+
 load(
   "@rules_haskell//haskell:defs.bzl",
   "haskell_binary",
   "haskell_library",
-  "haskell_toolchain",
+  "haskell_toolchain_library",
 )
 
 _sparkle_java_deps = [
@@ -29,6 +31,11 @@ cc_library(
   copts = ["-std=c99"],
 ) 
 
+haskell_toolchain_library(
+    name = "base",
+    package = "base",
+)
+
 haskell_library(
   name = "sparkle-lib",
   src_strip_prefix = "src",
@@ -48,7 +55,7 @@ haskell_library(
     "@maven//:org_scala_lang_scala_reflect",
     ":sparkle-jar",
     ":sparkle-bootstrap-cc",
-	"@stackage//:base",
+	":base",
 	"@stackage//:binary",
 	"@stackage//:bytestring",
 	"@stackage//:choice",
