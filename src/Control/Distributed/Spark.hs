@@ -12,7 +12,7 @@ module Control.Distributed.Spark
   , forwardUnhandledExceptionsToSpark
   ) where
 
-import Control.Concurrent (runInBoundThread)
+import Control.Concurrent (runInBoundThread, yield)
 import Control.Distributed.Closure as S
 import Control.Distributed.Spark.Closure as S
 import Control.Distributed.Spark.Context as S
@@ -39,6 +39,7 @@ import Language.Java
 import Language.Java.Inline
 import System.IO
 import System.IO.Unsafe (unsafePerformIO)
+import System.Mem (performMajorGC)
 
 
 -- This function will be called before running main or any user code in
@@ -113,7 +114,12 @@ foreign export ccall sparkle_hs_fini :: IO ()
 
 {-# ANN sparkle_hs_fini ("HLint: ignore Use camelCase" :: String) #-}
 sparkle_hs_fini :: IO ()
-sparkle_hs_fini = stopFinalizerThread
+sparkle_hs_fini = do
+  performMajorGC
+  stopFinalizerThread
+  -- Try yield to give an opportunity to finish the finalizer thread
+  -- before shutting down the RTS.
+  yield
 
 {-# NOINLINE contextClassLoaderRef #-}
 contextClassLoaderRef :: IORef (J ('Class "java.lang.ClassLoader"))
