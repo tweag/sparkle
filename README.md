@@ -19,9 +19,7 @@ $ nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.
 $ nix-shell --pure --run "bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $PWD/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar"
 ```
 
-You'll need [nix] for the above to work.
-
-[bazel]: https://bazel.build
+You'll need [Nix][nix] for the above to work.
 
 ## How it works
 
@@ -55,15 +53,15 @@ package(default_visibility = ["//visibility:public"])
 
 load(
   "@rules_haskell//haskell:defs.bzl",
-  "haskell_binary",
+  "haskell_library",
 )
 
-load("@//:sparkle.bzl", "sparkle_package")
+load("@io_tweag_sparkle//:sparkle.bzl", "sparkle_package")
 
-haskell_binary(
+# hello-hs needs to contain a Main module with a main function.
+# This main function will be invoked by spark.
+haskell_library (
   name = "hello-hs",
-  linkstatic = False,
-  compiler_flags = ["-threaded", "-pie"],
   srcs = ...,
   deps = ...,
   ...
@@ -73,6 +71,14 @@ sparkle_package(
   name = "sparkle-example-hello",
   src = ":hello-hs",
 )
+```
+
+You might want to add the following settings to your `.bazelrc.local`
+file.
+```
+common --repository_cache=~/.bazel_repo_cache
+common --disk_cache=~/.bazel_disk_cache
+common --local_cpu_resources=4
 ```
 
 And then ask [Bazel][bazel] to build a *deploy* jar file.
@@ -141,10 +147,8 @@ a [whole cluster from scratch on EC2][spark-ec2]. This
 the [Databricks hosted platform][databricks] and on
 [Amazon's Elastic MapReduce][aws-emr].
 
+[bazel]: https://bazel.build
 [docker-build-img]: https://hub.docker.com/r/tweag/sparkle/
-[stack]: https://github.com/commercialhaskell/stack
-[stack-docker]: https://docs.haskellstack.org/en/stable/docker_integration/
-[stack-nix]: https://docs.haskellstack.org/en/stable/nix_integration/#configuration
 [spark-submit]: http://spark.apache.org/docs/1.6.2/submitting-applications.html
 [spark-ec2]: http://spark.apache.org/docs/1.6.2/ec2-scripts.html
 [nix]: http://nixos.org/nix

@@ -1,18 +1,9 @@
-resolver: nightly-2021-01-27
-compiler: ghc-9.0.0.20201227
+resolver: nightly-2021-06-21
 
 packages:
 - github: tweag/distributed-closure
   commit: b92e75ec81e646703c7bde4f578a7352ee34f1ad
 - github: ekmett/exceptions
   commit: d7b742dc129790778f7b6d3347af80c8d69f8fcd
-- github: haskell/vector
-  commit: d919ffc72043af0066674aeaa997919e22d2a00f
-- github: simonmar/async
-  commit: 83c2cfe727b9a17ec1cb7228455ee650fde1bc77
-- github: facundominguez/hashable
-  commit: a03e06b79e5de3ad6d39522e08d1db830dc2a145
-- github: haskell/primitive
-  commit: 87b50ced840b3b1adbd61fe709b2e042f06e6ff3
 - github: tweag/linear-base
-  commit: 5af88c64aa5d8ac338098c033ee21616fce087ff
+  commit: ec0b5aa6dc89f1d7c7e368b7387e363a5062e52d

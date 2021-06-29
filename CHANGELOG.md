@@ -8,11 +8,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 ### Added
 
-* Support for ghc-8.10.2
-
 ### Changed
 
 * Fixed sparkle packaging in some ubuntus. (#149)
+
+### Removed
+
+* Support for ghc-8.10
 
 ## [0.7.4] - 2018-02-28
 

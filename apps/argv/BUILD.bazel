@@ -2,14 +2,13 @@ package(default_visibility = ["//visibility:public"])
 
 load(
   "@rules_haskell//haskell:defs.bzl",
-  "haskell_binary",
+  "haskell_library",
 )
 
 load("@//:sparkle.bzl", "sparkle_package")
 
-haskell_binary(
+haskell_library(
   name = "argv-hs",
-  linkstatic = False,
   srcs = ["Argv.hs"],
   deps = [
     "//:sparkle-lib",
@@ -18,7 +17,6 @@ haskell_binary(
 	"@stackage//:text",
 	"@stackage//:vector",
   ],
-  compiler_flags = ["-threaded", "-pie"],
 )
 
 sparkle_package(

@@ -1,6 +1,7 @@
 """Helpers for sparkle packaging."""
 
 load("@io_tweag_clodl//clodl:clodl.bzl", "library_closure")
+load("@rules_haskell//haskell:defs.bzl", "haskell_library")
 
 def _mangle_dir(name):
     """Creates a unique directory name from the repo name and package
@@ -14,9 +15,16 @@ def _mangle_dir(name):
 def sparkle_package(name, src, resource_jars=[], **kwargs):
   libclosure = "libclosure-%s" % name
   
+  haskell_library(
+	name = libclosure + "-hs-wrapper",
+	srcs = ["@io_tweag_sparkle//:hs-wrapper/FFIWrapper.hs"],
+	deps = [src, "@io_tweag_sparkle//:base"],
+    compiler_flags = ["-threaded", "-flink-rts"],
+  )
+
   library_closure(
     name = libclosure,
-    srcs = [src],
+    srcs = [libclosure + "-hs-wrapper"],
     excludes = [
       "^/System/",
       "^/usr/lib/",
