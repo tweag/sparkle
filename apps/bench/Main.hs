@@ -42,7 +42,7 @@ main = forwardUnhandledExceptionsToSpark $ do
     sc   <- getOrCreateSparkContext conf
     forM_ [0,200..10000 :: Int32] $ \x -> do
       putStrLn $ "Size " ++ show x
-      rdd <- parallelize sc (replicate 1 x)
+      rdd <- parallelize sc (replicate (fromEnum x) 1)
       Criterion.defaultMain $
         [ bgroup "map"
           [ bench "pure Java" $ nfIO $ mapJava rdd
