@@ -14,7 +14,7 @@ version: 2
 jobs:
   build-darwin:
     macos:
-      xcode: "10.0"
+      xcode: "12.5.0"
     environment:
       BAZEL_ARGS: --repository_cache=/Users/distiller/repo-cache --disk_cache=/Users/distiller/disk-cache
     steps:
@@ -28,20 +28,20 @@ jobs:
       - run:
           name: Install Nix
           command: |
-            curl -L https://nixos.org/nix/install | sh
+            sh <(curl -L https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
 
       - run:
           name: Install cachix
           shell: /bin/bash -eilo pipefail
           command: |
-            nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/db557aab7b690f5e0e3348459f2e4dc8fd0d9298
+            nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/46113713d4f25579e07b78116a61ab6f178f4153
 
       - run:
           name: Run cachix
           shell: /bin/bash -eilo pipefail
           command: |
             cachix use tweag
-            cachix push tweag --watch-store
+            cachix watch-store tweag
           background: true
 
       - run:
@@ -114,13 +114,5 @@ workflows:
   version: 2
   build:
     jobs:
-      - build-darwin
-  publish:
-    jobs:
-      - publish:
-          context: org-global
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^v.*/
+      - build-darwin:
+          context: org-global # for the cachix token
