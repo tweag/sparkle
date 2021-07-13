@@ -1,0 +1,24 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_library",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_library(
+  name = "memerr-hs",
+  srcs = ["Main.hs"],
+  deps = [
+    "//:sparkle-lib",
+	"@stackage//:base",
+	"@stackage//:distributed-closure",
+	"@stackage//:text",
+  ],
+)
+
+sparkle_package(
+  name = "memerr",
+  src = ":memerr-hs",
+)
