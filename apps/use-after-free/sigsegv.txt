@@ -10,9 +10,5 @@
 #
 # Failed to write core dump. Core dumps have been disabled. To enable core dumping, try "ulimit -c unlimited" before starting Java again
 #
-# An error report file with more information is saved as:
-# /home/Noah/.cache/bazel/_bazel_Noah/bf59f415dc44dcdaa9eae6da03b55e5d/execroot/io_tweag_sparkle/bazel-out/k8-fastbuild/bin/spark-submit.runfiles/io_tweag_sparkle/hs_err_pid28835.log
-#
 # If you would like to submit a bug report, please visit:
 #   http://bugreport.java.com/bugreport/crash.jsp
-#/tmp/nix-shell-28820-0/rc: line 1: 28835 Aborted                 bazel run spark-submit -- /mnt/c/Users/Noah/Desktop/tweag/sparkle/bazel-bin/apps/use-after-free/use-free_deploy.jar
