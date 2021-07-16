@@ -14,7 +14,7 @@ haskell_library(
     "//:sparkle-lib",
 	"@stackage//:base",
 	"@stackage//:distributed-closure",
-	"@stackage//:text",
+        "@stackage//:bytestring",
         "@stackage//:choice",
         "@stackage//:optparse-applicative",
   ],

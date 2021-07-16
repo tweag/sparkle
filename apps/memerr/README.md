@@ -1,5 +1,5 @@
 This is a program that demonstrates that it is possible to crash a `sparkle`
-program by simply creating too many references to Java objects, causing the JVM
+program by creating too many references to (possibly large) Java objects, causing the JVM
 to run out of memory. This should serve as a motivation for an interface to
 `sparkle` that uses linear types, as such an interface would make any such
 proliferation of references more explicit.
@@ -19,5 +19,7 @@ the `--help` flag.
 
 Note that `512M` seems to be the minimum amount of memory that can be allocated
 to the driver for the program to run, so this is a good starting point to play
-around at. At this memory setting, passing in the option `-n 200000` will
-usually cause the program to crash from a GC error.
+around at. At this memory setting, the default parameters to the program (-n
+1500 -l 370 -w 1000) should crash the program by filling up the Java heap. This
+basically corresponds to a program in which the Spark driver stores 1500 copies
+of ~100K file in memory.
