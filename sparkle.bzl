@@ -15,8 +15,9 @@ def _mangle_dir(name):
 def sparkle_package(name, src, resource_jars=[], **kwargs):
   libclosure = "libclosure-%s" % name
   
+  libclosure_hs_wrapper = libclosure + "-hs-wrapper"
   haskell_library(
-	name = libclosure + "-hs-wrapper",
+	name = libclosure_hs_wrapper,
 	srcs = ["@io_tweag_sparkle//:hs-wrapper/FFIWrapper.hs"],
 	deps = [src, "@io_tweag_sparkle//:base"],
     compiler_flags = ["-threaded", "-flink-rts"],
@@ -24,7 +25,7 @@ def sparkle_package(name, src, resource_jars=[], **kwargs):
 
   library_closure(
     name = libclosure,
-    srcs = [libclosure + "-hs-wrapper"],
+    srcs = [libclosure_hs_wrapper],
     excludes = [
       "^/System/",
       "^/usr/lib/",
@@ -49,7 +50,7 @@ def sparkle_package(name, src, resource_jars=[], **kwargs):
     **kwargs
   )
 
-  libclosure_renamed = "libclosure-%s-renamed"
+  libclosure_renamed = libclosure + "-renamed"
   native.genrule(
     name = libclosure_renamed,
     srcs = [libclosure],
