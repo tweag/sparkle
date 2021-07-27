@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 ### Changed
 
 * Fixed sparkle packaging in some ubuntus. (#149)
+* Fixed rebuild of closures (#157)
 
 ### Removed
 

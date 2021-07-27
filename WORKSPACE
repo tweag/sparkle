@@ -11,9 +11,9 @@ http_archive(
 
 http_archive(
   name = "io_tweag_clodl",
-  sha256 = "eb0025edbd4f36d55d2af2e87ac7c10c5adead44ebb05330a4a56391924c3efa",
-  strip_prefix = "clodl-20d27c8373c53b51a9d578c6d56a8691656078e3",
-  urls = ["https://github.com/tweag/clodl/archive/20d27c8373c53b51a9d578c6d56a8691656078e3.tar.gz"]
+  sha256 = "8bc8adf725f1d9be757dd5e2d7e2784eec10e1458bfc77ec75f322e7128df7e1",
+  strip_prefix = "clodl-9fed528a1950e4bf6e1e1ec8ba19efcebc34a630",
+  urls = ["https://github.com/tweag/clodl/archive/9fed528a1950e4bf6e1e1ec8ba19efcebc34a630.tar.gz"]
 )
 
 http_archive(
