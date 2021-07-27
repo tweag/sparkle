@@ -1,0 +1,26 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_library",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_library(
+  name = "use-free-hs",
+  srcs = ["Main.hs"],
+  deps = [
+    "//:sparkle-lib",
+	"@stackage//:base",
+	"@stackage//:distributed-closure",
+	"@stackage//:text",
+        "@io_tweag_inline_java//jni",
+        "@io_tweag_inline_java//jvm",
+  ],
+)
+
+sparkle_package(
+  name = "use-free",
+  src = ":use-free-hs",
+)

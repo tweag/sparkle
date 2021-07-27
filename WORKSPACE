@@ -126,6 +126,7 @@ stack_snapshot(
         "language-java",
         "linear-base",
         "mtl",
+        "optparse-applicative",
         "process",
         "regex-tdfa",
         "singletons",
