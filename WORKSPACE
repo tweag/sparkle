@@ -3,10 +3,10 @@ workspace(name = "io_tweag_sparkle")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
-    name = "rules_haskell",
-    sha256 = "f54eac4fd769de1c0146ab7dbb507129d6d27e2c533b42ed34baca3841f0329f",
-    strip_prefix = "rules_haskell-aafcd4c3fc622e8c336b6905b0bc4a21aac09dbb",
-    urls = ["https://github.com/tweag/rules_haskell/archive/aafcd4c3fc622e8c336b6905b0bc4a21aac09dbb.tar.gz"],
+  name = "rules_haskell",
+  sha256 = "34b29933ed5580e0203ca69948fe7b8126b75c4df02d1d43b4d9c1120656d548",
+  strip_prefix = "rules_haskell-d162b8161a6cd26d40e08d37385c2d1272997a6c",
+  urls = ["https://github.com/tweag/rules_haskell/archive/d162b8161a6cd26d40e08d37385c2d1272997a6c.tar.gz"],
 )
 
 http_archive(
