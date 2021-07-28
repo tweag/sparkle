@@ -40,6 +40,7 @@ haskell_library(
   src_strip_prefix = "src",
   srcs = glob(['src/**/*.hs']) + ["cbits/io_tweag_sparkle_Sparkle.h"],
   extra_srcs = ["cbits/bootstrap.c"],
+  repl_ghci_args = ["-fobject-code"],
   deps = [
     "@openjdk//:lib", "@rules_haskell_ghc_nixpkgs//:include",
     "@io_tweag_inline_java//jni",
