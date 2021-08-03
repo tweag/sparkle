@@ -277,8 +277,8 @@ subtract rdd1 rdd2 = [java| $rdd1.subtract($rdd2) |]
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
 collect :: Reify a => RDD a -> IO [a]
-collect rdd = do
-    arr :: JObjectArray <- [java| $rdd.collect().toArray() |]
+collect rdd =
+    withLocalRef [java| $rdd.collect().toArray() |] $ \(arr :: JObjectArray) ->
     reify (unsafeCast arr)
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
