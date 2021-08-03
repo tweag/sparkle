@@ -15,8 +15,10 @@ haskell_library(
 	"@stackage//:base",
 	"@stackage//:distributed-closure",
         "@stackage//:bytestring",
+        "@stackage//:text",
         "@stackage//:choice",
         "@stackage//:optparse-applicative",
+        "@io_tweag_inline_java//jni",
   ],
 )
 

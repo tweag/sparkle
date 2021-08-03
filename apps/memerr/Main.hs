@@ -9,14 +9,19 @@ module Main where
 
 import Control.Distributed.Spark as RDD
 import Control.Monad
+-- import qualified Data.ByteString as B
+import qualified Data.Text as T
 import Data.Choice 
-import qualified Data.ByteString as B
+import Data.Foldable
+-- import Data.Int
+import Foreign.JNI
+import Foreign.JNI.Types
 import Options.Applicative as Opt
 
 -- Parser for the command line options
 
 data Options = Options
-  { retainRefs  :: Choice "retainRefs"
+  { deleteRefs  :: Choice "deleteRefs"
   , numRefs     :: Int
   , inputLength :: Int
   , inputWidth  :: Int
@@ -31,15 +36,13 @@ lHelp = "Length (number of lines) of input text (default: 370)"
 wHelp :: String 
 wHelp = "Width of each line of input text (default: 1000)"
 
-noRetainHelp :: String
-noRetainHelp = unwords ["if the --no-retain flag is present, we will still perform the specified"
-                       ,"number of RDD operations, but the Haskell side will not retain any references"
-                       ,"to the resulting RDDs"]
+deleteRefsHelp :: String
+deleteRefsHelp = "If this flag is present, deletes unused references to old RDDS during program execution"
 
 argsParser :: Parser Options
 argsParser = Options 
-                 <$> flag (Do #retainRefs) (Don't #retainRefs) (Opt.long "no-retain" <> help noRetainHelp)
-                 <*> option auto (value 1500 <> Opt.short 'n' <> metavar "N" <> help nHelp)
+                 <$> flag (Don't #deleteRefs) (Do #deleteRefs) (Opt.long "delete-refs" <> help deleteRefsHelp)
+                 <*> option auto (value 600 <> Opt.short 'n' <> metavar "N" <> help nHelp)
                  <*> option auto (value 370 <> Opt.short 'l' <> metavar "L" <> help lHelp)
                  <*> option auto (value 1000 <> Opt.short 'w' <> metavar "W" <> help wHelp)
 
@@ -54,11 +57,15 @@ main = forwardUnhandledExceptionsToSpark $ do
     putStrLn $ "# of references to be created: " ++ show numRefs
     putStrLn $ "Input length: " ++ show inputLength
     putStrLn $ "Input width: " ++ show inputWidth
-    rdd  <- parallelize sc $ replicate inputLength $ B.replicate inputWidth (toEnum 0)
+    -- Try other type of contents
+    -- rdd  <- parallelize sc $ replicate inputLength $ B.replicate inputWidth (toEnum 0)
+    rdd <- parallelize sc $ replicate inputLength $ T.replicate inputWidth (T.singleton '0')
+    -- rdd  <- parallelize sc $ replicate inputLength $ (0 :: Int32)
     -- Perform the main loop, optionally retaining the references to the rdd
-    refs <- if toBool retainRefs 
-      then replicateM numRefs $ collect rdd
-      else (replicateM_ numRefs $ collect rdd) *> pure [[]]
+    -- look at marshalling of bytestrings and collect
+    rdd' <- if toBool deleteRefs 
+      then foldrM (\_ rdd' -> collect rdd' >>= \elts -> parallelize sc elts <* deleteLocalRef rdd') rdd [0..numRefs]
+      else foldrM (\_ -> (parallelize sc <=< collect)) rdd [0..numRefs]
     --
-    putStrLn $ "Ref list length: " ++ show (Prelude.length refs)
-    putStrLn $ "Total # elements: " ++ show (sum (fmap Prelude.length refs))
+    n <- count rdd'
+    putStrLn $ "RDD size: " ++ show n
