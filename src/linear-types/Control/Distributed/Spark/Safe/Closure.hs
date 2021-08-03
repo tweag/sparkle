@@ -35,6 +35,7 @@ import qualified Data.Functor.Linear as D
 import qualified Unsafe.Linear as Unsafe
 import System.IO.Linear (fromSystemIO)
 import Data.Unrestricted.Linear ()
+import Control.Monad.IO.Class.Linear
 -- import qualified System.IO.Linear as LIO
 
 import Control.Arrow (second)
@@ -229,7 +230,7 @@ instance ( Static (Reify a)
          , Typeable a
          ) =>
          Reflect (ReduceFunction a) where
-  reflect (ReduceFunction f) = do
+  reflect (ReduceFunction f) = Control.Functor.Linear.do
       jpayload <- reflect (clos2bs wrap)
       unsafeGeneric <$>
         [java| new io.tweag.sparkle.function.HaskellReduceFunction($jpayload) |]
@@ -274,7 +275,7 @@ instance ( Static (Reify (Stream (Of a) IO ()))
          , Typeable (Stream (Of b) IO ())
          ) =>
          Reflect (MapPartitionsFunction a b) where
-  reflect (MapPartitionsFunction f) = do
+  reflect (MapPartitionsFunction f) = Control.Functor.Linear.do
       jpayload <- reflect (clos2bs wrap)
       unsafeGeneric <$>
         [java| new io.tweag.sparkle.function.HaskellMapPartitionsFunction($jpayload) |]
