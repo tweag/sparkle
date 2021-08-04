@@ -29,36 +29,34 @@ module Control.Distributed.Spark.Safe.Closure
   ) where
 
 import qualified Prelude 
-import Prelude.Linear
+import Prelude.Linear as PL
 import Control.Functor.Linear
 import qualified Data.Functor.Linear as D
 import qualified Unsafe.Linear as Unsafe
-import System.IO.Linear (fromSystemIO)
+-- import System.IO.Linear (fromSystemIO)
 import Data.Unrestricted.Linear ()
 import Control.Monad.IO.Class.Linear
--- import qualified System.IO.Linear as LIO
+import qualified System.IO.Linear as LIO
 
-import Control.Arrow (second)
-import Control.Exception (fromException, catch)
+-- import Control.Exception (fromException, catch)
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
 import Data.Binary (encode, decode)
 import Data.Kind (Type)
-import qualified Data.Coerce as Coerce
+-- import qualified Data.Coerce as Coerce
 import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
-import Data.Text as Text
+-- import Data.Text as Text
 import Data.Typeable (Typeable)
-import Foreign.ForeignPtr (newForeignPtr_)
-import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
+-- import Foreign.ForeignPtr (newForeignPtr_)
+-- import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 -- import Foreign.JNI
-import Foreign.Ptr (Ptr)
+-- import Foreign.Ptr (Ptr)
 import GHC.TypeLits (Nat)
 -- import Language.Java
 -- import Language.Java.Inline
 import Streaming (Stream, Of)
 
-import Foreign.JNI
 import Foreign.JNI.Safe as S
 import Foreign.JNI.Types.Safe as S
 import Language.Java.Safe
@@ -103,38 +101,45 @@ pairDict Dict Dict = Dict
 
 closFun1
   :: forall a b.
-     Dict (Reify a, Reflect b)
-  -> (a -> b)
-  -> JObjectArray
-  -> IO JObject
-closFun1 Dict f args = do
-  (args, a) <- S.getObjectArrayElement args 0
-  (objptr, Ur a) <- reify (unsafeCast a)
-  upcast <$> refl (f a)
+    Dict (Reify a, Reflect b)
+     -> (a -> b)
+     -> JObjectArray
+  %1 -> LIO.IO JObject
+closFun1 Dict f args = Control.Functor.Linear.do
+  (args', a) <- S.getObjectArrayElement args 0
+  (objptr, Ur a') <- reif (unsafeCast a)
+  S.deleteLocalRef objptr
+  S.deleteLocalRef args'
+  upcast <$> refl (f a')
     -- fmap upcast . refl =<< return . f =<< reif . unsafeCast =<< S.getObjectArrayElement args 0
   where
-    reif = reify :: J (Interp a) %1 -> IO (J (Interp a), Ur a)
-    refl = reflect :: b -> IO (J (Interp b))
+    reif = reify :: J (Interp a) %1 -> LIO.IO (J (Interp a), Ur a)
+    refl = reflect :: b -> LIO.IO (J (Interp b))
 
 tripleDict :: Dict c1 -> Dict c2 -> Dict c3 -> Dict (c1, c2, c3)
 tripleDict Dict Dict Dict = Dict
 
 closFun2
   :: forall a b c.
-     Dict (Reify a, Reify b, Reflect c)
-  -> (a -> b -> c)
-  -> JObjectArray
-  -> IO JObject
-closFun2 Dict f args = do
-    (args, a) <- second unsafeCast <$> S.getObjectArrayElement args 0
-    (args, b) <- second unsafeCast <$> S.getObjectArrayElement args 1
+    Dict (Reify a, Reify b, Reflect c)
+     -> (a -> b -> c)
+     -> JObjectArray
+  %1 -> LIO.IO JObject
+closFun2 Dict f args = Control.Functor.Linear.do
+    (args', a) <- second unsafeCast <$> S.getObjectArrayElement args 0
+    (args'', b) <- second unsafeCast <$> S.getObjectArrayElement args' 1
     (aptr, Ur a') <- reifA a
     (bptr, Ur b') <- reifB b
+    S.deleteLocalRef aptr
+    S.deleteLocalRef bptr
+    S.deleteLocalRef args''
     upcast <$> reflC (f a' b')
   where
-    reifA = reify :: J (Interp a) %1 -> IO (J (Interp a), Ur a)
-    reifB = reify :: J (Interp b) %1 -> IO (J (Interp b), Ur b)
-    reflC = reflect :: c -> IO (J (Interp c))
+    reifA = reify :: J (Interp a) %1 -> LIO.IO (J (Interp a), Ur a)
+    reifB = reify :: J (Interp b) %1 -> LIO.IO (J (Interp b), Ur b)
+    reflC = reflect :: c -> LIO.IO (J (Interp c))
+    second :: (n %1 -> o) -> (m, n) %1 -> (m, o)
+    second g (a, b) = (a, g b) 
 
 clos2bs :: Typeable a => Closure a %1-> ByteString
 clos2bs = Unsafe.toLinear $ LBS.toStrict Prelude.. encode
@@ -149,7 +154,7 @@ type family InterpWithArity (n :: Nat) (a :: Type) :: JType
 -- @n@. That is, a value of this function type can be made from a @JFun{n}@.
 class ReifyFun n a where
   -- | Like 'reify', but specialized to reifying functions at a given arity.
-  reifyFun :: Sing n -> S.J (InterpWithArity n a) -> IO a
+  reifyFun :: MonadIO m => Sing n -> J (InterpWithArity n a) -> m a
 
 -- TODO define instances for 'ReifyFun'.
 
@@ -157,7 +162,7 @@ class ReifyFun n a where
 -- @n@. That is, a @JFun{n}@ can be made from any value of this function type.
 class ReflectFun n a where
   -- | Like 'reflect', but specialized to reflecting functions at a given arity.
-  reflectFun :: Sing n -> Closure a -> IO (S.J (InterpWithArity n a))
+  reflectFun :: MonadIO m => Sing n -> Closure a -> m (J (InterpWithArity n a))
 
 -- TODO No Static (Fun (a -> b)) instances yet.
 
@@ -170,12 +175,13 @@ instance ( Static (Reify a)
          , Typeable b
          ) =>
          ReflectFun 1 (a -> b) where
-  reflectFun _ f = do
-      jpayload <- reflect (clos2bs wrap)
-      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new jpayload
+  reflectFun _ f = Control.Functor.Linear.do
+      jpayload <- reflect (forget clos2bs wrap)
+      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new jpayload End
+      -- obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- [java| new HaskellFunction($jpayload) |]
       return (unsafeGeneric (unsafeCast obj))
     where
-      wrap :: Closure (JObjectArray -> IO JObject)
+      wrap :: Closure (JObjectArray %1-> LIO.IO JObject)
       wrap = $(cstatic 'closFun1) `cap`
              ($(cstatic 'pairDict) `cap` closureDict `cap` closureDict) `cap`
              f
@@ -192,13 +198,12 @@ instance ( Static (Reify a)
          ) =>
          ReflectFun 2 (a -> b -> c) where
   reflectFun _ f = Control.Functor.Linear.do
-    -- jpayload <- fromSystemIO $ reflect (forget clos2bs wrap)
       jpayload <- reflect (forget clos2bs wrap)
-      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- [java| new HaskellFunction2($jpayload) |]
-      -- obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new jpayload
+      -- obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- [java| new HaskellFunction2($jpayload) |]
+      obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new jpayload End
       return (unsafeGeneric (unsafeCast obj))
     where
-      wrap :: Closure (JObjectArray -> IO JObject)
+      wrap :: Closure (JObjectArray %1-> LIO.IO JObject)
       wrap = $(cstatic 'closFun2) `cap`
              ($(cstatic 'tripleDict) `cap` closureDict `cap` closureDict `cap` closureDict) `cap`
              f
@@ -212,12 +217,12 @@ instance Interpretation a => Interpretation (ReduceFunction a) where
 instance (Interpretation (ReduceFunction a), Typeable (a -> a -> a)) =>
          Reify (ReduceFunction a) where
   reify jobj0 = Control.Functor.Linear.do
-      (jobj0, jobj1) <- S.newLocalRef jobj0
-      jobj <- pure $ cast jobj0 -- ^ We need to do this bc right side of let binding is not linear
-      bytes <- [java| $jobj.clos |]
-      (byteptr, urbs) <- reify bytes
-      S.deleteLocalRef byteptr
-      pure $ (jobj1, (ReduceFunction . bs2clos) D.<$> urbs)
+      (jobj1, jobj2) <- S.newLocalRef jobj0
+      jobj <- pure $ cast jobj1 -- ^ We need to do this bc right side of let binding is not linear
+      bsptr <- [java| $jobj.clos |]
+      (bsptr', urbs) <- reify bsptr
+      S.deleteLocalRef bsptr'
+      pure $ (jobj2, (ReduceFunction . bs2clos) D.<$> urbs)
       -- ReduceFunction . bs2clos <$> ([java| $jobj.clos |] >>= reify)
     where
       cast
@@ -235,7 +240,7 @@ instance ( Static (Reify a)
       unsafeGeneric <$>
         [java| new io.tweag.sparkle.function.HaskellReduceFunction($jpayload) |]
     where
-      wrap :: Closure (JObjectArray -> IO JObject)
+      wrap :: Closure (JObjectArray %1 -> LIO.IO JObject)
       wrap = closure (static closFun2) `cap`
              (closure (static tripleDict)
                `cap` closureDict `cap` closureDict `cap` closureDict
@@ -254,11 +259,11 @@ instance ( Interpretation (MapPartitionsFunction a b)
          ) =>
          Reify (MapPartitionsFunction a b) where
   reify jobj0 = Control.Functor.Linear.do
-      (jobj0, jobj1) <- S.newLocalRef jobj0
-      jobj <- pure $ cast jobj0 
+      (jobj1, jobj2) <- S.newLocalRef jobj0
+      jobj <- pure $ cast jobj2
       bsptr <- [java| $jobj.clos |]
-      (bsptr, urbs) <- reify bsptr
-      S.deleteLocalRef bsptr
+      (bsptr', urbs) <- reify bsptr
+      S.deleteLocalRef bsptr'
       -- NOTE: linear base is missing =<< and <<
       pure $ (jobj1, (MapPartitionsFunction . bs2clos) D.<$> urbs)
       -- MapPartitionsFunction . bs2clos <$> ([java| $jobj.clos |] >>= reify )
@@ -280,7 +285,7 @@ instance ( Static (Reify (Stream (Of a) IO ()))
       unsafeGeneric <$>
         [java| new io.tweag.sparkle.function.HaskellMapPartitionsFunction($jpayload) |]
     where
-      wrap :: Closure (JObjectArray -> IO JObject)
+      wrap :: Closure (JObjectArray %1-> LIO.IO JObject)
       wrap = $(cstatic 'closFun1) `cap`
              ($(cstatic 'pairDict) `cap` closureDict `cap` closureDict) `cap`
              f
