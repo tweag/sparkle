@@ -11,6 +11,7 @@
 {-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE QualifiedDo #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StaticPointers #-}
@@ -85,12 +86,18 @@ import Foreign.JNI.Types.Safe
 import Language.Java.Safe
 import Language.Java.Inline.Safe
 
-import Streaming (Stream, Of, effect)
-import qualified Streaming.Prelude as S (fold_, uncons, yield)
+import Streaming.Prelude.Linear (Stream( Effect ), Of)
+import qualified Streaming.Prelude.Linear as S (fold_, uncons, yield)
+--import Streaming (Stream, Of, effect)
+--import qualified Streaming.Prelude as S (fold_, uncons, yield)
 
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
   deriving Coercible
+
+-- | Makes a new reference to the given RDD, so you can use it twice
+newRDDRef :: RDD a %1 -> IO (RDD a, RDD a)
+newRDDRef (RDD rddRef) = newLocalRef rddRef >>= \(r1, r2) -> (RDD r1, RDD r2)
 
 cache :: RDD a -> IO (RDD a)
 cache rdd = [java| $rdd.cache() |]
@@ -115,16 +122,16 @@ filter
   => Closure (a -> Bool)
   -> RDD a
   -> IO (RDD a)
-filter clos rdd = do
+filter clos rdd = Control.Functor.Linear.do
     f <- unsafeUngeneric <$> reflectFun (sing :: Sing 1) clos
     [java| $rdd.filter($f) |]
 
 map
   :: (Static (Reify a), Static (Reflect b), Typeable a, Typeable b)
-  => Closure (a -> b)
-  -> RDD a
-  -> IO (RDD b)
-map clos rdd = do
+     => Closure (a -> b)
+     -> RDD a
+  %1 -> IO (RDD b)
+map clos rdd = Control.Functor.Linear.do
     f <- unsafeUngeneric <$> reflectFun (sing :: Sing 1) clos
     [java| $rdd.map($f) |]
 
@@ -134,10 +141,10 @@ mapPartitions
      , Typeable a
      , Typeable b
      )
-  => Choice "preservePartitions"
-  -> Closure (Stream (Of a) IO () -> Stream (Of b) IO ())
-  -> RDD a
-  -> IO (RDD b)
+     => Choice "preservePartitions"
+     -> Closure (Stream (Of a) IO () -> Stream (Of b) IO ())
+     -> RDD a
+  %1 -> IO (RDD b)
 mapPartitions preservePartitions clos rdd =
   mapPartitionsWithIndex preservePartitions (closure (static const) `cap` clos) rdd
 
@@ -151,7 +158,7 @@ mapPartitionsWithIndex
   -> Closure (Int32 -> Stream (Of a) IO () -> Stream (Of b) IO ())
   -> RDD a
   -> IO (RDD b)
-mapPartitionsWithIndex preservePartitions clos rdd = do
+mapPartitionsWithIndex preservePartitions clos rdd = Control.Functor.Linear.do
   f <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) clos
   [java| $rdd.mapPartitionsWithIndex($f, $preservePartitions) |]
 
@@ -161,7 +168,7 @@ fold
   -> a
   -> RDD a
   -> IO a
-fold clos zero rdd = do
+fold clos zero rdd = Control.Functor.Linear.do
   f <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) clos
   jzero <- upcast <$> reflect zero
   res :: JObject <- [java| $rdd.fold($jzero, $f) |]
@@ -169,10 +176,10 @@ fold clos zero rdd = do
 
 slowReduce
   :: (Static (Reify a), Static (Reflect a), Typeable a)
-  => Closure (a -> a -> a)
-  -> RDD a
-  -> IO a
-slowReduce clos rdd = do
+     => Closure (a -> a -> a)
+     -> RDD a
+  %1 -> IO a
+slowReduce clos rdd = Control.Functor.Linear.do
   f <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) clos
   res :: JObject <- [java| $rdd.reduce($f) |]
   reify (unsafeCast res)
@@ -210,7 +217,7 @@ sortBy
   -- ^ Number of partitions.
   -> RDD a
   -> IO (RDD a)
-sortBy clos ascending numPartitions rdd = do
+sortBy clos ascending numPartitions rdd = Control.Functor.Linear.do
   f <- unsafeUngeneric <$> reflectFun (sing :: Sing 1) clos
   [java| $rdd.sortBy($f, $ascending, $numPartitions) |]
 
@@ -221,7 +228,7 @@ slowAggregate
   -> b
   -> RDD a
   -> IO b
-slowAggregate seqOp combOp zero rdd = do
+slowAggregate seqOp combOp zero rdd = Control.Functor.Linear.do
   jseqOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) seqOp
   jcombOp <- unsafeUngeneric <$> reflectFun (sing :: Sing 2) combOp
   jzero <- upcast <$> reflect zero
@@ -237,46 +244,47 @@ aggregate
      , Static (Serializable b)
      , Typeable a
      )
-  => Closure (b -> a -> b)
-  -> Closure (b -> b -> b)
-  -> b
-  -> RDD a
-  -> IO b
+     => Closure (b -> a -> b)
+     -> Closure (b -> b -> b)
+     -> b
+     -> RDD a
+  %1 -> IO b
 aggregate seqOp combOp zero rdd0 =
-    withLocalRef
-      (mapPartitions (Choice.Don't #preservePartitions) seqOp' rdd0)
-      (slowReduce combOp)
+    mapPartitions (Choice.Don't #preservePartitions) seqOp' rdd0 >>= slowReduce combOp
   where
-    seqOp' = closure (static (\f e s -> effect (S.yield <$> S.fold_ f e id s)))
+    seqOp' = closure (static (\f e s -> Effect (S.yield <$> S.fold_ f e id s)))
        `cap` seqOp
        `cap` cpure closureDict zero
 
 treeAggregate
-  :: (Static (Reify a), Static (Reify b), Static (Reflect b), Typeable a, Typeable b)
-  => Closure (b -> a -> b)
-  -> Closure (b -> b -> b)
-  -> b
-  -> Int32
-  -> RDD a
-  -> IO b
-treeAggregate seqOp combOp zero depth rdd = do
+     :: (Static (Reify a), Static (Reify b), Static (Reflect b), Typeable a, Typeable b)
+     => Closure (b -> a -> b)
+     -> Closure (b -> b -> b)
+     -> b
+     -> Int32
+     -> RDD a
+  %1 -> IO b
+treeAggregate seqOp combOp zero depth rdd = Control.Functor.Linear.do
   jseqOp <- ungeneric <$> reflectFun (sing :: Sing 2) seqOp
   jcombOp <- ungeneric <$> reflectFun (sing :: Sing 2) combOp
   jzero <- upcast <$> reflect zero
   res :: JObject <- [java| $rdd.treeAggregate($jzero, $jseqOp, $jcombOp, $depth) |]
-  reify (unsafeCast res)
+  (resRef, Ur res') <- reify (unsafeCast res)
+  deleteLocalRef resRef
+  pure res'
 
-count :: RDD a -> IO Int64
-count rdd = do 
+count :: RDD a %1 -> IO Int64
+count rdd = Control.Functor.Linear.do 
   n <- [java| $rdd.count() |] 
-  (ref, Ur m) <- reify n
+  (intRef, Ur m) <- reify n
+  deleteLocalRef intRef
   pure m
 
-mean :: RDD Double -> IO Double
+mean :: RDD Double %1 -> IO Double
 mean rdd =
   [java| $rdd.mapToDouble(r -> (double)r).mean() |]
 
-subtract :: RDD a -> RDD a -> IO (RDD a)
+subtract :: RDD a %1 -> RDD a %1 -> IO (RDD a)
 subtract rdd1 rdd2 = [java| $rdd1.subtract($rdd2) |]
 
 -- $reading_files
@@ -296,26 +304,29 @@ subtract rdd1 rdd2 = [java| $rdd1.subtract($rdd2) |]
 -- [1] https://issues.apache.org/jira/browse/SPARK-1018
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
-collect :: Reify a => RDD a -> IO [a]
-collect rdd = do
+-- | TODO: return RDD in return type or consume automatically?
+collect :: Reify a => RDD a %1 -> IO [a]
+collect rdd = Control.Functor.Linear.do
     arr :: JObjectArray <- [java| $rdd.collect().toArray() |]
     (arr', Ur xs) <- reify (unsafeCast arr)
+    deleteLocalRef arr'
     pure xs
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
-take :: Reify a => Int32 -> RDD a -> IO [a]
-take n rdd = do
+take :: Reify a => Int32 -> RDD a %1 -> IO [a]
+take n rdd = Control.Functor.Linear.do
   arr :: JObjectArray <- [java| $rdd.take($n).toArray() |]
   (arr', Ur xs) <- reify (unsafeCast arr)
+  deleteLocalRef arr'
   pure xs
 
-distinct :: RDD a -> IO (RDD a)
+distinct :: RDD a %1 -> IO (RDD a)
 distinct rdd = [java| $rdd.distinct() |]
 
-intersection :: RDD a -> RDD a -> IO (RDD a)
+intersection :: RDD a %1 -> RDD a %1 -> IO (RDD a)
 intersection rdd1 rdd2 = [java| $rdd1.intersection($rdd2) |]
 
-union :: RDD a -> RDD a -> IO (RDD a)
+union :: RDD a %1 -> RDD a %1 -> IO (RDD a)
 union rdd1 rdd2 = [java| $rdd1.union($rdd2) |]
 
 sample
@@ -326,35 +337,41 @@ sample
 sample rdd replacement frac = [java| $rdd.sample($replacement, $frac) |]
 
 randomSplit
-  :: RDD a
-  -> [Double] -- ^ Statistical weights of RDD fractions.
-  -> IO [RDD a]
-randomSplit rdd weights = do
+     :: RDD a
+  %1 -> [Double] -- ^ Statistical weights of RDD fractions.
+     -> IO [RDD a]
+randomSplit rdd weights = Control.Functor.Linear.do
   jweights <- reflect $ V.fromList weights
   arr :: JObjectArray <- [java| $rdd.randomSplit($jweights) |]
-  (arr, Ur n) <- getArrayLength arr
-  go [] arr n 
+  (arr', Ur n) <- getArrayLength arr
+  go [] arr' n 
     where
+      -- Fold-like helper to thread array reference through
+      go :: [RDD a] %1 -> JObjectArray %1 -> Int32 -> IO [RDD a]
       go acc arr' n
-        | n == -1   = pure acc
-        | otherwise = do 
+        | n == -1   = pure acc <* deleteLocalRef arr'
+        | otherwise = Control.Functor.Linear.do 
           (arr'', elt) <- getObjectArrayElement arr' n
-          go (elt : acc) arr'' (n - 1)
+          go ((RDD . unsafeCast) elt : acc) arr'' (n - 1)
 
   -- D.forM [0 .. n - 1] (getObjectArrayElement arr)
 
-first :: Reify a => RDD a -> IO a
-first rdd = do
+first :: Reify a => RDD a %1 -> IO a
+first rdd = Control.Functor.Linear.do
   res :: JObject <- [java| $rdd.first() |]
   (res', Ur x) <- reify (unsafeCast res)
+  deleteLocalRef res'
   pure x
 
-getNumPartitions :: RDD a -> IO Int32
+getNumPartitions :: RDD a %1 -> IO Int32
 getNumPartitions rdd = [java| $rdd.getNumPartitions() |]
 
-saveAsTextFile :: RDD a -> FilePath -> IO ()
-saveAsTextFile rdd fp = do
+-- TODO: The deleteref here might not be safe
+saveAsTextFile :: RDD a %1 -> FilePath -> IO (RDD a)
+saveAsTextFile rdd fp = Control.Functor.Linear.do
   jfp <- reflect (Text.pack fp)
+  (rdd1, rdd2) <- newRDDRef rdd
   -- XXX workaround for inline-java-0.6 not supporting void return types.
-  _ :: JObject <- [java| { $rdd.saveAsTextFile($jfp); return null; } |]
-  return ()
+  jobj :: JObject <- [java| { $rdd1.saveAsTextFile($jfp); return null; } |]
+  deleteLocalRef jobj
+  return rdd2

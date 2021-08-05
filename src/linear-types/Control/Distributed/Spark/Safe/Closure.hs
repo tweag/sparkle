@@ -154,7 +154,7 @@ type family InterpWithArity (n :: Nat) (a :: Type) :: JType
 -- @n@. That is, a value of this function type can be made from a @JFun{n}@.
 class ReifyFun n a where
   -- | Like 'reify', but specialized to reifying functions at a given arity.
-  reifyFun :: MonadIO m => Sing n -> J (InterpWithArity n a) -> m a
+  reifyFun :: MonadIO m => Sing n -> J (InterpWithArity n a) %1 -> m (J (InterpWithArity n a), Ur a)
 
 -- TODO define instances for 'ReifyFun'.
 
