@@ -61,6 +61,7 @@ import Foreign.JNI.Safe as S
 import Foreign.JNI.Types.Safe as S
 import Language.Java.Safe
 import Language.Java.Inline.Safe
+import qualified Language.Java.Unsafe as JUnsafe
 
 -- | The main entry point for Java code to apply a Haskell 'Closure'. This
 -- function is foreign exported.
@@ -146,6 +147,13 @@ clos2bs = Unsafe.toLinear $ LBS.toStrict Prelude.. encode
 
 bs2clos :: Typeable a => ByteString %1-> Closure a
 bs2clos = Unsafe.toLinear $ decode Prelude.. LBS.fromStrict
+
+-- TODO: These two instances should probably go in `jvm` instead of here
+instance (Static (JUnsafe.Reify a), Reify a) => Static (Reify a) where
+  closureDict = closureDict
+
+instance (Static (JUnsafe.Reflect a), Reflect a) => Static (Reflect a) where
+  closureDict = closureDict
 
 -- | Like 'Interp', but parameterized by the target arity of the 'Fun' instance.
 type family InterpWithArity (n :: Nat) (a :: Type) :: JType
@@ -246,8 +254,12 @@ instance ( Static (Reify a)
                `cap` closureDict `cap` closureDict `cap` closureDict
              ) `cap` f
 
+-- | NOTE: we use non-linear IO as the effect monad for the streaming partition
+-- functions, because these functions don't have to deal with java references in
+-- any way, they are more or less "pure" functions on streams of values from an
+-- RDD (maybe this is not true, we'll see)
 newtype MapPartitionsFunction a b =
-    MapPartitionsFunction (Closure (Stream (Of a) IO () -> Stream (Of b) IO ()))
+    MapPartitionsFunction (Closure (Stream (Of a) PL.IO () -> Stream (Of b) PL.IO ()))
 instance (Interpretation a, Interpretation b) =>
          Interpretation (MapPartitionsFunction a b) where
   type Interp (MapPartitionsFunction a b) =
@@ -255,7 +267,7 @@ instance (Interpretation a, Interpretation b) =>
            <> [Interp a, Interp b]
 
 instance ( Interpretation (MapPartitionsFunction a b)
-         , Typeable (Stream (Of a) IO () -> Stream (Of b) IO ())
+         , Typeable (Stream (Of a) PL.IO () -> Stream (Of b) PL.IO ())
          ) =>
          Reify (MapPartitionsFunction a b) where
   reify jobj0 = Control.Functor.Linear.do
@@ -273,11 +285,11 @@ instance ( Interpretation (MapPartitionsFunction a b)
         %1-> J ('Class "io.tweag.sparkle.function.HaskellMapPartitionsFunction")
       cast = Unsafe.toLinear unsafeCast
 
-instance ( Static (Reify (Stream (Of a) IO ()))
-         , Static (Reflect (Stream (Of b) IO ()))
+instance ( Static (Reify (Stream (Of a) PL.IO ()))
+         , Static (Reflect (Stream (Of b) PL.IO ()))
          , Interpretation (MapPartitionsFunction a b)
-         , Typeable (Stream (Of a) IO ())
-         , Typeable (Stream (Of b) IO ())
+         , Typeable (Stream (Of a) PL.IO ())
+         , Typeable (Stream (Of b) PL.IO ())
          ) =>
          Reflect (MapPartitionsFunction a b) where
   reflect (MapPartitionsFunction f) = Control.Functor.Linear.do
