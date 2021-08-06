@@ -276,8 +276,7 @@ count :: RDD a %1 -> IO (Ur Int64)
 count rdd =
   [java| $rdd.count() |] >>= reify_
 
--- TODO: Ur or no?
-mean :: RDD Double %1 -> IO Double
+mean :: RDD Double %1 -> IO (Ur Double)
 mean rdd =
   [java| $rdd.mapToDouble(r -> (double)r).mean() |]
 
@@ -354,8 +353,7 @@ first rdd = Control.Functor.Linear.do
   res :: JObject <- [java| $rdd.first() |]
   reify_ (unsafeCast res)
 
--- TODO: Ur?
-getNumPartitions :: RDD a %1 -> IO Int32
+getNumPartitions :: RDD a %1 -> IO (Ur Int32)
 getNumPartitions rdd = [java| $rdd.getNumPartitions() |]
 
 -- TODO: The deleteref here might not be safe
