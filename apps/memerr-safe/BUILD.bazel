@@ -1,0 +1,29 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_library",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_library(
+  name = "memerr-safe-hs",
+  srcs = ["Main.hs"],
+  deps = [
+    "//:sparkle-lib",
+	"@stackage//:base",
+	"@stackage//:distributed-closure",
+        "@stackage//:bytestring",
+        "@stackage//:text",
+        "@stackage//:choice",
+        "@stackage//:optparse-applicative",
+        "@stackage//:linear-base",
+        "@io_tweag_inline_java//jni",
+  ],
+)
+
+sparkle_package(
+  name = "memerr-safe",
+  src = ":memerr-safe-hs",
+)
