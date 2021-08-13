@@ -55,7 +55,8 @@ import qualified Data.Text as Text
 import Data.Text (Text)
 import Control.Distributed.Spark.Safe.RDD
 -- import Language.Java
--- import Language.Java.Inline
+-- import qualified Language.Java.Inline as UnsafeInline
+import qualified Foreign.JNI.Types 
 
 import Foreign.JNI.Safe 
 import Foreign.JNI.Types.Safe
@@ -77,20 +78,24 @@ newSparkConf appname = Control.Functor.Linear.do
 -- TODO: do we want to make sparkconf's linear?
 -- pros: we will only be able to have a single SparkContext, as required
 -- cons: updating sparkConfig is more annoying now
-confSet :: SparkConf -> Text -> Text -> IO ()
+confSet :: SparkConf %1 -> Text -> Text -> IO SparkConf
 confSet conf key value = Control.Functor.Linear.do
   jkey <- reflect key
   jval <- reflect value
-  SparkConf scRef <- [java| $conf.set($jkey, $jval) |]
-  deleteLocalRef scRef
+  [java| $conf.set($jkey, $jval) |]
 
-confGet :: SparkConf -> Text -> Text -> IO (Ur Text)
-confGet conf key def =
-  reflect key >>= \jkey ->
-    reflect def >>= \jdef ->
-      call conf "get" jkey jdef End >>= reify_
+-- NOTE: I don't think `call` deletes the reference to the object whose method
+-- is being invoked
+-- QUESTION: should sparkconf be used linearly here?
+confGet :: SparkConf %1 -> Text -> Text -> IO (SparkConf, Ur Text)
+confGet conf key def = Control.Functor.Linear.do
+  jkey <- reflect key
+  jdef <- reflect def
+  (conf0, conf1) <- newLocalRef conf
+  resText <- call conf0 "get" jkey jdef End >>= reify_
+  pure (conf1, resText)
 
-setLocalProperty :: SparkContext -> Text -> Text -> IO ()
+setLocalProperty :: SparkContext %1 -> Text -> Text -> IO SparkContext
 setLocalProperty sc key value =
   reflect key >>= \jkey ->
     reflect value >>= \jval ->
@@ -112,12 +117,14 @@ getOrCreateSparkContext conf = Control.Functor.Linear.do
 -- | Adds the given file to the pool of files to be downloaded
 --   on every worker node. Use 'getFile' on those nodes to
 --   get the (local) file path of that file in order to read it.
-addFile :: SparkContext -> FilePath -> IO ()
+addFile :: SparkContext %1 -> FilePath -> IO SparkContext
 addFile sc fp = Control.Functor.Linear.do
   jfp <- reflect (Text.pack fp)
+  (sc0, sc1) <- newLocalRef sc
   -- XXX workaround for inline-java-0.6 not supporting void return types.
-  nullRef :: JObject <- [java| { $sc.addFile($jfp); return null; } |]
+  nullRef :: JObject <- [java| { $sc0.addFile($jfp); return null; } |]
   deleteLocalRef nullRef
+  pure sc1
 
 -- | Returns the local filepath of the given filename that
 --   was "registered" using 'addFile'.
@@ -127,11 +134,11 @@ getFile filename = Control.Functor.Linear.do
   jfilepath <- [java| org.apache.spark.SparkFiles.get($jfilename) |] 
   D.fmap (Unsafe.toLinear Text.unpack) <$> reify_ jfilepath
 
-master :: SparkContext -> IO (Ur Text)
+master :: SparkContext %1 -> IO (Ur Text)
 master sc = [java| $sc.master() |] >>= reify_
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
-textFile :: SparkContext -> FilePath -> IO (RDD Text)
+textFile :: SparkContext %1 -> FilePath -> IO (RDD Text)
 textFile sc path = Control.Functor.Linear.do
   jpath <- reflect (Text.pack path)
   [java| $sc.textFile($jpath) |]
@@ -139,22 +146,22 @@ textFile sc path = Control.Functor.Linear.do
 -- | The record length must be provided in bytes.
 --
 -- See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
-binaryRecords :: SparkContext -> FilePath -> Int32 -> IO (RDD ByteString)
+binaryRecords :: SparkContext %1 -> FilePath -> Int32 -> IO (RDD ByteString)
 binaryRecords sc fp recordLength = Control.Functor.Linear.do
   jpath <- reflect (Text.pack fp)
   [java| $sc.binaryRecords($jpath, $recordLength) |]
 
 parallelize
   :: Reflect a
-  => SparkContext
-  -> [a]
-  -> IO (RDD a)
+     => SparkContext
+  %1 -> [a]
+     -> IO (RDD a)
 parallelize sc xs = Control.Functor.Linear.do
-  jxs :: J ('Array ('Class "java.lang.Object")) <- unsafeCast <$> reflect xs
+  jxs :: J ('Array ('Class "java.lang.Object")) <- arrayUpcast <$> reflect xs
   jlist :: J ('Iface "java.util.List") <- [java| java.util.Arrays.asList($jxs) |]
-  [java| $sc.parallelize($jlist) |]
+  [java| $sc.parallelize($jlist) |] 
 
-setJobGroup :: Text -> Text -> Bool -> SparkContext -> IO ()
+setJobGroup :: Text -> Text -> Bool -> SparkContext %1 -> IO ()
 setJobGroup jobId description interruptOnCancel sc = Control.Functor.Linear.do
   jjobId <- reflect jobId
   jdescription <- reflect description
@@ -162,7 +169,7 @@ setJobGroup jobId description interruptOnCancel sc = Control.Functor.Linear.do
   deleteLocalRef nullRef
         --call sc "setJobGroup" jjobId jdescription interruptOnCancel End >> pure ()
 
-cancelJobGroup :: Text -> SparkContext -> IO ()
+cancelJobGroup :: Text -> SparkContext %1 -> IO ()
 cancelJobGroup jobId sc = reflect jobId >>= \jjobId -> call sc "cancelJobGroup" jjobId End
 
 context :: RDD a %1 -> IO SparkContext

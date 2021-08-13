@@ -20,6 +20,8 @@
 
 module Control.Distributed.Spark.Safe.RDD
   ( RDD(..)
+  , newRDDRef
+  , deleteRDDRef
   , isEmpty
   , toDebugString
   , cache
@@ -82,7 +84,10 @@ import Language.Java.Inline
 import Language.Java.Streaming ()
 -}
 
--- import Language.Java (withLocalRef, unsafeUngeneric)
+-- NOTE: We need this in order to be able to use newLocalRef and deleteLocalRef,
+-- as the typechecker needs to be able to see the unsafe J data constructor to
+-- derive Coercible instances
+import qualified Foreign.JNI.Types
 
 import Foreign.JNI.Safe 
 import Foreign.JNI.Types.Safe
@@ -101,6 +106,9 @@ newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
 -- | Makes a new reference to the given RDD, so you can use it twice
 newRDDRef :: RDD a %1 -> IO (RDD a, RDD a)
 newRDDRef (RDD rddRef) = newLocalRef rddRef >>= \(r1, r2) -> pure (RDD r1, RDD r2)
+
+deleteRDDRef :: RDD a %1 -> IO ()
+deleteRDDRef (RDD rddRef) = deleteLocalRef rddRef
 
 cache :: RDD a %1 -> IO (RDD a)
 cache rdd = [java| $rdd.cache() |]
@@ -360,7 +368,7 @@ getNumPartitions rdd = [java| $rdd.getNumPartitions() |]
 saveAsTextFile :: RDD a %1 -> FilePath -> IO (RDD a)
 saveAsTextFile rdd fp = Control.Functor.Linear.do
   jfp <- reflect (Text.pack fp)
-  (rdd1, rdd2) <- newRDDRef rdd
+  (rdd1, rdd2) <- newLocalRef rdd
   -- XXX workaround for inline-java-0.6 not supporting void return types.
   jobj :: JObject <- [java| { $rdd1.saveAsTextFile($jfp); return null; } |]
   deleteLocalRef jobj
