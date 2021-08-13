@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LinearTypes #-}
 {-# LANGUAGE QualifiedDo #-}
 
@@ -12,35 +13,25 @@ module Main where
 import qualified Control.Distributed.Spark as Spark
 import Control.Distributed.Spark.Safe.RDD
 import Control.Distributed.Spark.Safe.Context
-import Control.Distributed.Spark.Safe.Closure
 
-import qualified Prelude 
-import Prelude.Linear as PL
+import qualified Prelude  as P
+import Prelude ((<>))
+import Prelude.Linear as PL hiding ((<>))
 import Control.Functor.Linear
-import qualified Data.Functor.Linear as D
-import qualified Unsafe.Linear as Unsafe
--- import System.IO.Linear (fromSystemIO)
 import Data.Unrestricted.Linear ()
-import Control.Monad.IO.Class.Linear
 import qualified System.IO.Linear as LIO
 
--- import qualified Data.ByteString as B
 import qualified Data.Text as T
 import Data.Choice 
-import Data.Foldable
--- import Data.Int
 import qualified Options.Applicative as Opt
-import Options.Applicative (helper, help, info, fullDesc, Parser, flag, optional, auto, value, metavar)
+import Options.Applicative (helper, help, info, fullDesc, Parser, flag, auto, value, metavar)
 
+import qualified Foreign.JNI.Types
+import Foreign.JNI.Types.Safe
 import Foreign.JNI.Safe as S
-import Foreign.JNI.Types.Safe as S
-{-
-import Language.Java.Safe
-import Language.Java.Inline.Safe
-import qualified Language.Java.Unsafe as JUnsafe
--}
 
-toLIO = LIO.fromSystemIOU
+toLIO :: IO a %1 -> LIO.IO a
+toLIO = LIO.fromSystemIO
 
 -- Parser for the command line options
 
@@ -61,37 +52,44 @@ wHelp :: String
 wHelp = "Width of each line of input text (default: 1000)"
 
 deleteRefsHelp :: String
-deleteRefsHelp = "If this flag is present, deletes unused references to old RDDS during program execution"
+deleteRefsHelp = unwords 
+    [ "If this flag is present, deletes unused references to old RDDS during program execution"
+    , " (Note: it is meaningless for this flag not to be present, as we are now forced to delete references by the type checker)"
+    ]
 
 argsParser :: Parser Options
 argsParser = Options 
-                 <$> flag (Don't #deleteRefs) (Do #deleteRefs) (Opt.long "delete-refs" <> help deleteRefsHelp)
-                 <*> option auto (value 600 <> Opt.short 'n' <> metavar "N" <> help nHelp)
-                 <*> option auto (value 370 <> Opt.short 'l' <> metavar "L" <> help lHelp)
-                 <*> option auto (value 1000 <> Opt.short 'w' <> metavar "W" <> help wHelp)
+                 P.<$> flag (Don't #deleteRefs) (Do #deleteRefs) (Opt.long "delete-refs" <> help deleteRefsHelp)
+                 P.<*> Opt.option auto (value 600 <> Opt.short 'n' <> metavar "N" <> help nHelp)
+                 P.<*> Opt.option auto (value 370 <> Opt.short 'l' <> metavar "L" <> help lHelp)
+                 P.<*> Opt.option auto (value 1000 <> Opt.short 'w' <> metavar "W" <> help wHelp)
 
 main :: IO ()
 main = Spark.forwardUnhandledExceptionsToSpark $ do
   LIO.withLinearIO $ Control.Functor.Linear.do
-    conf <- newSparkConf "Memory memery"
+    conf <- newSparkConf "Safe memory memery"
     -- NOTE: it would be ideal if we could just set the driver memory here
     -- by dynamically modifying the spark config, but when run in local mode,
     -- you have to set it through the `spark-submit` CLI
-    Ur sc   <- Unsafe.toLinear Ur <$> getOrCreateSparkContext conf
-    Ur Options{..} <- toLIO $ Opt.execParser (info (helper Opt.<*> argsParser) fullDesc)
-    Ur _ <- toLIO $ putStrLn $ "# of references to be created: " ++ show numRefs
-    Ur _ <- toLIO $ putStrLn $ "Input length: " ++ show inputLength
-    Ur _ <- toLIO $ putStrLn $ "Input width: " ++ show inputWidth
-    -- Try other type of contents
-    -- rdd  <- parallelize sc $ replicate inputLength $ B.replicate inputWidth (toEnum 0)
-    rdd <- parallelize sc $ replicate inputLength $ T.replicate inputWidth (T.singleton '0')
-    -- rdd  <- parallelize sc $ replicate inputLength $ (0 :: Int32)
-    -- Perform the main loop, optionally retaining the references to the rdd
-    -- look at marshalling of bytestrings and collect
-    rdd' <- if toBool deleteRefs 
-      then foldM (\rdd' (Ur _) -> collect rdd' >>= \(Ur elts) -> parallelize sc elts) rdd (Prelude.fmap Ur [0..numRefs])
-      else pure rdd
-      -- else foldM (\rdd' _ -> collect rdd' >>= \(Ur elts) -> parallelize sc elts) rdd [0..numRefs]
-    --
+    sc <- getOrCreateSparkContext conf
+    Ur Options{..} <- LIO.fromSystemIOU $ Opt.execParser (info (helper P.<*> argsParser) fullDesc)
+    toLIO $ putStrLn $ "# of references to be created: " ++ show numRefs
+    toLIO $ putStrLn $ "Input length: " ++ show inputLength
+    toLIO $ putStrLn $ "Input width: " ++ show inputWidth
+    -- Create the initial RDD with specified size
+    Ur xs <- pure $ Ur $ P.replicate inputLength $ T.replicate inputWidth (T.singleton '0')
+    (sc0, sc1) <- newLocalRef sc
+    rdd <- parallelize sc0 xs
+    -- Main loop of the program
+    (rdd', sc2) <- 
+      if toBool deleteRefs 
+         then foldM 
+                (\(rdd', sc') (Ur _) -> collect rdd' >>= 
+                   \(Ur elts) -> newLocalRef sc' >>=
+                     \(sc2, sc3) -> (,sc3) <$> parallelize sc2 elts) 
+                (rdd, sc1) 
+                (P.fmap Ur [0..numRefs])
+         else toLIO (putStrLn "It's impossible not to delete references anymore") >> pure (rdd, sc1)
+    deleteLocalRef sc2
     Ur n <- count rdd'
-    toLIO $ putStrLn $ "RDD size: " ++ show n
+    LIO.fromSystemIOU $ putStrLn $ "RDD size: " ++ show n
