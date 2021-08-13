@@ -40,10 +40,9 @@ module Control.Distributed.Spark.Safe.Context
   , textFile
   ) where
 
--- Linear stuff we probably need
+-- Linear stuff we need
 import qualified Prelude ()
 import Prelude.Linear hiding (IO, filter, map, subtract, take, zero)
--- import qualified Prelude.Linear as PL
 import System.IO.Linear as LIO
 import Control.Functor.Linear
 import qualified Data.Functor.Linear as D
@@ -53,11 +52,10 @@ import Data.Int (Int32)
 import Data.ByteString (ByteString)
 import qualified Data.Text as Text
 import Data.Text (Text)
-import Control.Distributed.Spark.Safe.RDD
--- import Language.Java
--- import qualified Language.Java.Inline as UnsafeInline
-import qualified Foreign.JNI.Types 
 
+import Control.Distributed.Spark.Safe.RDD
+
+import qualified Foreign.JNI.Types 
 import Foreign.JNI.Safe 
 import Foreign.JNI.Types.Safe
 import Language.Java.Safe

@@ -59,17 +59,12 @@ module Control.Distributed.Spark.Safe.RDD
 import qualified Prelude
 import Prelude.Linear hiding (IO, filter, map, subtract, take, zero)
 import qualified Prelude.Linear as PL
--- import Control.Monad.IO.Class.Linear
 import System.IO.Linear as LIO
-
 import Control.Functor.Linear
--- import qualified Data.Functor.Linear as D
 
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Safe.Closure (reflectFun)
--- import Control.Distributed.Spark.RDD (RDD(..))
 
--- import Control.Monad
 import Data.Choice (Choice)
 import qualified Data.Choice as Choice
 import Data.Int
@@ -77,12 +72,6 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Typeable (Typeable)
 import Data.Vector.Storable as V (fromList)
-{-
-import Foreign.JNI
-import Language.Java.Inline
--- We don't need this instance. But import to bring it in scope transitively for users.
-import Language.Java.Streaming ()
--}
 
 -- NOTE: We need this in order to be able to use newLocalRef and deleteLocalRef,
 -- as the typechecker needs to be able to see the unsafe J data constructor to
@@ -308,7 +297,6 @@ subtract rdd1 rdd2 = [java| $rdd1.subtract($rdd2) |]
 -- [1] https://issues.apache.org/jira/browse/SPARK-1018
 
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
--- | TODO: return RDD in return type or consume automatically?
 collect :: Reify a => RDD a %1 -> IO (Ur [a])
 collect rdd = Control.Functor.Linear.do
     arr :: JObjectArray <- [java| $rdd.collect().toArray() |]
@@ -354,8 +342,6 @@ randomSplit rdd weights = Control.Functor.Linear.do
           (arr'', elt) <- getObjectArrayElement arr' (toEnum n)
           go ((RDD . unsafeCast) elt : acc) arr'' (n - 1)
 
-  -- D.forM [0 .. n - 1] (getObjectArrayElement arr)
-
 first :: Reify a => RDD a %1 -> IO (Ur a)
 first rdd = Control.Functor.Linear.do
   res :: JObject <- [java| $rdd.first() |]
@@ -364,7 +350,6 @@ first rdd = Control.Functor.Linear.do
 getNumPartitions :: RDD a %1 -> IO (Ur Int32)
 getNumPartitions rdd = [java| $rdd.getNumPartitions() |]
 
--- TODO: The deleteref here might not be safe
 saveAsTextFile :: RDD a %1 -> FilePath -> IO (RDD a)
 saveAsTextFile rdd fp = Control.Functor.Linear.do
   jfp <- reflect (Text.pack fp)
