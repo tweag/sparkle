@@ -22,15 +22,15 @@ module Control.Distributed.Spark.Safe.Closure
   ( MapPartitionsFunction(..)
   , ReduceFunction(..)
   , ReifyFun(..)
+  , reifyFun_
   , ReflectFun(..)
   , JFun1
   , JFun2
-  --, apply
   ) where
 
 import qualified Prelude 
 import Prelude.Linear as PL
-import Control.Functor.Linear
+import Control.Functor.Linear as Linear
 import qualified Data.Functor.Linear as D
 import qualified Unsafe.Linear as Unsafe
 import Data.Unrestricted.Linear ()
@@ -62,15 +62,11 @@ closFun1
      -> (a -> b)
      -> JObjectArray
   %1 -> LIO.IO JObject
-closFun1 Dict f args = Control.Functor.Linear.do
+closFun1 Dict f args = Linear.do
   (args', a) <- S.getObjectArrayElement args 0
-  (objptr, Ur a') <- reif (unsafeCast a)
-  S.deleteLocalRef objptr
+  Ur a' <- reify_ (unsafeCast a)
   S.deleteLocalRef args'
-  upcast <$> refl (f a')
-  where
-    reif = reify :: J (Interp a) %1 -> LIO.IO (J (Interp a), Ur a)
-    refl = reflect :: b -> LIO.IO (J (Interp b))
+  upcast <$> reflect (f a')
 
 tripleDict :: Dict c1 -> Dict c2 -> Dict c3 -> Dict (c1, c2, c3)
 tripleDict Dict Dict Dict = Dict
@@ -81,19 +77,14 @@ closFun2
      -> (a -> b -> c)
      -> JObjectArray
   %1 -> LIO.IO JObject
-closFun2 Dict f args = Control.Functor.Linear.do
+closFun2 Dict f args = Linear.do
     (args', a) <- second unsafeCast <$> S.getObjectArrayElement args 0
     (args'', b) <- second unsafeCast <$> S.getObjectArrayElement args' 1
-    (aptr, Ur a') <- reifA a
-    (bptr, Ur b') <- reifB b
-    S.deleteLocalRef aptr
-    S.deleteLocalRef bptr
+    Ur a' <- reify_ a
+    Ur b' <- reify_ b
     S.deleteLocalRef args''
-    upcast <$> reflC (f a' b')
+    upcast <$> reflect (f a' b')
   where
-    reifA = reify :: J (Interp a) %1 -> LIO.IO (J (Interp a), Ur a)
-    reifB = reify :: J (Interp b) %1 -> LIO.IO (J (Interp b), Ur b)
-    reflC = reflect :: c -> LIO.IO (J (Interp c))
     second :: (n %1 -> o) -> (m, n) %1 -> (m, o)
     second g (a, b) = (a, g b) 
 
@@ -112,6 +103,11 @@ type family InterpWithArity (n :: Nat) (a :: Type) :: JType
 class ReifyFun n a where
   -- | Like 'reify', but specialized to reifying functions at a given arity.
   reifyFun :: MonadIO m => Sing n -> J (InterpWithArity n a) %1 -> m (J (InterpWithArity n a), Ur a)
+
+reifyFun_ :: (MonadIO m, ReifyFun n a) => Sing n -> J (InterpWithArity n a) %1 -> m (Ur a)
+reifyFun_ s ref = 
+  reifyFun s ref >>= \(ref', ura) -> 
+    S.deleteLocalRef ref' >> pure ura
 
 -- TODO define instances for 'ReifyFun'.
 
@@ -132,7 +128,7 @@ instance ( Static (Reify a)
          , Typeable b
          ) =>
          ReflectFun 1 (a -> b) where
-  reflectFun _ f = Control.Functor.Linear.do
+  reflectFun _ f = Linear.do
       jpayload <- reflect (forget clos2bs wrap)
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new jpayload End
       return (unsafeGeneric (unsafeCast obj))
@@ -153,7 +149,7 @@ instance ( Static (Reify a)
          , Typeable c
          ) =>
          ReflectFun 2 (a -> b -> c) where
-  reflectFun _ f = Control.Functor.Linear.do
+  reflectFun _ f = Linear.do
       jpayload <- reflect (forget clos2bs wrap)
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new jpayload End
       return (unsafeGeneric (unsafeCast obj))
@@ -171,25 +167,19 @@ instance Interpretation a => Interpretation (ReduceFunction a) where
 
 instance (Interpretation (ReduceFunction a), Typeable (a -> a -> a)) =>
          Reify (ReduceFunction a) where
-  reify jobj0 = Control.Functor.Linear.do
+  reify jobj0 = Linear.do
       (jobj1, jobj2) <- S.newLocalRef jobj0
-      jobj <- pure $ cast jobj1 -- ^ We need to do this bc right side of let binding is not linear
-      bsptr <- [java| $jobj.clos |]
-      (bsptr', urbs) <- reify bsptr
-      S.deleteLocalRef bsptr'
-      pure $ (jobj2, (ReduceFunction . bs2clos) D.<$> urbs)
-    where
-      cast
-        :: J (Interp (ReduceFunction a))
-        %1-> J ('Class "io.tweag.sparkle.function.HaskellReduceFunction")
-      cast = Unsafe.toLinear unsafeCast
+      -- We need to do this bc right side of let binding is not linear
+      jobj :: J ('Class "io.tweag.sparkle.function.HaskellReduceFunction") <- pure $ unsafeCast jobj1 
+      urbytes <- [java| $jobj.clos |] >>= reify_
+      pure $ (jobj2, (ReduceFunction . bs2clos) D.<$> urbytes)
 
 instance ( Static (Reify a)
          , Static (Reflect a)
          , Typeable a
          ) =>
          Reflect (ReduceFunction a) where
-  reflect (ReduceFunction f) = Control.Functor.Linear.do
+  reflect (ReduceFunction f) = Linear.do
       jpayload <- reflect (clos2bs wrap)
       unsafeGeneric <$>
         [java| new io.tweag.sparkle.function.HaskellReduceFunction($jpayload) |]
@@ -216,18 +206,11 @@ instance ( Interpretation (MapPartitionsFunction a b)
          , Typeable (Stream (Of a) PL.IO () -> Stream (Of b) PL.IO ())
          ) =>
          Reify (MapPartitionsFunction a b) where
-  reify jobj0 = Control.Functor.Linear.do
+  reify jobj0 = Linear.do
       (jobj1, jobj2) <- S.newLocalRef jobj0
-      jobj <- pure $ cast jobj2
-      bsptr <- [java| $jobj.clos |]
-      (bsptr', urbs) <- reify bsptr
-      S.deleteLocalRef bsptr'
-      pure $ (jobj1, (MapPartitionsFunction . bs2clos) D.<$> urbs)
-    where
-      cast
-        :: J (Interp (MapPartitionsFunction a b))
-        %1-> J ('Class "io.tweag.sparkle.function.HaskellMapPartitionsFunction")
-      cast = Unsafe.toLinear unsafeCast
+      jobj :: J ('Class  "io.tweag.sparkle.function.HaskellMapPartitionsFunction") <- pure $ unsafeCast jobj2
+      urbytes <- [java| $jobj.clos |] >>= reify_
+      pure $ (jobj1, (MapPartitionsFunction . bs2clos) D.<$> urbytes)
 
 instance ( Static (Reify (Stream (Of a) PL.IO ()))
          , Static (Reflect (Stream (Of b) PL.IO ()))
@@ -236,7 +219,7 @@ instance ( Static (Reify (Stream (Of a) PL.IO ()))
          , Typeable (Stream (Of b) PL.IO ())
          ) =>
          Reflect (MapPartitionsFunction a b) where
-  reflect (MapPartitionsFunction f) = Control.Functor.Linear.do
+  reflect (MapPartitionsFunction f) = Linear.do
       jpayload <- reflect (clos2bs wrap)
       unsafeGeneric <$>
         [java| new io.tweag.sparkle.function.HaskellMapPartitionsFunction($jpayload) |]
