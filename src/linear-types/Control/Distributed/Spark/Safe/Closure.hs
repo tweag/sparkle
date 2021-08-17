@@ -33,28 +33,18 @@ import Prelude.Linear as PL
 import Control.Functor.Linear
 import qualified Data.Functor.Linear as D
 import qualified Unsafe.Linear as Unsafe
--- import System.IO.Linear (fromSystemIO)
 import Data.Unrestricted.Linear ()
 import Control.Monad.IO.Class.Linear
 import qualified System.IO.Linear as LIO
 
--- import Control.Exception (fromException, catch)
 import Control.Distributed.Closure
 import Control.Distributed.Closure.TH
 import Data.Binary (encode, decode)
 import Data.Kind (Type)
--- import qualified Data.Coerce as Coerce
 import qualified Data.ByteString.Lazy as LBS
 import Data.ByteString (ByteString)
--- import Data.Text as Text
 import Data.Typeable (Typeable)
--- import Foreign.ForeignPtr (newForeignPtr_)
--- import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
--- import Foreign.JNI
--- import Foreign.Ptr (Ptr)
 import GHC.TypeLits (Nat)
--- import Language.Java
--- import Language.Java.Inline
 import Streaming (Stream, Of)
 
 import Foreign.JNI.Safe as S
@@ -62,40 +52,6 @@ import Foreign.JNI.Types.Safe as S
 import Language.Java.Safe
 import Language.Java.Inline.Safe
 import qualified Language.Java.Unsafe as JUnsafe
-
--- | The main entry point for Java code to apply a Haskell 'Closure'. This
--- function is foreign exported.
---
--- The function in the closure pointed by the first argument must yield
--- a local reference to a Java object, or the reference might be released
--- prematurely.
-{-
-apply
-  :: Ptr JByteArray
-  -> Ptr JObjectArray
-  -> IO (Ptr JObject)
-apply bytes args = do
-    bs <- (J <$> newForeignPtr_ bytes) >>= reify
-    let f = unclosure (bs2clos bs) :: JObjectArray -> IO JObject
-    unsafeForeignPtrToPtr <$> Coerce.coerce <$>
-      (do fptr <- newForeignPtr_ args
-          f (J fptr) `catch` \e -> case fromException e of
-            -- forward JVMExceptions
-            Just (JVMException j) -> Foreign.JNI.throw j >> return jnull
-            -- send other exceptions in string form
-            Nothing -> do
-              jt <- reflect (Text.pack $ show e)
-              je <- new jt
-              Foreign.JNI.throw (je :: J ('Class "java/lang/RuntimeException"))
-              return jnull
-      )
-
-foreign export ccall "sparkle_apply" apply
-  :: Ptr JByteArray
-  -> Ptr JObjectArray
-  -> IO (Ptr JObject)
-  -}
-
 
 pairDict :: Dict c1 -> Dict c2 -> Dict (c1, c2)
 pairDict Dict Dict = Dict
@@ -112,7 +68,6 @@ closFun1 Dict f args = Control.Functor.Linear.do
   S.deleteLocalRef objptr
   S.deleteLocalRef args'
   upcast <$> refl (f a')
-    -- fmap upcast . refl =<< return . f =<< reif . unsafeCast =<< S.getObjectArrayElement args 0
   where
     reif = reify :: J (Interp a) %1 -> LIO.IO (J (Interp a), Ur a)
     refl = reflect :: b -> LIO.IO (J (Interp b))
@@ -148,12 +103,6 @@ clos2bs = Unsafe.toLinear $ LBS.toStrict Prelude.. encode
 bs2clos :: Typeable a => ByteString %1-> Closure a
 bs2clos = Unsafe.toLinear $ decode Prelude.. LBS.fromStrict
 
--- TODO: These two instances should probably go in `jvm` instead of here
-instance (Static (JUnsafe.Reify a), Reify a) => Static (Reify a) where
-  closureDict = closureDict
-
-instance (Static (JUnsafe.Reflect a), Reflect a) => Static (Reflect a) where
-  closureDict = closureDict
 
 -- | Like 'Interp', but parameterized by the target arity of the 'Fun' instance.
 type family InterpWithArity (n :: Nat) (a :: Type) :: JType
@@ -186,7 +135,6 @@ instance ( Static (Reify a)
   reflectFun _ f = Control.Functor.Linear.do
       jpayload <- reflect (forget clos2bs wrap)
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new jpayload End
-      -- obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- [java| new HaskellFunction($jpayload) |]
       return (unsafeGeneric (unsafeCast obj))
     where
       wrap :: Closure (JObjectArray %1-> LIO.IO JObject)
@@ -207,7 +155,6 @@ instance ( Static (Reify a)
          ReflectFun 2 (a -> b -> c) where
   reflectFun _ f = Control.Functor.Linear.do
       jpayload <- reflect (forget clos2bs wrap)
-      -- obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- [java| new HaskellFunction2($jpayload) |]
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new jpayload End
       return (unsafeGeneric (unsafeCast obj))
     where
@@ -231,7 +178,6 @@ instance (Interpretation (ReduceFunction a), Typeable (a -> a -> a)) =>
       (bsptr', urbs) <- reify bsptr
       S.deleteLocalRef bsptr'
       pure $ (jobj2, (ReduceFunction . bs2clos) D.<$> urbs)
-      -- ReduceFunction . bs2clos <$> ([java| $jobj.clos |] >>= reify)
     where
       cast
         :: J (Interp (ReduceFunction a))
@@ -276,9 +222,7 @@ instance ( Interpretation (MapPartitionsFunction a b)
       bsptr <- [java| $jobj.clos |]
       (bsptr', urbs) <- reify bsptr
       S.deleteLocalRef bsptr'
-      -- NOTE: linear base is missing =<< and <<
       pure $ (jobj1, (MapPartitionsFunction . bs2clos) D.<$> urbs)
-      -- MapPartitionsFunction . bs2clos <$> ([java| $jobj.clos |] >>= reify )
     where
       cast
         :: J (Interp (MapPartitionsFunction a b))

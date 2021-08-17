@@ -22,9 +22,8 @@ import Data.Unrestricted.Linear ()
 import qualified System.IO.Linear as LIO
 
 import qualified Data.Text as T
-import Data.Choice 
 import qualified Options.Applicative as Opt
-import Options.Applicative (helper, help, info, fullDesc, Parser, flag, auto, value, metavar)
+import Options.Applicative (helper, help, info, fullDesc, Parser, auto, value, metavar)
 
 import qualified Foreign.JNI.Types
 import Foreign.JNI.Types.Safe
@@ -36,8 +35,7 @@ toLIO = LIO.fromSystemIO
 -- Parser for the command line options
 
 data Options = Options
-  { deleteRefs  :: Choice "deleteRefs"
-  , numRefs     :: Int
+  { numRefs     :: Int
   , inputLength :: Int
   , inputWidth  :: Int
   }
@@ -51,16 +49,9 @@ lHelp = "Length (number of lines) of input text (default: 370)"
 wHelp :: String 
 wHelp = "Width of each line of input text (default: 1000)"
 
-deleteRefsHelp :: String
-deleteRefsHelp = unwords 
-    [ "If this flag is present, deletes unused references to old RDDS during program execution"
-    , " (Note: it is meaningless for this flag not to be present, as we are now forced to delete references by the type checker)"
-    ]
-
 argsParser :: Parser Options
 argsParser = Options 
-                 P.<$> flag (Don't #deleteRefs) (Do #deleteRefs) (Opt.long "delete-refs" <> help deleteRefsHelp)
-                 P.<*> Opt.option auto (value 600 <> Opt.short 'n' <> metavar "N" <> help nHelp)
+                 P.<$> Opt.option auto (value 600 <> Opt.short 'n' <> metavar "N" <> help nHelp)
                  P.<*> Opt.option auto (value 370 <> Opt.short 'l' <> metavar "L" <> help lHelp)
                  P.<*> Opt.option auto (value 1000 <> Opt.short 'w' <> metavar "W" <> help wHelp)
 
@@ -81,15 +72,12 @@ main = Spark.forwardUnhandledExceptionsToSpark $ do
     (sc0, sc1) <- newLocalRef sc
     rdd <- parallelize sc0 xs
     -- Main loop of the program
-    (rdd', sc2) <- 
-      if toBool deleteRefs 
-         then foldM 
-                (\(rdd', sc') (Ur _) -> collect rdd' >>= 
-                   \(Ur elts) -> newLocalRef sc' >>=
-                     \(sc2, sc3) -> (,sc3) <$> parallelize sc2 elts) 
-                (rdd, sc1) 
-                (P.fmap Ur [0..numRefs])
-         else toLIO (putStrLn "It's impossible not to delete references anymore") >> pure (rdd, sc1)
+    (rdd', sc2) <- foldM 
+                     (\(rdd', sc') (Ur _) -> collect rdd' >>= 
+                        \(Ur elts) -> newLocalRef sc' >>=
+                          \(sc2, sc3) -> (,sc3) <$> parallelize sc2 elts) 
+                     (rdd, sc1) 
+                     (P.fmap Ur [0..numRefs])
     deleteLocalRef sc2
     Ur n <- count rdd'
     LIO.fromSystemIOU $ putStrLn $ "RDD size: " ++ show n

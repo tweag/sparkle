@@ -2,6 +2,7 @@
 -- <https://spark.apache.org/docs/latest/api/java/org/apache/spark/api/java/JavaSparkContext.html org.apache.spark.api.java.JavaSparkContext>.
 --
 -- Please refer to that documentation for the meaning of each binding.
+--
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -14,6 +15,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -fplugin=Language.Java.Inline.Plugin #-}
 
@@ -73,18 +75,12 @@ newSparkConf appname = Control.Functor.Linear.do
   conf :: SparkConf <- new End
   [java| $conf.setAppName($jname) |]
 
--- TODO: do we want to make sparkconf's linear?
--- pros: we will only be able to have a single SparkContext, as required
--- cons: updating sparkConfig is more annoying now
 confSet :: SparkConf %1 -> Text -> Text -> IO SparkConf
 confSet conf key value = Control.Functor.Linear.do
   jkey <- reflect key
   jval <- reflect value
   [java| $conf.set($jkey, $jval) |]
 
--- NOTE: I don't think `call` deletes the reference to the object whose method
--- is being invoked
--- QUESTION: should sparkconf be used linearly here?
 confGet :: SparkConf %1 -> Text -> Text -> IO (SparkConf, Ur Text)
 confGet conf key def = Control.Functor.Linear.do
   jkey <- reflect key
@@ -94,10 +90,13 @@ confGet conf key def = Control.Functor.Linear.do
   pure (conf1, resText)
 
 setLocalProperty :: SparkContext %1 -> Text -> Text -> IO SparkContext
-setLocalProperty sc key value =
-  reflect key >>= \jkey ->
-    reflect value >>= \jval ->
-      call sc "setLocalProperty" jkey jval End
+setLocalProperty sc key value = Control.Functor.Linear.do
+  jkey <- reflect key 
+  jval <- reflect value
+  (sc0, sc1) <- newLocalRef sc
+  nullRef :: JObject <- [java| { $sc0.setLocalProperty($jkey, $jval); return null; } |]
+  deleteLocalRef nullRef
+  pure sc1
 
 newtype SparkContext = SparkContext (J ('Class "org.apache.spark.api.java.JavaSparkContext"))
   deriving Coercible
@@ -165,7 +164,6 @@ setJobGroup jobId description interruptOnCancel sc = Control.Functor.Linear.do
   jdescription <- reflect description
   nullRef :: JObject <- [java| { $sc.setJobGroup($jjobId, $jdescription, $interruptOnCancel); return null; } |]
   deleteLocalRef nullRef
-        --call sc "setJobGroup" jjobId jdescription interruptOnCancel End >> pure ()
 
 cancelJobGroup :: Text -> SparkContext %1 -> IO ()
 cancelJobGroup jobId sc = reflect jobId >>= \jjobId -> call sc "cancelJobGroup" jjobId End
