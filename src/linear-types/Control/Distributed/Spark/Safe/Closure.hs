@@ -28,11 +28,9 @@ module Control.Distributed.Spark.Safe.Closure
   , JFun2
   ) where
 
-import qualified Prelude 
+import qualified Prelude as P
 import Prelude.Linear as PL
 import Control.Functor.Linear as Linear
-import qualified Data.Functor.Linear as D
-import qualified Unsafe.Linear as Unsafe
 import Data.Unrestricted.Linear ()
 import Control.Monad.IO.Class.Linear
 import qualified System.IO.Linear as LIO
@@ -86,13 +84,13 @@ closFun2 Dict f args = Linear.do
     upcast <$> reflect (f a' b')
   where
     second :: (n %1 -> o) -> (m, n) %1 -> (m, o)
-    second g (a, b) = (a, g b) 
+    second g (a, b) = (a, g b)
 
-clos2bs :: Typeable a => Closure a %1-> ByteString
-clos2bs = Unsafe.toLinear $ LBS.toStrict Prelude.. encode
+clos2bs :: Typeable a => Closure a -> ByteString
+clos2bs = LBS.toStrict P.. encode
 
-bs2clos :: Typeable a => ByteString %1-> Closure a
-bs2clos = Unsafe.toLinear $ decode Prelude.. LBS.fromStrict
+bs2clos :: Typeable a => ByteString -> Closure a
+bs2clos = decode P.. LBS.fromStrict
 
 
 -- | Like 'Interp', but parameterized by the target arity of the 'Fun' instance.
@@ -105,8 +103,8 @@ class ReifyFun n a where
   reifyFun :: MonadIO m => Sing n -> J (InterpWithArity n a) %1 -> m (J (InterpWithArity n a), Ur a)
 
 reifyFun_ :: (MonadIO m, ReifyFun n a) => Sing n -> J (InterpWithArity n a) %1 -> m (Ur a)
-reifyFun_ s ref = 
-  reifyFun s ref >>= \(ref', ura) -> 
+reifyFun_ s ref =
+  reifyFun s ref >>= \(ref', ura) ->
     S.deleteLocalRef ref' >> pure ura
 
 -- TODO define instances for 'ReifyFun'.
@@ -129,7 +127,7 @@ instance ( Static (Reify a)
          ) =>
          ReflectFun 1 (a -> b) where
   reflectFun _ f = Linear.do
-      jpayload <- reflect (forget clos2bs wrap)
+      jpayload <- reflect (clos2bs wrap)
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction") <- new jpayload End
       return (unsafeGeneric (unsafeCast obj))
     where
@@ -150,7 +148,7 @@ instance ( Static (Reify a)
          ) =>
          ReflectFun 2 (a -> b -> c) where
   reflectFun _ f = Linear.do
-      jpayload <- reflect (forget clos2bs wrap)
+      jpayload <- reflect (clos2bs wrap)
       obj :: J ('Class "io.tweag.sparkle.function.HaskellFunction2") <- new jpayload End
       return (unsafeGeneric (unsafeCast obj))
     where
@@ -170,9 +168,9 @@ instance (Interpretation (ReduceFunction a), Typeable (a -> a -> a)) =>
   reify jobj0 = Linear.do
       (jobj1, jobj2) <- S.newLocalRef jobj0
       -- We need to do this bc right side of let binding is not linear
-      jobj :: J ('Class "io.tweag.sparkle.function.HaskellReduceFunction") <- pure $ unsafeCast jobj1 
-      urbytes <- [java| $jobj.clos |] >>= reify_
-      pure $ (jobj2, (ReduceFunction . bs2clos) D.<$> urbytes)
+      jobj :: J ('Class "io.tweag.sparkle.function.HaskellReduceFunction") <- pure $ unsafeCast jobj1
+      Ur bytes <- [java| $jobj.clos |] >>= reify_
+      pure $ (jobj2, (Ur P.. ReduceFunction P.. bs2clos) bytes)
 
 instance ( Static (Reify a)
          , Static (Reflect a)
@@ -209,8 +207,8 @@ instance ( Interpretation (MapPartitionsFunction a b)
   reify jobj0 = Linear.do
       (jobj1, jobj2) <- S.newLocalRef jobj0
       jobj :: J ('Class  "io.tweag.sparkle.function.HaskellMapPartitionsFunction") <- pure $ unsafeCast jobj2
-      urbytes <- [java| $jobj.clos |] >>= reify_
-      pure $ (jobj1, (MapPartitionsFunction . bs2clos) D.<$> urbytes)
+      Ur bytes <- [java| $jobj.clos |] >>= reify_
+      pure $ (jobj1, (Ur P.. MapPartitionsFunction P.. bs2clos) bytes)
 
 instance ( Static (Reify (Stream (Of a) PL.IO ()))
          , Static (Reflect (Stream (Of b) PL.IO ()))
