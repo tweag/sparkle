@@ -33,7 +33,7 @@ f2 s = "b" `Text.isInfixOf` s
 
 main :: IO ()
 main = Spark.forwardUnhandledExceptionsToSpark $ do
-  LIO.withLinearIO $ Control.Functor.Linear.do
+  withLocalFrame $ Control.Functor.Linear.do
     conf <- newSparkConf "Hello sparkle!"
     conf' <- confSet conf "spark.hadoop.fs.s3a.aws.credentials.provider"
                  "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider"

@@ -12,11 +12,11 @@ haskell_library(
   srcs = ["HelloSparkSafe.hs"],
   deps = [
     "//:sparkle-lib",
-	"@stackage//:base",
-	"@stackage//:distributed-closure",
-	"@stackage//:text",
-        "@stackage//:linear-base",
-        "@io_tweag_inline_java//jni",
+    "@stackage//:base",
+    "@stackage//:distributed-closure",
+    "@stackage//:text",
+    "@stackage//:linear-base",
+    "@io_tweag_inline_java//jni",
   ],
 )
 
