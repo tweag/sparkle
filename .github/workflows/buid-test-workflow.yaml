@@ -1,0 +1,51 @@
+name: build-test-workflow
+on: [push]
+jobs:
+  build-darwin:
+    runs-on: macos-10.15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: cachix/install-nix-action@v13
+        with:
+          nix_path: nixpkgs=channel:nixos-21.05
+
+      - name: Setup temporary cache
+        run: |
+            mkdir -p $HOME/.cache/bazel
+            mkdir -p $HOME/.cache/repo-cache
+
+      - name: Setup .bazelrc
+        run: |
+            echo "common --repository_cache=$HOME/.cache/repo-cache" >> .bazelrc
+            echo "common --disk_cache=$HOME/work/.cache/bazel" >> .bazelrc
+
+      - name: Prefetch Stackage snapshot
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            nix-shell --pure --run \
+              "cmd='bazel fetch @stackage//...'; \$cmd || \$cmd || \$cmd"
+
+      - name: Build all
+        run: |
+            nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.jar"
+            nix-shell --pure --run "bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar"
+            nix-shell --pure --run "bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar"
+
+
+      - name: Install spark and hadoop
+        # We roll our own installation of spark in OSX since nixpkgs doesn't support building hadoop
+        run: |
+            curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
+            curl -L https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-without-hadoop.tgz | tar -xz
+            curl -L https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz | tar -xz
+
+      - name: Run tests
+        run: |
+            export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-2.10.1/bin/hadoop classpath)
+            export PATH="$PWD/spark-2.4.8-bin-without-hadoop/bin:$PATH"
+            spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar

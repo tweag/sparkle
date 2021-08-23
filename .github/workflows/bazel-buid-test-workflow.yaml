@@ -1,0 +1,53 @@
+name: test-workflow
+on: [push]
+jobs:
+  test-darwin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Caching bazel
+        uses: actions/cache@v2.1.4
+        env:
+          cache-name: bazel-cache
+        with:
+          path: |
+            ~/.cache/repo-cache
+            ~/.cache/bazel
+          key: ${{ runner.os }}-${{ env.cache-name }}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - uses: cachix/install-nix-action@v13
+        with:
+          nix_path: nixpkgs=channel:nixos-21.05
+
+      - name: Setup .bazelrc
+        run: |
+            echo "common --repository_cache=~/.cache/repo-cache" >> .bazelrc
+            echo "common --disk_cache=~/.cache/bazel" >> .bazelrc
+
+      - name: Run builds and tests with bazel
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }} 
+        run: |
+            echo ===
+            echo "TEST WORKSPACE"
+            ls $GITHUB_WORKSPACE
+            echo ===
+            echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
+            nix-shell --pure --run 'bazel build //...'
+            nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
+            nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
+            nix-shell --pure --run 'bazel build //apps/dataframe:sparkle-example-dataframe_deploy.jar'
+            nix-shell --pure --run 'bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar'
+            nix-shell --pure --run 'bazel build //apps/lda:sparkle-example-lda_deploy.jar'
+            nix-shell --pure --run 'bazel build //apps/argv:sparkle-example-argv_deploy.jar'
+            nix-shell --pure --run "bazel build //apps/bench:sparkle-benchmarks_deploy.jar"
+            nix-shell --pure --run 'bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $GITHUB_WORKSPACE/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar'
+            nix-shell --pure --run 'bazel run spark-submit -- $GITHUB_WORKSPACE/bazel-bin/apps/rdd-ops/sparkle-example-rddops_deploy.jar'
+            nix-shell --pure --run 'bazel run spark-submit -- $GITHUB_WORKSPACE/bazel-bin/apps/dataframe/sparkle-example-dataframe_deploy.jar'
+            nix-shell --pure --run 'bazel run spark-submit -- $GITHUB_WORKSPACE/bazel-bin/apps/argv/sparkle-example-argv_deploy.jar a b +RTS -s -RTS c'
+            nix-shell --pure --run 'bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $GITHUB_WORKSPACE/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar $GITHUB_WORKSPACE/bazel-bin/apps/lda/sparkle-example-lda_deploy.jar'
+            nix-shell --pure --run "bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $GITHUB_WORKSPACE/bazel-bin/apps/lda/sparkle-example-lda_deploy.jar"
+            spark-submit bazel-bin/apps/osthreads/sparkle-example-osthreads_deploy.jar | tee out.txt || grep "Job |           pool | start time (s) | end time (s)" out.txt
+        
