@@ -33,7 +33,8 @@ newtype StructType = StructType (J ('Class "org.apache.spark.sql.types.StructTyp
 new :: [StructField] %1 -> IO StructType
 new fs =
   toArray (map unStructField fs :: [J ('Class "org.apache.spark.sql.types.StructField")])
-           >>= \(jfields, arr) -> foldM (\() -> deleteLocalRef) () jfields >> [java| new org.apache.spark.sql.types.StructType($arr) |]
+           >>= \(jfields, arr) -> foldM (\() -> deleteLocalRef) () jfields 
+             >> [java| new org.apache.spark.sql.types.StructType($arr) |]
   where
     unStructField :: StructField %1 -> J ('Class "org.apache.spark.sql.types.StructField")
     unStructField (StructField j) = j
