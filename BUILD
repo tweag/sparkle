@@ -61,6 +61,7 @@ haskell_library(
 	"@stackage//:choice",
 	"@stackage//:constraints",
 	"@stackage//:distributed-closure",
+	"@stackage//:linear-base",
 	"@stackage//:singletons",
 	"@stackage//:streaming",
 	"@stackage//:text",
