@@ -21,13 +21,24 @@ jobs:
         with:
           nix_path: nixpkgs=channel:nixos-21.05
 
+      - name: Prefetch Stackage snapshot
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            nix-shell --pure --run \
+              "cmd='bazel fetch @stackage//... --disk_cache=~/.cache/bazel --repository_cache=~/.cache/repo-cache '; \$cmd || \$cmd || \$cmd"
+
       - name: Run builds and tests with bazel
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }} 
         run: |
             echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
-            echo "common --repository_cache=~/.cache/repo-cache" >> .bazelrc.local
-            echo "common --disk_cache=~/.cache/bazel" >> .bazelrc.local
+            echo "build --repository_cache=~/.cache/repo-cache" >> .bazelrc.local
+            echo "build --disk_cache=~/.cache/bazel" >> .bazelrc.local
+            echo "run --repository_cache=~/.cache/repo-cache" >> .bazelrc.local
+            echo "run --disk_cache=~/.cache/bazel" >> .bazelrc.local
             nix-shell --pure --run 'bazel build //...'
             nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
             nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
