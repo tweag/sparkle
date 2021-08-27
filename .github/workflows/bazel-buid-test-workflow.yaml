@@ -2,7 +2,7 @@ name: bazel-build-test-workflow
 on: [push]
 jobs:
   test-darwin:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Caching bazel
         uses: actions/cache@v2.1.4
@@ -43,4 +43,3 @@ jobs:
             nix-shell --pure --run 'bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $(pwd)/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar $(pwd)/bazel-bin/apps/lda/sparkle-example-lda_deploy.jar'
             nix-shell --pure --run "bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $(pwd)/bazel-bin/apps/lda/sparkle-example-lda_deploy.jar"
             spark-submit bazel-bin/apps/osthreads/sparkle-example-osthreads_deploy.jar | tee out.txt || grep "Job |           pool | start time (s) | end time (s)" out.txt
-        
