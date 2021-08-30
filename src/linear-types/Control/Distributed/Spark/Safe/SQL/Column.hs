@@ -39,6 +39,10 @@ newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))
   deriving (Coercible)
   -- deriving (Coercible, Interpretation, Reflect, Reify)
 
+-- Project out reference
+unColumn :: Column %1 -> J ('Class "org.apache.spark.sql.Column")
+unColumn (Column j) = j
+
 newtype GroupedData =
     GroupedData (J ('Class "org.apache.spark.sql.RelationalGroupedDataset"))
   deriving (Coercible)
@@ -58,9 +62,6 @@ manyToOne fname colexprs =
   toArray (map unColumn colexprs :: [J ('Class "org.apache.spark.sql.Column")])
       >>= \(refs, arr) -> foldM (\() -> deleteLocalRef) () refs 
         >> callStaticSqlFun fname arr End
-  where
-    unColumn :: Column %1 -> J ('Class "org.apache.spark.sql.Column")
-    unColumn (Column j) = j
 
 lit :: Reflect a => a -> IO Column
 lit x =  -- @upcast@ needed to land in java Object
@@ -395,9 +396,6 @@ concat_ws sep colexprs =
       toArray (map unColumn colexprs :: [J ('Class "org.apache.spark.sql.Column")])
         >>= \(refs, arr) -> foldM (\() -> deleteLocalRef) () refs
           >> callStaticSqlFun "concat_ws" jSep arr End
-  where
-    unColumn :: Column %1 -> J ('Class "org.apache.spark.sql.Column")
-    unColumn (Column j) = j
 
 format_string :: Text -> [Column] %1 -> IO Column
 format_string format arguments =
@@ -405,9 +403,6 @@ format_string format arguments =
       toArray (map unColumn arguments :: [J ('Class "org.apache.spark.sql.Column")])
         >>= \(refs, arr) -> foldM (\() -> deleteLocalRef) () refs
           >> callStaticSqlFun "format_string" jFormat arr End
-  where
-    unColumn :: Column %1 -> J ('Class "org.apache.spark.sql.Column")
-    unColumn (Column j) = j
 
 initcap :: Column %1 -> IO Column
 initcap col = callStaticSqlFun "initcap" col End
