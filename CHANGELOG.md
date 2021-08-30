@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 
 * Fixed sparkle packaging in some ubuntus. (#149)
 * Fixed rebuild of closures (#157)
+* Allow to load sparkle-lib in GHCi (#158)
 
 ### Removed
 

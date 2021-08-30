@@ -3,10 +3,10 @@ workspace(name = "io_tweag_sparkle")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
-    name = "rules_haskell",
-    sha256 = "f54eac4fd769de1c0146ab7dbb507129d6d27e2c533b42ed34baca3841f0329f",
-    strip_prefix = "rules_haskell-aafcd4c3fc622e8c336b6905b0bc4a21aac09dbb",
-    urls = ["https://github.com/tweag/rules_haskell/archive/aafcd4c3fc622e8c336b6905b0bc4a21aac09dbb.tar.gz"],
+  name = "rules_haskell",
+  sha256 = "c6561e914c66064540e8078929e54d7ff819c928f93f2b2aeeae0cc600b49d93",
+  strip_prefix = "rules_haskell-9b855ada6901d2881f03e49ff62597a1baf065d3",
+  urls = ["https://github.com/tweag/rules_haskell/archive/9b855ada6901d2881f03e49ff62597a1baf065d3.tar.gz"],
 )
 
 http_archive(
@@ -18,9 +18,9 @@ http_archive(
 
 http_archive(
   name = "io_tweag_inline_java",
-  sha256 = "b989a1c3fe56f2f3bd668ce9440bdcc371e3d7e41ea057ac35f38e518fc6de53",
-  strip_prefix = "inline-java-dafa0a8e670b56b6ad015fb864aa9be62e13e64c",
-  urls = ["https://github.com/tweag/inline-java/archive/dafa0a8e670b56b6ad015fb864aa9be62e13e64c.tar.gz"],
+  sha256 = "460a27655c81a157255ae1be8a5ff917d94d9e5dabcb5a185011fa83881ec18f",
+  strip_prefix = "inline-java-97a5298963b22444bd0f0b54f56a3289d5b995c7",
+  urls = ["https://github.com/tweag/inline-java/archive/97a5298963b22444bd0f0b54f56a3289d5b995c7.tar.gz"],
 )
 
 load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")

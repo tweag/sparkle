@@ -1,0 +1,26 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_library",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_library(
+  name = "hello-safe-hs",
+  srcs = ["HelloSparkSafe.hs"],
+  deps = [
+    "//:sparkle-lib",
+    "@stackage//:base",
+    "@stackage//:distributed-closure",
+    "@stackage//:text",
+    "@stackage//:linear-base",
+    "@io_tweag_inline_java//jni",
+  ],
+)
+
+sparkle_package(
+  name = "hello-safe",
+  src = ":hello-safe-hs",
+)

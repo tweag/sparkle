@@ -129,9 +129,9 @@ parallelize
   => SparkContext
   -> [a]
   -> IO (RDD a)
-parallelize sc xs = do
-  jxs :: J ('Array ('Class "java.lang.Object")) <- unsafeCast <$> reflect xs
-  jlist :: J ('Iface "java.util.List") <- [java| java.util.Arrays.asList($jxs) |]
+parallelize sc xs =
+  withLocalRef (unsafeCast <$> reflect xs) $ \(jxs :: J ('Array ('Class "java.lang.Object"))) ->
+  withLocalRef [java| java.util.Arrays.asList($jxs) |] $ \(jlist :: J ('Iface "java.util.List")) ->
   [java| $sc.parallelize($jlist) |]
 
 setJobGroup :: Text -> Text -> Bool -> SparkContext -> IO ()
