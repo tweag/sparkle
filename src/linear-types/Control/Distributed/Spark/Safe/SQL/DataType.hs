@@ -10,9 +10,7 @@
 
 module Control.Distributed.Spark.Safe.SQL.DataType where
 
--- import qualified Prelude
 import Prelude.Linear hiding (IO)
--- import qualified Prelude.Linear as PL
 import System.IO.Linear as LIO
 import Control.Functor.Linear as Linear
 
@@ -30,8 +28,8 @@ staticDataType dname = Linear.do
     UnsafeUnrestrictedReference jclass <- findClass (referenceTypeName (Java.SClass "org.apache.spark.sql.types.DataTypes"))
     Ur jfield <- getStaticFieldID jclass dname
       (Java.signature (sing :: Sing ('Class "org.apache.spark.sql.types.DataType")))
+    deleteLocalRef jclass
     (DataType . unsafeCast <$> getStaticObjectField jclass jfield) <* deleteLocalRef jclass
-    -- TODO delete urrr ref
 
 doubleType :: IO DataType
 doubleType = staticDataType "DoubleType"

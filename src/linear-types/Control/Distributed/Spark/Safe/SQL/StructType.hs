@@ -15,14 +15,11 @@ module Control.Distributed.Spark.Safe.SQL.StructType where
 
 import qualified Prelude as P
 import Prelude.Linear hiding (IO)
--- import qualified Prelude.Linear as PL
 import System.IO.Linear as LIO
 import Control.Monad.IO.Class.Linear
 import Control.Functor.Linear as Linear
--- import Data.Functor.Linear (forM)
 
 import Control.Distributed.Spark.Safe.SQL.StructField
--- import Control.Monad (forM)
 import qualified Data.Coerce as Coerce
 import qualified Foreign.JNI.Types
 import Foreign.JNI.Types.Safe

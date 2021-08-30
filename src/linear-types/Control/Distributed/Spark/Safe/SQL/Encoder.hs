@@ -36,7 +36,6 @@ module Control.Distributed.Spark.Safe.SQL.Encoder
   ) where
 
 import Prelude.Linear hiding (IO, min, max, mod, and, or, otherwise)
--- import qualified Prelude.Linear as PL
 import System.IO.Linear as LIO
 import Control.Functor.Linear as Linear
 import qualified Unsafe.Linear as Unsafe
@@ -54,7 +53,6 @@ import Language.Java.Safe
 import Language.Java.Inline.Safe
 import Language.Scala.Tuple
 import Foreign.JNI.Safe
--- import System.IO.Unsafe (unsafePerformIO)
 
 newtype Encoder a = Encoder (J ('Iface "org.apache.spark.sql.Encoder"))
   deriving (Coercible) --, Interpretation)

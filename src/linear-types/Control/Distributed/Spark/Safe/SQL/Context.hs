@@ -11,12 +11,8 @@
 
 module Control.Distributed.Spark.Safe.SQL.Context where
 
--- import qualified Prelude as P
--- import Prelude.Linear hiding (IO)
--- import qualified Prelude.Linear as PL
 import System.IO.Linear as LIO
 import Control.Functor.Linear as Linear
--- import Data.Functor.Linear (forM)
 --
 import Control.Distributed.Spark.Safe.Context
 import Language.Java.Safe

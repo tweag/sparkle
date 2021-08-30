@@ -15,7 +15,6 @@
 module Control.Distributed.Spark.Safe.SQL.SparkSession where
 
 import System.IO.Linear as LIO
--- import Control.Functor.Linear as Linear
 
 import Control.Distributed.Spark.Safe.Context
 import Language.Java.Safe

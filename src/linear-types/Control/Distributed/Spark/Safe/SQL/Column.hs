@@ -16,23 +16,17 @@
 
 module Control.Distributed.Spark.Safe.SQL.Column where
 
--- import qualified Prelude as P 
 import Prelude.Linear hiding (IO, min, max, mod, and, or, otherwise)
--- import qualified Prelude.Linear as PL
 import System.IO.Linear as LIO
 import Control.Functor.Linear as Linear
 import Control.Monad.IO.Class.Linear
--- import Data.Functor.Linear (forM)
 --
--- import qualified Data.Coerce
 import Data.Int (Int32)
 import Data.Text (Text)
 import qualified Foreign.JNI.String
 import Language.Java.Safe
 import qualified Language.Java
--- import qualified Foreign.JNI.Types
 import Foreign.JNI.Safe
--- import Foreign.JNI.Types.Safe
 
 -- QUESTION: Do we actually need interp, reflect, reify instances? 
 newtype Column = Column (J ('Class "org.apache.spark.sql.Column"))

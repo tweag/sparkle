@@ -12,7 +12,6 @@
 module Control.Distributed.Spark.Safe.SQL.StructField where
 
 import Prelude.Linear hiding (IO)
--- import qualified Prelude.Linear as PL
 import System.IO.Linear as LIO
 import Control.Functor.Linear as Linear
 
