@@ -36,7 +36,6 @@ imports "org.apache.spark.sql.RowFactory"
 
 newtype Row = Row (J ('Class "org.apache.spark.sql.Row"))
   deriving (Coercible)
-  -- deriving (Coercible, Interpretation, Reify, Reflect)
 
 toRows :: PairRDD a b %1 -> IO (RDD Row)
 toRows prdd =

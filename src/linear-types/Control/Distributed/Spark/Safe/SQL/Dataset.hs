@@ -40,7 +40,7 @@ import Data.Typeable
 import Foreign.JNI.Safe
 import qualified Foreign.JNI.Types
 import Language.Java.Safe
-import qualified Language.Java as Java
+-- import qualified Language.Java as Java
 import Language.Java.Inline.Safe
 
 import Streaming (Stream, Of, effect)
@@ -60,9 +60,10 @@ javaRDD df = [java| $df.javaRDD() |]
 createDataset :: SparkSession %1 -> Encoder a %1 -> RDD a %1 -> IO (Dataset a)
 createDataset ss enc rdd = [java| $ss.createDataset($rdd.rdd(), $enc) |]
 
--- TODO: was it safe to get rid of the unsafePerformIO?
 getEncoder :: forall a. Dataset a %1 -> IO (Encoder a)
-getEncoder (Dataset dsref) = Linear.do
+getEncoder ds = -- Linear.do
+    Encoder <$> [java| $ds.org$apache$spark$sql$Dataset$$encoder |]
+    {-
     UnsafeUnrestrictedReference klass <- findClass $ referenceTypeName (Java.SClass "org.apache.spark.sql.Dataset")
     Ur fID <- getFieldID klass "org$apache$spark$sql$Dataset$$encoder"
                      (Java.signature (sing :: Sing ('Iface "org.apache.spark.sql.Encoder")))
@@ -70,6 +71,7 @@ getEncoder (Dataset dsref) = Linear.do
     deleteLocalRef ref
     deleteLocalRef klass
     pure . Encoder . (unsafeCast :: JObject %1 -> J ('Iface "org.apache.spark.sql.Encoder")) $ obj
+    -}
 
 as :: Encoder b %1 -> Dataset a %1 -> IO (Dataset b)
 as enc ds = [java| $ds.as($enc) |]

@@ -55,7 +55,7 @@ import Language.Scala.Tuple
 import Foreign.JNI.Safe
 
 newtype Encoder a = Encoder (J ('Iface "org.apache.spark.sql.Encoder"))
-  deriving (Coercible) --, Interpretation)
+  deriving (Coercible)
 
 long :: IO (Encoder Int64)
 long = [java| org.apache.spark.sql.Encoders.LONG() |]

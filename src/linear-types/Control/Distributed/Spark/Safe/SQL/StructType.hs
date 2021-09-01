@@ -35,7 +35,7 @@ deleteLocalRefs = foldM (\() -> deleteLocalRef) ()
 
 new :: [StructField] %1 -> IO StructType
 new fs =
-  toArray (map unStructField fs :: [J ('Class "org.apache.spark.sql.types.StructField")])
+  toArray (map unStructField fs) 
            >>= \(jfields, arr) -> deleteLocalRefs jfields
              >> [java| new org.apache.spark.sql.types.StructType($arr) |]
   where
@@ -48,8 +48,7 @@ add sf st = call st "add" sf End
 fields :: StructType %1 -> IO [StructField]
 fields st = Linear.do
     jfields <- call st "fields" End
-    (jfields', Ur n) <- getArrayLength
-      (jfields :: J ('Array ('Class "org.apache.spark.sql.types.StructField")))
+    (jfields', Ur n) <- getArrayLength jfields
     (jfields'', fieldsList) <- foldM 
                                 (\(arr, acc) i -> second ((: acc) . StructField) <$> getObjectArrayElement arr i) 
                                 (jfields', []) 

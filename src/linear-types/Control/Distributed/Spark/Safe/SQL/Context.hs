@@ -6,16 +6,17 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QualifiedDo #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Control.Distributed.Spark.Safe.SQL.Context where
 
 import System.IO.Linear as LIO
-import Control.Functor.Linear as Linear
 --
 import Control.Distributed.Spark.Safe.Context
 import Language.Java.Safe
+import Language.Java.Inline.Safe
 
 newtype SQLContext = SQLContext (J ('Class "org.apache.spark.sql.SQLContext"))
   deriving Coercible
@@ -23,11 +24,6 @@ newtype SQLContext = SQLContext (J ('Class "org.apache.spark.sql.SQLContext"))
 newSQLContext :: SparkContext %1 -> IO SQLContext
 newSQLContext sc = new sc End
 
--- TODO: make sure that the class name we put actually works
 getOrCreateSQLContext :: SparkContext %1 -> IO SQLContext
-getOrCreateSQLContext jsc = Linear.do
-  sc :: J ('Class "org.apache.spark.SparkContext") <- call jsc "sc" End
-  callStatic "org.apache.spark.sql.SQLContext" -- (classOf (undefined :: SQLContext))
-             "getOrCreate"
-             sc
-             End
+getOrCreateSQLContext jsc = 
+  [java| org.apache.spark.sql.SQLContext.getOrCreate($jsc.sc()) |]
