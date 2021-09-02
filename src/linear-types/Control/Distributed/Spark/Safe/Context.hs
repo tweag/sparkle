@@ -47,8 +47,6 @@ import qualified Prelude ()
 import Prelude.Linear hiding (IO, filter, map, subtract, take, zero)
 import System.IO.Linear as LIO
 import Control.Functor.Linear as Linear
-import qualified Data.Functor.Linear as D
-import qualified Unsafe.Linear as Unsafe
 
 import Data.Int (Int32)
 import Data.ByteString (ByteString)
@@ -124,8 +122,8 @@ addFile sc fp = Linear.do
 getFile :: FilePath -> IO (Ur FilePath)
 getFile filename = Linear.do
   jfilename <- reflect (Text.pack filename)
-  jfilepath <- [java| org.apache.spark.SparkFiles.get($jfilename) |]
-  D.fmap (Unsafe.toLinear Text.unpack) <$> reify_ jfilepath
+  Ur filepath <- [java| org.apache.spark.SparkFiles.get($jfilename) |] >>= reify_
+  pure $ Ur (Text.unpack filepath)
 
 master :: SparkContext %1 -> IO (Ur Text)
 master sc = [java| $sc.master() |] >>= reify_
