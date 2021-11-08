@@ -18,6 +18,7 @@ module Control.Distributed.Spark.Safe.SQL.Row where
 import Prelude.Linear hiding (IO)
 import System.IO.Linear as LIO
 import Control.Functor.Linear as Linear
+import qualified Data.Functor.Linear as Data
 
 import Control.Distributed.Spark.Safe.PairRDD
 import Control.Distributed.Spark.Safe.RDD
@@ -77,6 +78,12 @@ getList i r =
   where
     cast :: J ('Array ('Class "java.lang.Object")) %1 -> J ('Array (Interp a))
     cast = unsafeCast
+
+getListJ :: forall a. (Coercible a, IsReferenceType (Ty a)) => Int32 -> Row %1 -> IO [a]
+getListJ i r = Linear.do
+  arr :: JObjectArray <- [java| $r.getList($i).toArray() |]
+  refList :: [J (Ty a)] <- fromArray (unsafeCast arr)
+  pure $ Data.fmap (unsafeUncoerce . coerce) refList
 
 createRow :: [JObject] %1 -> IO Row
 createRow vs = Linear.do

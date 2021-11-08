@@ -23,6 +23,7 @@ import Prelude.Linear hiding (IO, filter, zero)
 import qualified Prelude.Linear as PL
 import System.IO.Linear as LIO
 import Control.Functor.Linear as Linear
+import qualified Data.Functor.Linear as Data
 
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Safe.Closure
@@ -229,6 +230,12 @@ collectAsList d =
   where
     jcast :: JObjectArray %1 -> J ('Array (Interp a))
     jcast = unsafeCast
+
+collectAsListJ :: forall a. (Coercible a, IsReferenceType (Ty a))=> Dataset a %1 -> IO [a]
+collectAsListJ d = Linear.do
+  arr :: JObjectArray <- [java| $d.collectAsList().toArray() |]
+  refList :: [J (Ty a)] <- fromArray (unsafeCast arr)
+  pure $ Data.fmap (unsafeUncoerce . coerce) refList
 
 newtype DataFrameReader = DataFrameReader (J ('Class "org.apache.spark.sql.DataFrameReader"))
   deriving Coercible
