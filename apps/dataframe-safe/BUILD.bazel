@@ -1,0 +1,31 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_library",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_library(
+  name = "dataframe-safe-hs",
+  srcs = ["Main.hs"],
+  plugins = ["@io_tweag_inline_java//:inline-java-plugin"],
+  deps = [
+    "//:sparkle-lib",
+    "@maven//:org_apache_spark_spark_sql_2_11",
+    "@io_tweag_inline_java//jvm",
+	"@stackage//:base",
+	"@stackage//:distributed-closure",
+	"@stackage//:text",
+        "@stackage//:linear-base",
+        "@io_tweag_inline_java//jni",
+        "@io_tweag_inline_java//:inline-java",
+  ],
+)
+
+sparkle_package(
+  name = "dataframe-safe",
+  src = ":dataframe-safe-hs",
+  resource_jars = ["@io_tweag_inline_java//jvm-batching:jar"],
+)
