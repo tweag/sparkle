@@ -1,0 +1,28 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_library",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_library(
+  name = "rdd-ops-safe",
+  srcs = ["RDDOps.hs"],
+  deps = [
+    "//:sparkle-lib",
+	"@stackage//:base",
+	"@stackage//:distributed-closure",
+	"@stackage//:text",
+        "@stackage//:linear-base",
+        "@io_tweag_inline_java//jni",
+        "@io_tweag_inline_java//jvm",
+  ],
+)
+
+sparkle_package(
+  name = "sparkle-example-rddops-safe",
+  src = ":rdd-ops-safe",
+  resource_jars = ["@io_tweag_inline_java//jvm-batching:jar"],
+)

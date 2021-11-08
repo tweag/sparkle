@@ -7,7 +7,6 @@ module Main where
 import qualified Control.Distributed.Spark as Spark
 import Control.Distributed.Spark.Safe.RDD as RDD
 import Control.Distributed.Spark.Safe.Context
--- import Control.Distributed.Spark.Closure
 
 import qualified Prelude  as P
 import Prelude.Linear as PL hiding ((<>))
@@ -20,7 +19,6 @@ import Foreign.JNI.Safe
 import Foreign.JNI.Types.Safe
 
 import Control.Distributed.Closure
--- import Control.Distributed.Spark as RDD
 import qualified Data.Text as Text
 import Data.Text (Text)
 
