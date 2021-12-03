@@ -42,6 +42,7 @@ haskell_library(
   extra_srcs = ["cbits/bootstrap.c"],
   repl_ghci_args = ["-fobject-code"],
   deps = [
+    "@maven//:io_delta_delta_core_2_11",
     "@openjdk//:lib", "@rules_haskell_ghc_nixpkgs//:include",
     "@io_tweag_inline_java//jni",
     "@io_tweag_inline_java//jvm",

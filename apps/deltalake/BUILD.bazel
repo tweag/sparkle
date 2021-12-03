@@ -1,0 +1,27 @@
+package(default_visibility = ["//visibility:public"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_library",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_library(
+  name = "deltalake",
+  srcs = ["SparkDelta.hs"],
+  deps = [
+    "//:sparkle-lib",
+    "@maven//:io_delta_delta_core_2_11",
+    "@io_tweag_inline_java//jvm",
+	"@stackage//:base",
+	"@stackage//:distributed-closure",
+	"@stackage//:text",
+  ],
+)
+
+sparkle_package(
+  name = "sparkle-example-deltalake",
+  src = ":deltalake",
+  resource_jars = ["@io_tweag_inline_java//jvm-batching:jar"],
+)

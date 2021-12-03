@@ -251,6 +251,11 @@ formatWriter source dfw = do
     jsource <- reflect source
     [java| $dfw.format($jsource) |]
 
+modeWriter :: Text -> DataFrameWriter -> IO DataFrameWriter
+modeWriter source dfw = do
+    jsource <- reflect source
+    [java| $dfw.mode($jsource) |]
+
 optionReader :: Text -> Text -> DataFrameReader -> IO DataFrameReader
 optionReader key value dfr = do
     jkey <- reflect key
