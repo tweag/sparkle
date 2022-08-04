@@ -164,6 +164,9 @@ JNIEXPORT void JNICALL Java_io_tweag_sparkle_Sparkle_initializeHaskellRTS
 
 		// Deallocate resources from above.
 		free(hs_argv);
+
+		sparkle_hs_init();
+
 cleanup_initializeHaskellRTS:
 		for (jsize i = 0; i < jargc; i++)
 			free(cargs[i]);
