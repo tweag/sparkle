@@ -43,6 +43,7 @@ haskell_library(
   repl_ghci_args = ["-fobject-code"],
   deps = [
     "@maven//:io_delta_delta_core_2_11",
+    "@maven//:io_projectglow_glow_spark2_2_11",
     "@openjdk//:lib", "@rules_haskell_ghc_nixpkgs//:include",
     "@io_tweag_inline_java//jni",
     "@io_tweag_inline_java//jvm",
@@ -75,4 +76,8 @@ haskell_library(
 sh_binary(
     name = "spark-submit",
     srcs = ["@spark//:spark-submit"],
+    data = ["//apps/deltalake-glow:genotypes.vcf",
+    	    "//apps/deltalake-glow:continuous-phenotypes.csv",
+	    "//apps/deltalake-glow:covariates.csv"
+	    ],
 )

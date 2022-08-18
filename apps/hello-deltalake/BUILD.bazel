@@ -8,20 +8,17 @@ load(
 load("@//:sparkle.bzl", "sparkle_package")
 
 haskell_library(
-  name = "deltalake",
-  srcs = ["SparkDelta.hs"],
+  name = "hello-deltalake",
+  srcs = ["HelloDeltalake.hs"],
   deps = [
     "//:sparkle-lib",
-    "@maven//:io_delta_delta_core_2_11",
-    "@io_tweag_inline_java//jvm",
 	"@stackage//:base",
 	"@stackage//:distributed-closure",
-	"@stackage//:text",
+	"@maven//:io_delta_delta_core_2_11",
   ],
 )
 
 sparkle_package(
-  name = "sparkle-example-deltalake",
-  src = ":deltalake",
-  resource_jars = ["@io_tweag_inline_java//jvm-batching:jar"],
+  name = "sparkle-example-hello-deltalake",
+  src = ":hello-deltalake",
 )
