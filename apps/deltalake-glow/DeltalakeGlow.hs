@@ -18,24 +18,35 @@ main = forwardUnhandledExceptionsToSpark $ do
 
     session <- builder >>= (`config` conf) >>= getOrCreate >>= registerGlow >>= registerUDFDenseMatrix
 
-    base_variant_df <- Dataset.read session >>= Dataset.formatReader "vcf" >>= Dataset.load "apps/deltalake-glow/genotypes.vcf"
+    Dataset.read session >>= Dataset.formatReader "vcf" >>= Dataset.load "apps/deltalake-glow/genotypes.vcf" >>= Dataset.write >>= Dataset.formatWriter "delta" >>= Dataset.modeWriter "overwrite" >>= Dataset.save "delta-table-glow"
+    dfBaseVariant <- Dataset.read session >>= Dataset.formatReader "delta" >>= Dataset.load "delta-table-glow"
+    Dataset.selectDS dfBaseVariant ["genotypes"] >>= Dataset.show
+    Dataset.selectDS dfBaseVariant ["genotypes"] >>= Dataset.printSchema 
 
-    variant_df <- Dataset.col base_variant_df "genotypes" >>= genotypeStates >>= \colGenotypeStates -> Dataset.withColumn "values" colGenotypeStates base_variant_df
-    phenotype_df <- Dataset.read session >>= Dataset.formatReader "csv" >>= Dataset.optionReader "header" "true" >>= Dataset.optionReader "inferSchema" "true" >>= Dataset.load "apps/deltalake-glow/continuous-phenotypes.csv"
-    phTrait1 <- Dataset.selectDS phenotype_df ["Continuous_Trait_1"]
-    variant_df_pheno <- Dataset.as double phTrait1 >>= Dataset.collectAsList >>= lit >>= \phTrait1Col -> Dataset.withColumn "Trait_1" phTrait1Col variant_df 
-    covariates_df <- Dataset.read session >>= Dataset.formatReader "csv" >>= Dataset.optionReader "header" "true" >>= Dataset.optionReader "inferSchema" "true" >>= Dataset.load "apps/deltalake-glow/covariates.csv"
+    dfVariant <- Dataset.col dfBaseVariant "genotypes" >>= genotypeStates >>= \colGenotypeStates -> Dataset.withColumn "genotype values" colGenotypeStates dfBaseVariant
 
+    dfPhenotype <- Dataset.read session >>= Dataset.formatReader "csv" >>= Dataset.optionReader "header" "true" >>= Dataset.optionReader "inferSchema" "true" >>= Dataset.load "apps/deltalake-glow/continuous-phenotypes.csv"
+    dfPhenColNames <- Dataset.columns dfPhenotype    
+    phTrait1 <- Dataset.selectDS dfPhenotype [dfPhenColNames !! 1]
+    dfVariantPheno <- Dataset.as double phTrait1 >>= Dataset.collectAsList >>= lit >>= \phTrait1Col -> Dataset.withColumn "phenotype values" phTrait1Col dfVariant
+    phTrait1NameCol <- lit (dfPhenColNames !! 1)
+    dfVariantPheno1 <- Dataset.withColumn "phenotype" phTrait1NameCol dfVariantPheno
     
+    dfCovariates <- Dataset.read session >>= Dataset.formatReader "csv" >>= Dataset.optionReader "header" "true" >>= Dataset.optionReader "inferSchema" "true" >>= Dataset.load "apps/deltalake-glow/covariates.csv"
+    dfCovColNames <- Dataset.columns dfCovariates
 
-    variant_df_pheno_cov <- Dataset.selectDS covariates_df ["independentConfounder4_norm1"] >>= Dataset.as double >>= Dataset.collectAsList >>= lit >>= \covariateCol -> Dataset.withColumn "covariates" covariateCol variant_df_pheno >>= \dfList -> callUDFDenseMatrix dfList "covariates"
+    dfVariantPhenoCov <- Dataset.selectDS dfCovariates [dfCovColNames !! 1] >>= Dataset.as double >>= Dataset.collectAsList >>= lit >>= \covariateCol -> Dataset.withColumn "covariates" covariateCol dfVariantPheno1 >>= \dfList -> callUDFDenseMatrix dfList "covariates"
 
-    Dataset.selectDS variant_df_pheno_cov ["values","Trait_1","cov"] >>= Dataset.printSchema
+    Dataset.selectDS dfVariantPhenoCov ["genotype values", "phenotype values", "cov"] >>= Dataset.printSchema
 
-    genoCol <- Dataset.col variant_df_pheno_cov "values"
-    phenoCol <- Dataset.col variant_df_pheno_cov "Trait_1"
-    covCol <- Dataset.col variant_df_pheno_cov "cov"
+    genoCol <- Dataset.col dfVariantPhenoCov "genotype values"
+    phenoCol <- Dataset.col dfVariantPhenoCov "phenotype values"
+    covCol <- Dataset.col dfVariantPhenoCov "cov"
+    contigCol <- Dataset.col dfVariantPhenoCov "contigName"
+    startCol <- Dataset.col dfVariantPhenoCov "start"
+    phenoNameCol <- Dataset.col dfVariantPhenoCov "phenotype"
     regressionCol <- linearRegressionGwas genoCol phenoCol covCol >>= \regressionColumn -> alias regressionColumn "stats"
-    result <- Dataset.select variant_df_pheno_cov [regressionCol]
-    Dataset.printSchema result
-    expr "expand_struct(stats)" >>= \colS -> Dataset.select result [colS] >>= Dataset.show
+    result <- Dataset.select dfVariantPhenoCov [contigCol, startCol, phenoNameCol, regressionCol]
+    resultExpand <- expr "expand_struct(stats)" >>= \statsCol -> Dataset.select result [contigCol, startCol, phenoNameCol, statsCol]
+    Dataset.show resultExpand
+    Dataset.write resultExpand >>= Dataset.formatWriter "delta" >>= Dataset.modeWriter "overwrite" >>= Dataset.save "delta-table-glow-result"
