@@ -208,7 +208,9 @@ int do_main (JNIEnv * env, int argc, char *argv[] )
 	sparkle_hs_fini();
 
 	// Shutdown the RTS but do not terminate the process
-	hs_exit();
+	// TODO: Currently commented out because of
+	// https://github.com/tweag/sparkle/issues/165
+	// hs_exit();
 
 	return 0;
 }
