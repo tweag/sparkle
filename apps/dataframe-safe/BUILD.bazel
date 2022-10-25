@@ -15,12 +15,12 @@ haskell_library(
     "//:sparkle-lib",
     "@maven//:org_apache_spark_spark_sql_2_11",
     "@io_tweag_inline_java//jvm",
-	"@stackage//:base",
-	"@stackage//:distributed-closure",
-	"@stackage//:text",
-        "@stackage//:linear-base",
-        "@io_tweag_inline_java//jni",
-        "@io_tweag_inline_java//:inline-java",
+    "@stackage//:base",
+    "@stackage//:distributed-closure",
+    "@stackage//:text",
+    "@stackage//:linear-base",
+    "@io_tweag_inline_java//jni",
+    "@io_tweag_inline_java//:inline-java",
   ],
 )
 
