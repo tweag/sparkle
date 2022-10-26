@@ -18,9 +18,9 @@ http_archive(
 
 http_archive(
   name = "io_tweag_inline_java",
-  sha256 = "460a27655c81a157255ae1be8a5ff917d94d9e5dabcb5a185011fa83881ec18f",
-  strip_prefix = "inline-java-97a5298963b22444bd0f0b54f56a3289d5b995c7",
-  urls = ["https://github.com/tweag/inline-java/archive/97a5298963b22444bd0f0b54f56a3289d5b995c7.tar.gz"],
+  sha256 = "097d4f7e568cfafb84de60631b7569c918ca8fd59215e424761b43c2b121d1d8",
+  strip_prefix = "inline-java-0d5998c190c0a78600d036c60f91078ffe5feb71",
+  urls = ["https://github.com/tweag/inline-java/archive/0d5998c190c0a78600d036c60f91078ffe5feb71.tar.gz"],
 )
 
 load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")

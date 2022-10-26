@@ -4,6 +4,7 @@
 -- Please refer to that documentation for the meaning of each binding.
 
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -20,8 +21,6 @@
 
 module Control.Distributed.Spark.Safe.RDD
   ( RDD(..)
-  , newRDDRef
-  , deleteRDDRef
   , isEmpty
   , toDebugString
   , cache
@@ -42,7 +41,9 @@ module Control.Distributed.Spark.Safe.RDD
   , count
   , mean
   , collect
+  , collectJ
   , take
+  , takeJ
   , distinct
   , intersection
   , union
@@ -50,6 +51,7 @@ module Control.Distributed.Spark.Safe.RDD
   , sample
   , randomSplit
   , first
+  , firstJ
   , getNumPartitions
   , saveAsTextFile
   , subtract
@@ -61,6 +63,7 @@ import Prelude.Linear hiding (IO, filter, map, subtract, take, zero)
 import qualified Prelude.Linear as PL
 import System.IO.Linear as LIO
 import Control.Functor.Linear as Linear
+import qualified Data.Functor.Linear as Data
 
 import Control.Distributed.Closure
 import Control.Distributed.Spark.Safe.Closure (reflectFun)
@@ -89,13 +92,6 @@ import qualified Streaming.Prelude as S (fold_, uncons, yield)
 
 newtype RDD a = RDD (J ('Class "org.apache.spark.api.java.JavaRDD"))
   deriving Coercible
-
--- | Makes a new reference to the given RDD, so you can use it twice
-newRDDRef :: RDD a %1 -> IO (RDD a, RDD a)
-newRDDRef (RDD rddRef) = newLocalRef rddRef >>= \(r1, r2) -> pure (RDD r1, RDD r2)
-
-deleteRDDRef :: RDD a %1 -> IO ()
-deleteRDDRef (RDD rddRef) = deleteLocalRef rddRef
 
 cache :: RDD a %1 -> IO (RDD a)
 cache rdd = [java| $rdd.cache() |]
@@ -160,6 +156,8 @@ mapPartitionsWithIndex preservePartitions clos rdd = Linear.do
   f <- ungeneric <$> reflectFun (sing :: Sing 2) clos
   [java| $rdd.mapPartitionsWithIndex($f, $preservePartitions) |]
 
+-- NOTE: we cannot implement foldJ at this time without the ability to 
+-- write instances for linear static closures
 fold
   :: (Static (Reify a), Static (Reflect a), Typeable a)
      => Closure (a -> a -> a)
@@ -300,11 +298,23 @@ collect rdd = Linear.do
     arr :: JObjectArray <- [java| $rdd.collect().toArray() |]
     reify_ (unsafeCast arr)
 
+collectJ :: forall a. (Coercible a, IsReferenceType (Ty a)) => RDD a %1 -> IO [a]
+collectJ rdd = Linear.do
+  arr :: JObjectArray <- [java| $rdd.collect().toArray() |]
+  refList :: [J (Ty a)] <- fromArray (unsafeCast arr)
+  pure $ Data.fmap (unsafeUncoerce . coerce) refList
+
 -- | See Note [Reading Files] ("Control.Distributed.Spark.RDD#reading_files").
 take :: Reify a => Int32 -> RDD a %1 -> IO (Ur [a])
 take n rdd = Linear.do
   arr :: JObjectArray <- [java| $rdd.take($n).toArray() |]
   reify_ (unsafeCast arr)
+
+takeJ :: forall a. (Coercible a, IsReferenceType (Ty a)) => Int32 -> RDD a %1 -> IO [a]
+takeJ n rdd = Linear.do
+  arr :: JObjectArray <- [java| $rdd.take($n).toArray() |]
+  refList :: [J (Ty a)] <- fromArray (unsafeCast arr)
+  pure $ Data.fmap (unsafeUncoerce . coerce) refList
 
 distinct :: RDD a %1 -> IO (RDD a)
 distinct rdd = [java| $rdd.distinct() |]
@@ -344,6 +354,12 @@ first :: Reify a => RDD a %1 -> IO (Ur a)
 first rdd = Linear.do
   res :: JObject <- [java| $rdd.first() |]
   reify_ (unsafeCast res)
+
+firstJ :: forall a. Coercible a => RDD a %1 -> IO a
+firstJ rdd = Linear.do
+  res :: JObject <- [java| $rdd.first() |]
+  ref :: J (Ty a) <- pure (unsafeCast res)
+  pure . unsafeUncoerce . JObject $ ref
 
 getNumPartitions :: RDD a %1 -> IO (Ur Int32)
 getNumPartitions rdd = [java| $rdd.getNumPartitions() |]
