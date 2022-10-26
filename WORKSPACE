@@ -4,9 +4,9 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
   name = "rules_haskell",
-  sha256 = "c6561e914c66064540e8078929e54d7ff819c928f93f2b2aeeae0cc600b49d93",
-  strip_prefix = "rules_haskell-9b855ada6901d2881f03e49ff62597a1baf065d3",
-  urls = ["https://github.com/tweag/rules_haskell/archive/9b855ada6901d2881f03e49ff62597a1baf065d3.tar.gz"],
+  sha256 = "2b36e26fde296dc9fbaeed087c898fdce23af0247592e897c317d19345b0e259",
+  strip_prefix = "rules_haskell-7a7f8545789dc4f3bc0780d5725e1337bb494ea6",
+  urls = ["https://github.com/tweag/rules_haskell/archive/7a7f8545789dc4f3bc0780d5725e1337bb494ea6.zip"],
 )
 
 http_archive(
@@ -23,8 +23,9 @@ http_archive(
   urls = ["https://github.com/tweag/inline-java/archive/0d5998c190c0a78600d036c60f91078ffe5feb71.tar.gz"],
 )
 
-load("@rules_haskell//haskell:repositories.bzl", "haskell_repositories")
-haskell_repositories()
+load("@rules_haskell//haskell:repositories.bzl", "rules_haskell_dependencies")
+rules_haskell_dependencies()
+
 
 load("@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl",
   "nixpkgs_local_repository",
@@ -61,7 +62,7 @@ load("@rules_jvm_external//:defs.bzl", "maven_install")
 
 maven_install(
     artifacts = [
-	    "org.apache.spark:spark-core_2.11:2.2.0",
+        "org.apache.spark:spark-core_2.11:2.2.0",
         "org.apache.spark:spark-mllib_2.11:2.2.0",
         "org.apache.spark:spark-mllib-local_2.11:2.2.0",
         "org.apache.spark:spark-sql_2.11:2.2.0",
@@ -139,8 +140,18 @@ stack_snapshot(
         "vector",
         "zip-archive",
     ],
-    local_snapshot = "//:snapshot-9.0.1.yaml",
-#   stack = "@stack_ignore_global_hints//:bin/stack" if ghc_version == "9.0.1" else None,
+    components_dependencies = {
+        "attoparsec": """{"lib:attoparsec": ["lib:attoparsec-internal"]}""",
+    },
+    components =
+        {
+            "attoparsec": [
+                "lib",
+                "lib:attoparsec-internal",
+            ],
+        },
+    local_snapshot = "//:snapshot-9.0.2.yaml",
+#   stack = "@stack_ignore_global_hints//:bin/stack" if ghc_version == "9.0.2" else None,
 )
 
 load("@rules_haskell//haskell:nixpkgs.bzl", "haskell_register_ghc_nixpkgs")
@@ -160,10 +171,10 @@ filegroup(
 )
 
 haskell_register_ghc_nixpkgs(
-    attribute_path = "haskell.compiler.ghc901",
+    attribute_path = "haskell.compiler.ghc902",
     locale_archive = "@glibc_locales//:locale-archive",
     repositories = {"nixpkgs": "@nixpkgs"},
-    version = "9.0.1",
+    version = "9.0.2",
     compiler_flags = [
         "-Werror",
         "-Wall",
@@ -241,6 +252,6 @@ genrule(
 http_archive(
     name = "com_github_bazelbuild_buildtools",
     strip_prefix = "buildtools-840218fa3afc7e7145c1eeb3bfeb612c497e67f7",
-	sha256 = "0dba3995084990d557f3bbb7f7eca4ebcc71d5c9d758eca49342e69fc41e061c",
+    sha256 = "0dba3995084990d557f3bbb7f7eca4ebcc71d5c9d758eca49342e69fc41e061c",
     url = "https://github.com/bazelbuild/buildtools/archive/840218fa3afc7e7145c1eeb3bfeb612c497e67f7.zip",
 )
