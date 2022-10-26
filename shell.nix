@@ -4,7 +4,7 @@ with pkgs;
 
 mkShell {
   buildInputs = [
-    bazel
+    bazel_4
     binutils
     cacert
     gcc

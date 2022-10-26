@@ -9,7 +9,7 @@ load("@//:sparkle.bzl", "sparkle_package")
 
 haskell_library(
   name = "rdd-ops",
-  srcs = ["RDDOps.hs"],
+  srcs = ["Main.hs"],
   deps = [
     "//:sparkle-lib",
 	"@stackage//:base",

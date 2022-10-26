@@ -16,7 +16,7 @@ See [this blog post][hello-sparkle] for the details.
 The tl;dr using the `hello` app as an example on your local machine:
 ```
 $ nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.jar"
-$ nix-shell --pure --run "bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 $PWD/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar"
+$ nix-shell --pure --run "bazel run spark-submit -- --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.10.2 $PWD/bazel-bin/apps/hello/sparkle-example-hello_deploy.jar"
 ```
 
 You'll need [Nix][nix] for the above to work.

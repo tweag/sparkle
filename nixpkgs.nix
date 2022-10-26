@@ -3,14 +3,14 @@
 #
 # by going to a commit before the one introducing the regression.
 args:
-let pkgs = import (fetchTarball "https://github.com/tweag/nixpkgs/archive/46113713d4f25579e07b78116a61ab6f178f4153.tar.gz") args;
+let pkgs = import (fetchTarball "https://github.com/tweag/nixpkgs/archive/73ad5f9e147.tar.gz") args;
 
-    spark = pkgs.spark.override {
+    spark = pkgs.spark2.override {
       # TODO: Some part/dependency of spark is unable to cope with newer
       # jdks. The apps/rdd-ops example would fail. Needs further investigation.
-      jre = pkgs.openjdk8;
+      jdk8 = pkgs.openjdk8;
       # hadoop_2_8 allows spark to access s3 resources anonymously
-      hadoop = pkgs.hadoop_2_8;
+      hadoop = pkgs.hadoop2;
     };
 
     stack_ignore_global_hints = pkgs.writeScriptBin "stack" ''

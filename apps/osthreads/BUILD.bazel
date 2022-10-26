@@ -9,7 +9,7 @@ load("@//:sparkle.bzl", "sparkle_package")
 
 haskell_library(
   name = "osthreads-hs",
-  srcs = ["osthreads.hs"],
+  srcs = ["Main.hs"],
   deps = [
     "//:sparkle-lib",
     "@io_tweag_inline_java//jni",
