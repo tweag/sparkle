@@ -76,8 +76,14 @@ haskell_library(
 sh_binary(
     name = "spark-submit",
     srcs = ["@spark//:spark-submit"],
-    data = ["//apps/deltalake-glow:genotypes.vcf",
-    	    "//apps/deltalake-glow:continuous-phenotypes.csv",
+)
+
+sh_binary(
+    name = "spark-submit-with-data",
+    srcs = ["@spark//:spark-submit"],
+    data = [
+	    "//apps/deltalake-glow:genotypes.vcf",
+	    "//apps/deltalake-glow:continuous-phenotypes.csv",
 	    "//apps/deltalake-glow:covariates.csv"
 	    ],
 )

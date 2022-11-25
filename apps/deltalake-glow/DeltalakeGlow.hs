@@ -16,40 +16,72 @@ main = forwardUnhandledExceptionsToSpark $ do
     confSet conf "spark.sql.extensions" "io.delta.sql.DeltaSparkSessionExtension"
     confSet conf "spark.sql.catalog.spark_catalog" "org.apache.spark.sql.delta.catalog.DeltaCatalog"
 
-    session <- builder >>= (`config` conf) >>= getOrCreate >>= registerGlow >>= registerUDFDenseMatrix
+    session <- do { sess <- builder >>= (`config` conf) >>= getOrCreate
+                  ; session <- registerGlow sess >>= registerUDFDenseMatrix
+                  ; return session
+                  }
 
-    Dataset.read session >>= Dataset.formatReader "vcf" >>= Dataset.load "apps/deltalake-glow/genotypes.vcf" >>= Dataset.write >>= Dataset.formatWriter "delta" >>= Dataset.modeWriter "overwrite" >>= Dataset.save "delta-table-glow"
-    dfBaseVariant <- Dataset.read session >>= Dataset.formatReader "delta" >>= Dataset.load "delta-table-glow"
+    dfBaseVariant <- do { vcfReader <- Dataset.read session >>= Dataset.formatReader "vcf"
+                        ; df <- Dataset.load "apps/deltalake-glow/genotypes.vcf" vcfReader
+                        ; dfWriter <- Dataset.write df
+                        ; deltaWriter <- Dataset.formatWriter "delta" dfWriter >>= Dataset.modeWriter "overwrite"
+                        ; Dataset.save "delta-table-glow" deltaWriter
+                        ; deltaReader <- Dataset.read session >>= Dataset.formatReader "delta"
+                        ; dfBaseVariant <- Dataset.load "delta-table-glow" deltaReader
+                        ; return dfBaseVariant
+                        }
     Dataset.selectDS dfBaseVariant ["genotypes"] >>= Dataset.show
     Dataset.selectDS dfBaseVariant ["genotypes"] >>= Dataset.printSchema 
 
-    dfVariant <- Dataset.col dfBaseVariant "genotypes" >>= genotypeStates >>= \colGenotypeStates -> Dataset.withColumn "genotype values" colGenotypeStates dfBaseVariant
-    dfPhenotype <- Dataset.read session >>= Dataset.formatReader "csv" >>= Dataset.optionReader "header" "true" >>= Dataset.optionReader "inferSchema" "true" >>= Dataset.load "apps/deltalake-glow/continuous-phenotypes.csv"
-    dfPhenColNames <- Dataset.columns dfPhenotype    
-    phTrait1 <- Dataset.selectDS dfPhenotype [dfPhenColNames !! 1]
-    dfVariantPheno <- Dataset.as double phTrait1 >>= Dataset.collectAsList >>= lit >>= \phTrait1Col -> Dataset.withColumn "phenotype values" phTrait1Col dfVariant
-    phTrait1NameCol <- lit (dfPhenColNames !! 1)
-    dfVariantPheno1 <- Dataset.withColumn "phenotype" phTrait1NameCol dfVariantPheno
-    
-    dfCovariates <- Dataset.read session >>= Dataset.formatReader "csv" >>= Dataset.optionReader "header" "true" >>= Dataset.optionReader "inferSchema" "true" >>= Dataset.load "apps/deltalake-glow/covariates.csv" >>= Dataset.drop "sample_id"
-    nRowsCov <- Dataset.count dfCovariates
-    covColNames <- Dataset.columns dfCovariates
-    let nRows = (fromIntegral nRowsCov) :: Int32
-    let nCols = (fromIntegral (Prelude.length covColNames)) :: Int32    
-    dfVariantPhenoCov <- concatCov columnAsDoubleList dfCovariates covColNames >>= lit >>= \covariateCol -> Dataset.withColumn "covariates" covariateCol dfVariantPheno1 >>= \dfList -> callUDFDenseMatrix dfList nRows nCols  "covariates"
-       
+    dfVariant <- do { colGenotype <- Dataset.col dfBaseVariant "genotypes"
+                    ; colGenotypeStates <- genotypeStates colGenotype
+                    ; dfVariant <- Dataset.withColumn "genotype values" colGenotypeStates dfBaseVariant
+                    ; return dfVariant
+                    }
+    dfPhenotype <- do { csvReader <- Dataset.read session >>= Dataset.formatReader "csv"
+                      ; csvReaderOptions <- Dataset.optionReader "header" "true" csvReader >>= Dataset.optionReader "inferSchema" "true"
+                      ; dfPhenotype <- Dataset.load "apps/deltalake-glow/continuous-phenotypes.csv" csvReaderOptions
+                      ; return dfPhenotype
+                      }
+    dfVariantPheno1 <- do { dfPhenoColNames <- Dataset.columns dfPhenotype
+                          ; dfPhenoTrait1 <- Dataset.selectDS dfPhenotype [dfPhenoColNames !! 1]
+                          ; dfTrait1Double <- Dataset.as double dfPhenoTrait1
+                          ; colTrait1 <- Dataset.collectAsList dfTrait1Double >>= lit
+                          ; dfVariantPheno <- Dataset.withColumn "phenotype values" colTrait1 dfVariant
+                          ; colPhenoTrait1Name <- lit (dfPhenoColNames !! 1)
+                          ; dfVariantPheno1 <- Dataset.withColumn "phenotype" colPhenoTrait1Name dfVariantPheno
+                          ; return dfVariantPheno1
+                          }
+    dfCovariates <- do { csvReader <- Dataset.read session >>= Dataset.formatReader "csv"
+                       ; csvReaderOptions <- Dataset.optionReader "header" "true" csvReader >>= Dataset.optionReader "inferSchema" "true"
+                       ; dfCovariates <- Dataset.load "apps/deltalake-glow/covariates.csv" csvReaderOptions >>= Dataset.drop "sample_id"
+                       ; return dfCovariates
+                       }
+    dfVariantPhenoCov <- do { nRowsCov <- Dataset.count dfCovariates
+                            ; dfCovColNames <- Dataset.columns dfCovariates
+                            ; let nRows = (fromIntegral nRowsCov) :: Int32
+                            ; let nCols = (fromIntegral (Prelude.length dfCovColNames)) :: Int32
+                            ; colCovariate <- concatCov columnAsDoubleList dfCovariates dfCovColNames >>= lit
+                            ; dfCovariateList <- Dataset.withColumn "covariates" colCovariate dfVariantPheno1
+                            ; dfCovariateMatrix <- callUDFDenseMatrix dfCovariateList nRows nCols  "covariates"
+                            ; return dfCovariateMatrix
+                            }
     Dataset.selectDS dfVariantPhenoCov ["genotype values", "phenotype values", "cov"] >>= Dataset.printSchema
 
-    genoCol <- Dataset.col dfVariantPhenoCov "genotype values"
-    phenoCol <- Dataset.col dfVariantPhenoCov "phenotype values"
-    covCol <- Dataset.col dfVariantPhenoCov "cov"
-    contigCol <- Dataset.col dfVariantPhenoCov "contigName"
-    startCol <- Dataset.col dfVariantPhenoCov "start"
-    phenoNameCol <- Dataset.col dfVariantPhenoCov "phenotype"
-    regressionCol <- linearRegressionGwas genoCol phenoCol covCol >>= \regressionColumn -> alias regressionColumn "stats"
-    result <- Dataset.select dfVariantPhenoCov [contigCol, startCol, phenoNameCol, regressionCol]
-    resultExpand <- expr "expand_struct(stats)" >>= \statsCol -> Dataset.select result [contigCol, startCol, phenoNameCol, statsCol]
+    colGeno <- Dataset.col dfVariantPhenoCov "genotype values"
+    colPheno <- Dataset.col dfVariantPhenoCov "phenotype values"
+    colCov <- Dataset.col dfVariantPhenoCov "cov"
+    colContig <- Dataset.col dfVariantPhenoCov "contigName"
+    colStart <- Dataset.col dfVariantPhenoCov "start"
+    colPhenoName <- Dataset.col dfVariantPhenoCov "phenotype"
+    colRegression <- linearRegressionGwas colGeno colPheno colCov >>= \regressionColumn -> alias regressionColumn "stats"
+    result <- Dataset.select dfVariantPhenoCov [colContig, colStart, colPhenoName, colRegression]
+    resultExpand <- do { colResult <- expr "expand_struct(stats)"
+                       ; resultExpand <- Dataset.select result [colContig, colStart, colPhenoName, colResult]
+                       ; return resultExpand
+                       }
     Dataset.show resultExpand
-    Dataset.write resultExpand >>= Dataset.formatWriter "delta" >>= Dataset.modeWriter "overwrite" >>= Dataset.save "delta-table-glow-result"
-
-    
+    do { dfWriter <- Dataset.write resultExpand
+       ; deltaWriter <- Dataset.formatWriter "delta" dfWriter >>= Dataset.modeWriter "overwrite"
+       ; Dataset.save "delta-table-glow-result" deltaWriter
+       }
