@@ -16,9 +16,9 @@ haskell_library(
     "@maven//:io_delta_delta_core_2_11",
     "@maven//:io_projectglow_glow_spark2_2_11",
     "@io_tweag_inline_java//jvm",
-	"@stackage//:base",
-	"@stackage//:distributed-closure",
-	"@stackage//:text",
+    "@stackage//:base",
+    "@stackage//:distributed-closure",
+    "@stackage//:text",
   ],
 )
 

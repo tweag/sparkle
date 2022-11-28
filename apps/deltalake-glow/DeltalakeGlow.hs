@@ -17,8 +17,7 @@ main = forwardUnhandledExceptionsToSpark $ do
     confSet conf "spark.sql.catalog.spark_catalog" "org.apache.spark.sql.delta.catalog.DeltaCatalog"
 
     session <- do { sess <- builder >>= (`config` conf) >>= getOrCreate
-                  ; session <- registerGlow sess >>= registerUDFDenseMatrix
-                  ; return session
+                  ; registerGlow sess >>= registerUDFDenseMatrix
                   }
 
     dfBaseVariant <- do { vcfReader <- Dataset.read session >>= Dataset.formatReader "vcf"
@@ -27,21 +26,18 @@ main = forwardUnhandledExceptionsToSpark $ do
                         ; deltaWriter <- Dataset.formatWriter "delta" dfWriter >>= Dataset.modeWriter "overwrite"
                         ; Dataset.save "delta-table-glow" deltaWriter
                         ; deltaReader <- Dataset.read session >>= Dataset.formatReader "delta"
-                        ; dfBaseVariant <- Dataset.load "delta-table-glow" deltaReader
-                        ; return dfBaseVariant
+                        ; Dataset.load "delta-table-glow" deltaReader
                         }
     Dataset.selectDS dfBaseVariant ["genotypes"] >>= Dataset.show
     Dataset.selectDS dfBaseVariant ["genotypes"] >>= Dataset.printSchema 
 
     dfVariant <- do { colGenotype <- Dataset.col dfBaseVariant "genotypes"
                     ; colGenotypeStates <- genotypeStates colGenotype
-                    ; dfVariant <- Dataset.withColumn "genotype values" colGenotypeStates dfBaseVariant
-                    ; return dfVariant
+                    ; Dataset.withColumn "genotype values" colGenotypeStates dfBaseVariant
                     }
     dfPhenotype <- do { csvReader <- Dataset.read session >>= Dataset.formatReader "csv"
                       ; csvReaderOptions <- Dataset.optionReader "header" "true" csvReader >>= Dataset.optionReader "inferSchema" "true"
-                      ; dfPhenotype <- Dataset.load "apps/deltalake-glow/continuous-phenotypes.csv" csvReaderOptions
-                      ; return dfPhenotype
+                      ; Dataset.load "apps/deltalake-glow/continuous-phenotypes.csv" csvReaderOptions
                       }
     dfVariantPheno1 <- do { dfPhenoColNames <- Dataset.columns dfPhenotype
                           ; dfPhenoTrait1 <- Dataset.selectDS dfPhenotype [dfPhenoColNames !! 1]
@@ -49,13 +45,11 @@ main = forwardUnhandledExceptionsToSpark $ do
                           ; colTrait1 <- Dataset.collectAsList dfTrait1Double >>= lit
                           ; dfVariantPheno <- Dataset.withColumn "phenotype values" colTrait1 dfVariant
                           ; colPhenoTrait1Name <- lit (dfPhenoColNames !! 1)
-                          ; dfVariantPheno1 <- Dataset.withColumn "phenotype" colPhenoTrait1Name dfVariantPheno
-                          ; return dfVariantPheno1
+                          ; Dataset.withColumn "phenotype" colPhenoTrait1Name dfVariantPheno
                           }
     dfCovariates <- do { csvReader <- Dataset.read session >>= Dataset.formatReader "csv"
                        ; csvReaderOptions <- Dataset.optionReader "header" "true" csvReader >>= Dataset.optionReader "inferSchema" "true"
-                       ; dfCovariates <- Dataset.load "apps/deltalake-glow/covariates.csv" csvReaderOptions >>= Dataset.drop "sample_id"
-                       ; return dfCovariates
+                       ; Dataset.load "apps/deltalake-glow/covariates.csv" csvReaderOptions >>= Dataset.drop "sample_id"
                        }
     dfVariantPhenoCov <- do { nRowsCov <- Dataset.count dfCovariates
                             ; dfCovColNames <- Dataset.columns dfCovariates
@@ -63,8 +57,7 @@ main = forwardUnhandledExceptionsToSpark $ do
                             ; let nCols = (fromIntegral (Prelude.length dfCovColNames)) :: Int32
                             ; colCovariate <- concatCov columnAsDoubleList dfCovariates dfCovColNames >>= lit
                             ; dfCovariateList <- Dataset.withColumn "covariates" colCovariate dfVariantPheno1
-                            ; dfCovariateMatrix <- callUDFDenseMatrix dfCovariateList nRows nCols  "covariates"
-                            ; return dfCovariateMatrix
+                            ; callUDFDenseMatrix dfCovariateList nRows nCols  "covariates"
                             }
     Dataset.selectDS dfVariantPhenoCov ["genotype values", "phenotype values", "cov"] >>= Dataset.printSchema
 
@@ -77,8 +70,7 @@ main = forwardUnhandledExceptionsToSpark $ do
     colRegression <- linearRegressionGwas colGeno colPheno colCov >>= \regressionColumn -> alias regressionColumn "stats"
     result <- Dataset.select dfVariantPhenoCov [colContig, colStart, colPhenoName, colRegression]
     resultExpand <- do { colResult <- expr "expand_struct(stats)"
-                       ; resultExpand <- Dataset.select result [colContig, colStart, colPhenoName, colResult]
-                       ; return resultExpand
+                       ; Dataset.select result [colContig, colStart, colPhenoName, colResult]
                        }
     Dataset.show resultExpand
     do { dfWriter <- Dataset.write resultExpand
