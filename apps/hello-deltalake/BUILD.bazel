@@ -9,7 +9,7 @@ load("@//:sparkle.bzl", "sparkle_package")
 
 haskell_library(
   name = "hello-deltalake",
-  srcs = ["HelloDeltalake.hs"],
+  srcs = ["Main.hs"],
   deps = [
     "//:sparkle-lib",
 	"@stackage//:base",
