@@ -1,0 +1,29 @@
+package(default_visibility = ["//visibility:public"])
+exports_files(["genotypes.vcf", "continuous-phenotypes.csv", "covariates.csv"])
+
+load(
+  "@rules_haskell//haskell:defs.bzl",
+  "haskell_library",
+)
+
+load("@//:sparkle.bzl", "sparkle_package")
+
+haskell_library(
+  name = "deltalake-glow",
+  srcs = ["Main.hs"],
+  deps = [
+    "//:sparkle-lib",
+    "@maven//:io_delta_delta_core_2_11",
+    "@maven//:io_projectglow_glow_spark2_2_11",
+    "@io_tweag_inline_java//jvm",
+    "@stackage//:base",
+    "@stackage//:distributed-closure",
+    "@stackage//:text",
+  ],
+)
+
+sparkle_package(
+  name = "sparkle-example-deltalake-glow",
+  src = ":deltalake-glow",
+  resource_jars = ["@io_tweag_inline_java//jvm-batching:jar"],
+)

@@ -20,6 +20,7 @@ import Control.Distributed.Spark.ML.Feature.CountVectorizer as S
 import Control.Distributed.Spark.ML.Feature.RegexTokenizer as S
 import Control.Distributed.Spark.ML.Feature.StopWordsRemover as S
 import Control.Distributed.Spark.ML.LDA as S
+import Control.Distributed.Spark.ML.LinearRegressionGwas as S
 import Control.Distributed.Spark.PairRDD as S
 import Control.Distributed.Spark.SQL.Column as S hiding
   (count, first, mean)

@@ -62,6 +62,8 @@ load("@rules_jvm_external//:defs.bzl", "maven_install")
 
 maven_install(
     artifacts = [
+        "io.delta:delta-core_2.11:0.4.0",
+        "io.projectglow:glow-spark2_2.11:1.1.2",
         "org.apache.spark:spark-core_2.11:2.2.0",
         "org.apache.spark:spark-mllib_2.11:2.2.0",
         "org.apache.spark:spark-mllib-local_2.11:2.2.0",
