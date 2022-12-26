@@ -2,7 +2,7 @@ name: Build & test
 on:
   push:
 env:
-  BAZEL_ARGS: --repository_cache=/Users/distiller/repo-cache --disk_cache=/Users/distiller/disk-cache
+  BAZEL_ARGS: --repository_cache=/Users/runner/repo-cache --disk_cache=/Users/runner/disk-cache
 
 jobs:
   test:
