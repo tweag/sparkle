@@ -22,6 +22,8 @@ jobs:
           cachix watch-store tweag &
       - name: Configure
         run: mkdir -p ~/repo-cache ~/disk-cache
+      - name: Check
+        run: ls -la ~
 #      - uses: actions/cache@v3
 #        with:
 #          path: ~/repo-cache
