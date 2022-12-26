@@ -25,7 +25,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ~/repo-cache
-          restore-kyes: |
+          restore-keys: |
             - v1-sparkle-empty-${{ env.GITHUB_REF_NAME }}-
             - v1-sparkle-cache-${{ env.GITHUB_REF_NAME }}-
             - v1-sparkle-cache-master-
