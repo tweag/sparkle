@@ -11,7 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install Nix
-        run: sh <(curl -L https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
+        run: |
+          sh <(curl -L https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
+          echo "/nix" >> $GITHUB_PATH
       - name: Install cachix
         run: nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/46113713d4f25579e07b78116a61ab6f178f4153
       - name: Run cachix
