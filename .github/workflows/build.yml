@@ -23,7 +23,7 @@ jobs:
       - name: Configure
         run: mkdir -p ~/repo-cache ~/disk-cache
       - name: Check
-        run: ls -la ~
+        run: ls -la ~ && pwd
 #      - uses: actions/cache@v3
 #        with:
 #          path: ~/repo-cache
