@@ -15,7 +15,9 @@ jobs:
           sh <(curl -L https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
           echo "/nix/var/nix/profiles/default/bin" >> $GITHUB_PATH
       - name: Install cachix
-        run: nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/46113713d4f25579e07b78116a61ab6f178f4153
+        run: |
+          nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/46113713d4f25579e07b78116a61ab6f178f4153
+          find / -name cachix
       - name: Run cachix
         run: |
           cachix use tweag &
