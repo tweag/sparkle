@@ -17,11 +17,10 @@ jobs:
       - name: Install cachix
         run: |
           nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/46113713d4f25579e07b78116a61ab6f178f4153
-          echo "/nix/store/nymwl8c8z74x87phpjg8ka1g54sw8s1q-cachix-0.6.1/bin/cachix" >> $GITHUB_PATH
       - name: Run cachix
         run: |
-          cachix use tweag &
-          cachix watch-store tweag &
+          /nix/store/nymwl8c8z74x87phpjg8ka1g54sw8s1q-cachix-0.6.1/bin/cachix use tweag &
+          /nix/store/nymwl8c8z74x87phpjg8ka1g54sw8s1q-cachix-0.6.1/bin/cachix watch-store tweag &
       - name: Configure
         run: mkdir -p ~/repo-cache ~/disk-cache
 #      - uses: actions/cache@v3
