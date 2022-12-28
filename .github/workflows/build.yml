@@ -20,6 +20,7 @@ jobs:
           find /nix/store -name cachix | grep bin >> $GITHUB_PATH
       - name: Run cachix
         run: |
+          echo $GITHUB_PATH
           cachix use tweag &
           cachix watch-store tweag &
       - name: Configure
