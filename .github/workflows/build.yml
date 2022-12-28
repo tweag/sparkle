@@ -17,10 +17,9 @@ jobs:
       - name: Install cachix
         run: |
           nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/46113713d4f25579e07b78116a61ab6f178f4153
-          find /nix/store -name cachix | grep bin >> $GITHUB_PATH
+          find /nix/store -name cachix
       - name: Run cachix
         run: |
-          cat $GITHUB_PATH
           cachix use tweag &
           cachix watch-store tweag &
       - name: Configure
