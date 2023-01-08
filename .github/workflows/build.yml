@@ -7,55 +7,46 @@ env:
 jobs:
   test:
     name: Run test
-    runs-on: macos-12
+    runs-on: macos-11
     steps:
-      - uses: actions/checkout@v2
-      - name: Install Nix
-        run: |
-          sh <(curl -L https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
-          echo "/nix/var/nix/profiles/default/bin" >> $GITHUB_PATH
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install NixOS
+        uses: cachix/install-nix-action@v18
+        with:
+          nix_path: nixpkgs=./nixpkgs.nix
+
       - name: Install cachix
-        run: |
-          nix-env -iA cachix -f https://github.com/NixOS/nixpkgs/tarball/46113713d4f25579e07b78116a61ab6f178f4153
+        uses: cachix/cachix-action@v10
+        with:
+          name: tweag
+
       - name: Run cachix
-        run: |
-          /nix/store/nymwl8c8z74x87phpjg8ka1g54sw8s1q-cachix-0.6.1/bin/cachix use tweag &
-          /nix/store/nymwl8c8z74x87phpjg8ka1g54sw8s1q-cachix-0.6.1/bin/cachix watch-store tweag &
+        run: cachix watch-store tweag &
+
       - name: Configure
         run: mkdir -p ~/repo-cache ~/disk-cache
-#      - uses: actions/cache@v3
-#        with:
-#          path: ~/repo-cache
-#          restore-keys: |
-#            - v1-sparkle-empty-${{ env.GITHUB_REF_NAME }}-
-#            - v1-sparkle-cache-${{ env.GITHUB_REF_NAME }}-
-#            - v1-sparkle-cache-master-
+
       - name: Prefetch Stackage snapshot
         run: nix-shell --pure --run "cmd='bazel fetch @stackage//... $BAZEL_ARGS'; \$cmd || \$cmd || \$cmd"
+
       - name: Build all
         run: |
           while true; do echo "."; sleep 60; done &
           nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.jar $BAZEL_ARGS"
           nix-shell --pure --run "bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar $BAZEL_ARGS"
           nix-shell --pure --run "bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar $BAZEL_ARGS"
+
       - name: Install spark and hadoop
         run: |
           curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
           curl -L https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-without-hadoop.tgz | tar -xz
           curl -L https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz | tar -xz
+
       - name: Run tests
         run: |
           export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-2.10.1/bin/hadoop classpath)
           export PATH="$PWD/spark-2.4.8-bin-without-hadoop/bin:$PATH"
           spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
- #     - uses: actions/cache@v3
- #       with:
- #         key: v1-sparkle-cache-${{ env.GITHUB_REF_NAME }}-${{ env.GITHUB_RUN_NUMBER }}
- #         path: |
- #           - ~/repo-cache
- #           - ~/disk-cache
- #     - name: Clean up cache
- #       run: |
- #         rm -rf ~/repo-cache ~/disk-cache
- #         mkdir -p ~/repo-cache ~/disk-cache
-          
