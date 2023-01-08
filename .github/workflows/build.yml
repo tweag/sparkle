@@ -42,8 +42,10 @@ jobs:
       - name: Install spark and hadoop
         run: |
           curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
-          curl -L https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-without-hadoop.tgz | tar -xz
-          curl -L https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz | tar -xz
+          curl -L https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-without-hadoop.tgz
+          tar -xzf spark-2.4.8-bin-without-hadoop.tgz
+          curl -L https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz
+          tar -xzf hadoop-2.10.1.tar.gz
 
       - name: Run tests
         run: |
