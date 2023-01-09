@@ -43,9 +43,9 @@ jobs:
         run: |
           curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
           curl -L https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-without-hadoop.tgz
-          tar -xzf spark-3.3.1-bin-without-hadoop.tgz
+          tar -xz spark-3.3.1-bin-without-hadoop.tgz
           curl -L https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz
-          tar -xzf hadoop-2.10.1.tar.gz
+          tar -xz hadoop-2.10.1.tar.gz
 
       - name: Run tests
         run: |
