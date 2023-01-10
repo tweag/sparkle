@@ -45,11 +45,11 @@ jobs:
           curl -OL https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-without-hadoop.tgz
           tar -xzf spark-3.3.1-bin-without-hadoop.tgz
           curl -OL https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz
-          tar -xzf hadoop-3.3.1.tar.gz
+          tar -xzf hadoop-2.1.10.tar.gz
 
       - name: Run tests
         run: |
           export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-2.10.1/bin/hadoop classpath)
           export HADOOP_HOME=$PWD/hadoop-2.10.1
           export PATH="$PWD/spark-3.3.1-bin-without-hadoop/bin:$PATH"
-          spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:3.3.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+          spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.10.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
