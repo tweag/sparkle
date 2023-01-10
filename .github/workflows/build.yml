@@ -43,7 +43,7 @@ jobs:
         uses: vemonet/setup-spark@v1
         with:
           spark-version: '3.3.1'
-          hadoop-version: '3.2'
+          hadoop-version: '3.3.1'
 
       - name: Run tests
         run: spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.10.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
