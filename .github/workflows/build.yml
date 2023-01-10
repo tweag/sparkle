@@ -43,6 +43,7 @@ jobs:
         uses: vemonet/setup-spark@v1
         with:
           spark-version: '3.3.1'
+          spark-url: spark-3.3.1-bin-without-hadoop.tgz
           hadoop-version: '2.10.1'
 
       - name: Run tests
