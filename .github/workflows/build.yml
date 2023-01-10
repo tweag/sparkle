@@ -45,7 +45,7 @@ jobs:
           curl -OL https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-without-hadoop.tgz
           tar -xzf spark-3.3.1-bin-without-hadoop.tgz
           curl -OL https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz
-          tar -xzf hadoop-2.1.10.tar.gz
+          tar -xzf hadoop-2.10.1.tar.gz
 
       - name: Run tests
         run: |
