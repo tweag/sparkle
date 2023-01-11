@@ -46,4 +46,4 @@ jobs:
           hadoop-version: '3'
 
       - name: Run tests
-        run: spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.10.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+        run: spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:3.3.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
