@@ -40,10 +40,17 @@ jobs:
           nix-shell --pure --run "bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar $BAZEL_ARGS"
 
       - name: Install Apache Spark and Hadoop
-        uses: vemonet/setup-spark@v1
-        with:
-          spark-version: '3.3.1'
-          hadoop-version: '3'
+        run: |
+          curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
+          curl -OL https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-without-hadoop.tgz
+          tar -xzf spark-3.3.1-bin-without-hadoop.tgz
+          curl -OL https://downloads.apache.org/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
+          tar -xzf hadoop-3.3.1.tar.gz
 
       - name: Run tests
-        run: spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:3.3.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+        run: |
+          export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-3.3.1/bin/hadoop classpath)
+          export HADOOP_COMMON_LIB_NATIVE_DIR=$PWD/hadoop-3.3.1/lib/native
+          export HADOOP_OPTS="$HADOOP_OPTS -Djava.library.path=$PWD/hadoop-3.3.1/lib/native"
+          export PATH="$PWD/spark-3.3.1-bin-without-hadoop/bin:$PATH"
+          spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:3.3.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
