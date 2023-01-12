@@ -51,4 +51,7 @@ jobs:
         run: |
           export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-3.3.1/bin/hadoop classpath)
           export PATH="$PWD/spark-3.3.1-bin-hadoop2/bin:$PATH"
+          # Remove quarantine flags from executables to avoid getting killed with a signal 9
+          # See https://github.com/dotnet/spark/blob/main/docs/getting-started/macos-instructions.md
+          xattr -d com.apple.quarantine spark-3.3.1-bin/hadoop2/bin/*
           spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:3.3.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
