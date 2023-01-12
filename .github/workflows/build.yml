@@ -53,5 +53,5 @@ jobs:
           export PATH="$PWD/spark-2.4.8-bin-without-hadoop/bin:$PATH"
           # Remove quarantine flags from executables to avoid getting killed with a signal 9
           # See https://github.com/dotnet/spark/blob/main/docs/getting-started/macos-instructions.md
-          xattr -d com.apple.quarantine spark-2.4.8-bin/hadoop2/bin/*
+          xattr -d com.apple.quarantine spark-2.4.8-bin-without-hadoop/bin/*
           spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
