@@ -43,12 +43,10 @@ jobs:
         run: |
           curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
           curl -OL https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop2.tgz
-          tar -xzf spark-3.3.1-bin-hadoop3.tgz
-          curl -OL https://downloads.apache.org/hadoop/hadoop-3.3.1/hadoop-3.3.1.tgz
-          tar -xzf hadoop-3.3.1.tgz
+          tar -xzf spark-3.3.1-bin-hadoop2.tgz
 
       - name: Run tests
         run: |
-          export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-3.3.1/bin/hadoop classpath)
+          export SPARK_HOME="$PWD/spark-3.3.1-bin-hadoop2"
           export PATH="$PWD/spark-3.3.1-bin-hadoop2/bin:$PATH"
           spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:3.3.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
