@@ -14,7 +14,7 @@ version: 2
 jobs:
   build-darwin:
     macos:
-      xcode: "12.5.0"
+      xcode: "12.5.1"
     environment:
       BAZEL_ARGS: --repository_cache=/Users/distiller/repo-cache --disk_cache=/Users/distiller/disk-cache
     steps:
