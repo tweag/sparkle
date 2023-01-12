@@ -42,16 +42,16 @@ jobs:
       - name: Install Apache Spark and Hadoop
         run: |
           curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
-          curl -OL https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop2.tgz
-          tar -xzf spark-3.3.1-bin-hadoop3.tgz
-          curl -OL https://downloads.apache.org/hadoop/hadoop-3.3.1/hadoop-3.3.1.tgz
-          tar -xzf hadoop-3.3.1.tgz
+          curl -OL https://archive.apache.org/dist/spark/spark-2.4.8/spark-2.4.8-bin-without-hadoop.tgz
+          tar -xzf spark-2.4.8-bin-without-hadoop.tgz
+          curl -OL https://archive.apache.org/dist/hadoop/core/hadoop-2.10.1/hadoop-2.10.1.tar.gz
+          tar -xzf hadoop-2.10.1.tar.gz
 
       - name: Run tests
         run: |
-          export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-3.3.1/bin/hadoop classpath)
-          export PATH="$PWD/spark-3.3.1-bin-hadoop2/bin:$PATH"
+          export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-2.10.1/bin/hadoop classpath)
+          export PATH="$PWD/spark-2.4.8-bin-without-hadoop/bin:$PATH"
           # Remove quarantine flags from executables to avoid getting killed with a signal 9
           # See https://github.com/dotnet/spark/blob/main/docs/getting-started/macos-instructions.md
-          xattr -d com.apple.quarantine spark-3.3.1-bin/hadoop2/bin/*
-          spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:3.3.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+          xattr -d com.apple.quarantine spark-2.4.8-bin/hadoop2/bin/*
+          spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
