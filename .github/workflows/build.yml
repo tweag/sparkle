@@ -49,6 +49,7 @@ jobs:
 
       - name: Run tests
         run: |
+          cp $PWD/hadoop-3.3.1/lib/native/* $PWD/hadoop-3.3.1/lib/
           export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-1.7.30.jar:$(hadoop-3.3.1/bin/hadoop classpath)
-          export PATH="$PWD/spark-3.3.1-bin-without-hadoop/bin:$PWD/hadoop-3.3.1/bin:$PATH"
+          export PATH="$PWD/spark-3.3.1-bin-without-hadoop/bin:$PATH"
           spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:3.3.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
