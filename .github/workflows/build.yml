@@ -3,6 +3,9 @@ on:
   push:
 env:
   BAZEL_ARGS: --repository_cache=~/repo-cache --disk_cache=~/disk-cache
+  HADOOP_VERSION: 2.10.1
+  SPARK_VERSION: 2.4.8
+  SFL4J_VERSION: 1.7.30
 
 jobs:
   test:
@@ -41,12 +44,14 @@ jobs:
 
       - name: Install Apache Spark and Hadoop
         run: |
-          curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
-          curl -OL https://downloads.apache.org/spark/spark-3.3.1/spark-3.3.1-bin-hadoop2.tgz
-          tar -xzf spark-3.3.1-bin-hadoop2.tgz
+          curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/${SFL4J_VERSION}/slf4j-api-${SFL4J_VERSION}.jar
+          curl -OL https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz
+          tar -xzf spark-${SPARK_VERSION}-bin-without-hadoop.tgz
+          curl -OL https://archive.apache.org/dist/hadoop/core/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz
+          tar -xzf hadoop-${HADOOP_VERSION}.tar.gz
 
       - name: Run tests
         run: |
-          export SPARK_HOME="$PWD/spark-3.3.1-bin-hadoop2"
-          export PATH="$PWD/spark-3.3.1-bin-hadoop2/bin:$PATH"
-          spark-submit --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:3.3.1 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+          export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-${SFL4J_VERSION}.jar:$(hadoop-${HADOOP_VERSION}/bin/hadoop classpath)
+          export PATH="$PWD/spark-${SPARK_VERSION}-bin-without-hadoop/bin:$PATH"
+          spark-submit -v --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
