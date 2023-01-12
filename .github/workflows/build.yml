@@ -7,7 +7,7 @@ env:
 jobs:
   test:
     name: Run test
-    runs-on: macos-12
+    runs-on: macos-11
     steps:
 
       - name: Checkout
