@@ -50,13 +50,11 @@ jobs:
           curl -OL https://archive.apache.org/dist/hadoop/core/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz
           tar -xzf hadoop-${HADOOP_VERSION}.tar.gz
 
-      - name: Install Java
+      - name: Run tests
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
-
-      - name: Run tests
         run: |
           export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-${SFL4J_VERSION}.jar:$(hadoop-${HADOOP_VERSION}/bin/hadoop classpath)
           export PATH="$PWD/spark-${SPARK_VERSION}-bin-without-hadoop/bin:$PATH"
