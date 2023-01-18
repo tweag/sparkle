@@ -14,7 +14,7 @@ version: 2
 jobs:
   build-darwin:
     macos:
-      xcode: "12.5.0"
+      xcode: "12.5.1"
     environment:
       BAZEL_ARGS: --repository_cache=/Users/distiller/repo-cache --disk_cache=/Users/distiller/disk-cache
     steps:
@@ -28,7 +28,7 @@ jobs:
       - run:
           name: Install Nix
           command: |
-            sh <(curl -L https://nixos.org/nix/install) --darwin-use-unencrypted-nix-store-volume
+            sh <(curl -L https://nixos.org/nix/install) --daemon --yes
 
       - run:
           name: Install cachix
@@ -79,8 +79,8 @@ jobs:
           command: |
             # We roll our own installation of spark in OSX since nixpkgs doesn't support building hadoop
             curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar
-            curl -L https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-without-hadoop.tgz | tar -xz
-            curl -L https://downloads.apache.org/hadoop/common/hadoop-2.10.1/hadoop-2.10.1.tar.gz | tar -xz
+            curl -L https://archive.apache.org/dist/spark/spark-2.4.8/spark-2.4.8-bin-without-hadoop.tgz | tar -xz
+            curl -L https://archive.apache.org/dist/hadoop/core/hadoop-2.10.1/hadoop-2.10.1.tar.gz | tar -xz
 
       - run:
           name: Run tests
