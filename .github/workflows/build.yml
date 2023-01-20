@@ -19,7 +19,7 @@ jobs:
         with:
           nix_path: nixpkgs=./nixpkgs.nix
 
-      - name: Build and test with Bazel
+      # - name: Build and test with Bazel
       - run: echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
       - run: nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
       - run: nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
