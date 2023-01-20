@@ -19,7 +19,6 @@ jobs:
         with:
           nix_path: nixpkgs=./nixpkgs.nix
 
-      # - name: Build and test with Bazel
       - run: echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
       - run: nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
       - run: nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
@@ -44,50 +43,50 @@ jobs:
       - run: nix-shell --pure --run "bazel run spark-submit-with-data -- --packages io.delta:delta-core_2.11:0.4.0,io.projectglow:glow-spark2_2.11:1.1.2 $(pwd)/bazel-bin/apps/deltalake-glow/sparkle-example-deltalake-glow_deploy.jar"
       - run: spark-submit bazel-bin/apps/osthreads/sparkle-example-osthreads_deploy.jar | tee out.txt || grep "Job |           pool | start time (s) | end time (s)" out.txt 
 
-  # build_and_test_with_macos:
-  #   name: Build and Test with MacOs Runner
-  #   runs-on: macos-11
-  #   steps:
+  build_and_test_with_macos:
+    name: Build and Test with MacOs Runner
+    runs-on: macos-11
+    steps:
 
-  #     - name: Checkout
-  #       uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
-  #     - name: Install NixOS
-  #       uses: cachix/install-nix-action@v18
-  #       with:
-  #         nix_path: nixpkgs=./nixpkgs.nix
+      - name: Install NixOS
+        uses: cachix/install-nix-action@v18
+        with:
+          nix_path: nixpkgs=./nixpkgs.nix
 
-  #     - name: Install cachix
-  #       uses: cachix/cachix-action@v10
-  #       with:
-  #         name: tweag
+      - name: Install cachix
+        uses: cachix/cachix-action@v10
+        with:
+          name: tweag
 
-  #     - name: Run cachix
-  #       run: cachix watch-store tweag &
+      - name: Run cachix
+        run: cachix watch-store tweag &
 
-  #     - name: Configure
-  #       run: mkdir -p ~/repo-cache ~/disk-cache
+      - name: Configure
+        run: mkdir -p ~/repo-cache ~/disk-cache
 
-  #     - name: Prefetch Stackage snapshot
-  #       run: nix-shell --pure --run "cmd='bazel fetch @stackage//... $BAZEL_ARGS'; \$cmd || \$cmd || \$cmd"
+      - name: Prefetch Stackage snapshot
+        run: nix-shell --pure --run "cmd='bazel fetch @stackage//... $BAZEL_ARGS'; \$cmd || \$cmd || \$cmd"
 
-  #     - name: Build all
-  #       run: |
-  #         while true; do echo "."; sleep 60; done &
-  #         nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.jar $BAZEL_ARGS"
-  #         nix-shell --pure --run "bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar $BAZEL_ARGS"
-  #         nix-shell --pure --run "bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar $BAZEL_ARGS"
+      - name: Build all
+        run: |
+          while true; do echo "."; sleep 60; done &
+          nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.jar $BAZEL_ARGS"
+          nix-shell --pure --run "bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar $BAZEL_ARGS"
+          nix-shell --pure --run "bazel build //apps/osthreads:sparkle-example-osthreads_deploy.jar $BAZEL_ARGS"
 
-  #     - name: Install Apache Spark and Hadoop
-  #       run: |
-  #         curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/${SFL4J_VERSION}/slf4j-api-${SFL4J_VERSION}.jar
-  #         curl -OL https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz
-  #         tar -xzf spark-${SPARK_VERSION}-bin-without-hadoop.tgz
-  #         curl -OL https://archive.apache.org/dist/hadoop/core/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz
-  #         tar -xzf hadoop-${HADOOP_VERSION}.tar.gz
+      - name: Install Apache Spark and Hadoop
+        run: |
+          curl -OL https://repo1.maven.org/maven2/org/slf4j/slf4j-api/${SFL4J_VERSION}/slf4j-api-${SFL4J_VERSION}.jar
+          curl -OL https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz
+          tar -xzf spark-${SPARK_VERSION}-bin-without-hadoop.tgz
+          curl -OL https://archive.apache.org/dist/hadoop/core/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz
+          tar -xzf hadoop-${HADOOP_VERSION}.tar.gz
 
-  #     - name: Run tests
-  #       run: |
-  #         export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-${SFL4J_VERSION}.jar:$(hadoop-${HADOOP_VERSION}/bin/hadoop classpath)
-  #         export PATH="$PWD/spark-${SPARK_VERSION}-bin-without-hadoop/bin:$PATH"
-  #         spark-submit -v --executor-cores 1 --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
+      - name: Run tests
+        run: |
+          export SPARK_DIST_CLASSPATH=$PWD/slf4j-api-${SFL4J_VERSION}.jar:$(hadoop-${HADOOP_VERSION}/bin/hadoop classpath)
+          export PATH="$PWD/spark-${SPARK_VERSION}-bin-without-hadoop/bin:$PATH"
+          spark-submit -v --executor-cores 1 --packages com.amazonaws:aws-java-sdk:1.11.920,org.apache.hadoop:hadoop-aws:2.8.4 bazel-bin/apps/hello/sparkle-example-hello_deploy.jar
