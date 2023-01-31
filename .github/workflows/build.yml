@@ -61,6 +61,7 @@ jobs:
       - run: nix-shell --pure --run "bazel run spark-submit -- --packages io.delta:delta-core_2.11:0.4.0 $(pwd)/bazel-bin/apps/hello-deltalake/sparkle-example-hello-deltalake_deploy.jar"
       - run: nix-shell --pure --run "bazel run spark-submit-with-data -- --packages io.delta:delta-core_2.11:0.4.0,io.projectglow:glow-spark2_2.11:1.1.2 $(pwd)/bazel-bin/apps/deltalake-glow/sparkle-example-deltalake-glow_deploy.jar"
       - run: spark-submit bazel-bin/apps/osthreads/sparkle-example-osthreads_deploy.jar | tee out.txt || grep "Job |           pool | start time (s) | end time (s)" out.txt 
+     
       - uses: actions/cache/save@v3
         if: github.ref == 'refs/heads/master'
         with:
