@@ -1,7 +1,9 @@
 name: Build & test
 on: [push]
 env:
-  BAZEL_ARGS: --repository_cache=~/repo-cache --disk_cache=~/disk-cache
+  BAZEL_REPO_CACHE: ~/repo-cache
+  BAZEL_DISK_CACHE: ~/disk-cache
+  BAZEL_ARGS: --repository_cache=$BAZEL_REPO_CACHE --disk_cache=$BAZEL_DISK_CACHE
   HADOOP_VERSION: 2.10.1
   SPARK_VERSION: 2.4.8
   SFL4J_VERSION: 1.7.30
@@ -19,7 +21,37 @@ jobs:
         with:
           nix_path: nixpkgs=./nixpkgs.nix
 
-      - run: echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
+      - name: Configure
+        run: |
+          mkdir -p ~/repo-cache ~/disk-cache
+          echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
+
+      - name: Mount Bazel cache
+        uses: actions/cache/restore@v3
+        if: github.ref != 'refs/heads/master'
+        id: restore-cache
+        with:
+          path: |
+            ~/repo-cache
+            ~/disk-cache
+          key: repo-cache-${{ runner.os }}-haskell-nixpkgs-${{ env.cache-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            repo-cache-${{ runner.os }}-haskell-nixpkgs-${{ env.cache-version }}-          
+
+      # - name: Save Bazel cache
+      #   uses: actions/cache/save@v3
+      #   id: save-cache
+      #   with:
+      #     path: |
+      #       ~/repo-cache
+      #       ~/disk-cache
+      #     key: repo-cache-${{ runner.os }}-haskell-nixpkgs-${{ env.cache-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+      #     # Remove leading and trailing whitespaces
+      #     invalidate-output-patterns: |
+      #       (?i)^\s*.*$
+
+
+      # - run: echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
       - run: nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
       - run: nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
       - run: nix-shell --pure --run 'bazel build //apps/dataframe:sparkle-example-dataframe_deploy.jar'
