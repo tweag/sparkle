@@ -34,9 +34,9 @@ jobs:
           path: |
             ~/repo-cache
             ~/disk-cache
-          key: repo-cache-${{ runner.os }}-haskell-nixpkgs-${{ env.cache-version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: repo-cache-${{ runner.os }}-sparkle-nixpkgs-${{ env.cache-version }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            repo-cache-${{ runner.os }}-haskell-nixpkgs-${{ env.cache-version }}-          
+            repo-cache-${{ runner.os }}-sparkle-nixpkgs-${{ env.cache-version }}-          
 
       # - run: echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
       - run: nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
@@ -61,6 +61,13 @@ jobs:
       - run: nix-shell --pure --run "bazel run spark-submit -- --packages io.delta:delta-core_2.11:0.4.0 $(pwd)/bazel-bin/apps/hello-deltalake/sparkle-example-hello-deltalake_deploy.jar"
       - run: nix-shell --pure --run "bazel run spark-submit-with-data -- --packages io.delta:delta-core_2.11:0.4.0,io.projectglow:glow-spark2_2.11:1.1.2 $(pwd)/bazel-bin/apps/deltalake-glow/sparkle-example-deltalake-glow_deploy.jar"
       - run: spark-submit bazel-bin/apps/osthreads/sparkle-example-osthreads_deploy.jar | tee out.txt || grep "Job |           pool | start time (s) | end time (s)" out.txt 
+      - uses: actions/cache/save@v3
+        if: github.ref == 'refs/heads/master'
+        with:
+          path: |
+            ~/repo-cache
+            ~/disk-cache
+          key: repo-cache-${{ runner.os }}-sparkle-nixpkgs-${{ env.cache-version }}-${{ github.run_id }}-${{ github.run_attempt }}
 
   build_and_test_with_macos:
     name: Build and Test with MacOs Runner
