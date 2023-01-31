@@ -38,19 +38,6 @@ jobs:
           restore-keys: |
             repo-cache-${{ runner.os }}-haskell-nixpkgs-${{ env.cache-version }}-          
 
-      # - name: Save Bazel cache
-      #   uses: actions/cache/save@v3
-      #   id: save-cache
-      #   with:
-      #     path: |
-      #       ~/repo-cache
-      #       ~/disk-cache
-      #     key: repo-cache-${{ runner.os }}-haskell-nixpkgs-${{ env.cache-version }}-${{ github.run_id }}-${{ github.run_attempt }}
-      #     # Remove leading and trailing whitespaces
-      #     invalidate-output-patterns: |
-      #       (?i)^\s*.*$
-
-
       # - run: echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
       - run: nix-shell --pure --run 'bazel build //apps/hello:sparkle-example-hello_deploy.jar'
       - run: nix-shell --pure --run 'bazel build //apps/rdd-ops:sparkle-example-rddops_deploy.jar'
