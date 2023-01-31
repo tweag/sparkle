@@ -65,7 +65,7 @@ jobs:
           spark-submit bazel-bin/apps/osthreads/sparkle-example-osthreads_deploy.jar | tee out.txt || grep "Job |           pool | start time (s) | end time (s)" out.txt 
      
       - uses: actions/cache/save@v3
-        if: github.ref !== 'refs/heads/master'
+        if: github.ref != 'refs/heads/master'
         with:
           path: |
             ~/repo-cache
