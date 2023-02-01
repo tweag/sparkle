@@ -89,7 +89,7 @@ $ nix-shell --pure --run "bazel build //apps/hello:sparkle-example-hello_deploy.
 #### Other platforms
 
 `sparkle` builds in Mac OS X, but running it requires installing binaries
-for `Spark` and maybe `Hadoop` (See [.circleci/config.yml](.circleci/config.yml).
+for `Spark` and maybe `Hadoop` (See [.github/workflows/build.yml](.github/workflows/build.yml).
 
 Another alternative is to build and run `sparkle` via Docker in non-Linux
 platforms, using a docker image provisioned with Nix.
