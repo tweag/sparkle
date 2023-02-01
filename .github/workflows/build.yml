@@ -7,6 +7,7 @@ env:
   HADOOP_VERSION: 2.10.1
   SPARK_VERSION: 2.4.8
   SFL4J_VERSION: 1.7.30
+  cache-version: ${{ env.GITHUB_SHA }}
 
 jobs:
   build_and_test_with_linux:
