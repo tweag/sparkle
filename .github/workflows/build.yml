@@ -38,6 +38,7 @@ jobs:
           restore-keys: |
             repo-cache-${{ runner.os }}-nixpkgs-${{ env.cache-version }}-        
 
+     
       # - run: echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
       - name: Build and Test
         run: |
