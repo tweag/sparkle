@@ -24,7 +24,7 @@ jobs:
       - name: Configure
         run: |
           mkdir -p ~/repo-cache ~/disk-cache
-          echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
+          echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs $BAZEL_ARGS" > .bazelrc.local
 
       - name: Mount Bazel cache
         uses: actions/cache/restore@v3
