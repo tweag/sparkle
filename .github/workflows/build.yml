@@ -34,9 +34,9 @@ jobs:
           path: |
             ~/repo-cache
             ~/disk-cache
-          key: repo-cache-${{ runner.os }}-nixpkgs-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: repo-cache-${{ runner.os }}-nixpkgs-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            repo-cache-${{ runner.os }}-nixpkgs-${{ github.sha }}-        
+            repo-cache-${{ runner.os }}-nixpkgs-        
 
      
       # - run: echo "build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs" > .bazelrc.local
@@ -69,7 +69,7 @@ jobs:
           path: |
             ~/repo-cache
             ~/disk-cache
-          key: repo-cache-${{ runner.os }}-nixpkgs-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: repo-cache-${{ runner.os }}-nixpkgs-${{ github.run_id }}-${{ github.run_attempt }}
 
   build_and_test_with_macos:
     name: Build and Test with MacOs Runner
