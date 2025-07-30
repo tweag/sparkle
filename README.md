@@ -105,7 +105,7 @@ modules, which requires running the `javac` compiler, which must be
 available in the `PATH` of the shell. Moreover, `javac` needs to find
 the Spark classes that `inline-java` quotations refer to. Therefore,
 these classes need to be added to the `CLASSPATH` when building sparkle.
-Dependending on your build system, how to do this might vary. In this
+Depending on your build system, how to do this might vary. In this
 repo, we use `gradle` to install Spark, and we query `gradle` to get
 the paths we need to add to the `CLASSPATH`.
 
